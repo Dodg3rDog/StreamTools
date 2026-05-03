@@ -1,0 +1,31 @@
+/* ------------------------------------------------------------
+   00) StreamTools Theme Tokens
+------------------------------------------------------------ */
+
+:root {
+  --st-color-primary: #1e7bff;
+  --st-color-accent: #00d4ff;
+  --st-color-warning: #ffcc00;
+  --st-color-danger: #ff3b3b;
+  --st-color-success: #39d98a;
+  --st-color-text: #ffffff;
+  --st-color-muted: rgba(255, 255, 255, 0.72);
+  --st-color-panel: rgba(8, 12, 18, 0.84);
+  --st-color-border: rgba(255, 255, 255, 0.18);
+  --st-radius-sm: 4px;
+  --st-radius-md: 8px;
+  --st-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --st-font-body: Arial, Helvetica, sans-serif;
+}
+
+body {
+  color: var(--st-color-text);
+  font-family: var(--st-font-body);
+}
+
+.st-panel {
+  background: var(--st-color-panel);
+  border: 1px solid var(--st-color-border);
+  border-radius: var(--st-radius-md);
+  box-shadow: var(--st-shadow-soft);
+}

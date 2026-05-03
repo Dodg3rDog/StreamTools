@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+server/node_modules/
+
+# environment secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# logs
+logs/
+*.log
+
+# backups and archives
+backups/
+*.zip
+*.7z
+*.rar
+
+# local runtime/cache files
+.cache/
+*.pid
+
+# operating system files
+.DS_Store
+Thumbs.db
+
+# editor files
+.vscode/
+.idea/
+
+# active machine-specific browser config
+public/shared/config/streamtools.config.js
+!public/shared/config/streamtools.config.example.js
+!public/shared/config/streamtools.config.live.example.js
