@@ -10,6 +10,39 @@ Shows the Anthro-Corp PiShock containment dashboard for OBS browser sources.
 http://<your-lan-ip>:3030/widgets/pishock-status/
 ```
 
+## Workshop Testing
+
+Use the workshop server when testing changes locally. It defaults to `127.0.0.1:3054` and does not use the live web server address.
+
+```bash
+cd server
+npm run start:workshop
+```
+
+Open the widget:
+
+```text
+http://127.0.0.1:3054/widgets/pishock-status/
+```
+
+Useful test URLs:
+
+```text
+Full:    http://127.0.0.1:3054/widgets/pishock-status/
+Compact: http://127.0.0.1:3054/widgets/pishock-status/?mode=compact
+Mini:    http://127.0.0.1:3054/widgets/pishock-status/?mode=mini
+Gauge:   http://127.0.0.1:3054/widgets/pishock-status/?mode=gauge&transparent=true
+Ticker:  http://127.0.0.1:3054/widgets/pishock-status/?mode=ticker&transparent=true
+Stage:   http://127.0.0.1:3054/widgets/pishock-status/?mode=stage&transparent=true
+```
+
+To use a different workshop port:
+
+```bash
+set PORT=3055
+npm run start:workshop
+```
+
 ## Recommended OBS Settings
 
 - Width: 1920

@@ -1,0 +1,14 @@
+// ------------------------------------------------------------
+// Workshop Server Startup
+// ------------------------------------------------------------
+// Starts StreamTools on a local-only workshop port so testing does
+// not collide with the live web server address.
+
+process.env.HOST = process.env.HOST || "127.0.0.1";
+process.env.PORT = process.env.PORT || "3054";
+
+console.log("[Workshop] Starting StreamTools workshop server");
+console.log(`[Workshop] Widget: http://${process.env.HOST}:${process.env.PORT}/widgets/pishock-status/`);
+console.log(`[Workshop] Health: http://${process.env.HOST}:${process.env.PORT}/health`);
+
+require("../server");

@@ -4,7 +4,8 @@
   "description": "Backend for StreamTools widgets",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:workshop": "node scripts/start-workshop.js"
   },
   "keywords": [],
   "author": "",

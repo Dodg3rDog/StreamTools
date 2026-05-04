@@ -34,3 +34,6 @@ Thumbs.db
 public/shared/config/streamtools.config.js
 !public/shared/config/streamtools.config.example.js
 !public/shared/config/streamtools.config.live.example.js
+
+# private Streamer.bot scripts
+streamerbot/csharp/pishock/PiShock V2.cs
