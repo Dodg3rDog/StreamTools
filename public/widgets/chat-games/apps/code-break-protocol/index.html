@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Code Break Protocol</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="/shared/config/streamtools.config.js"></script>
+  <script src="/shared/js/apiClient.js"></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main class="protocol" id="protocol">
+    <section class="terminal">
+      <header class="terminal-header">
+        <div>
+          <p class="eyebrow">AnthroCorp Training Module</p>
+          <h1>Code Break Protocol</h1>
+        </div>
+        <div class="status-pill" id="statusPill">STANDBY</div>
+      </header>
+
+      <section class="briefing">
+        <div>
+          <p class="label">Incident Meter</p>
+          <div class="meter">
+            <div class="meter-fill" id="meterFill"></div>
+          </div>
+        </div>
+        <div class="meta-grid">
+          <div>
+            <p class="label">Misses</p>
+            <strong id="missCount">0 / 6</strong>
+          </div>
+          <div>
+            <p class="label">Guesses</p>
+            <strong id="guessCount">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="code-panel">
+        <p class="label">Redacted Protocol Phrase</p>
+        <div class="phrase" id="phrase">- - -</div>
+      </section>
+
+      <section class="letters" id="letters" aria-label="Guessed letters"></section>
+
+      <section class="event-log">
+        <p class="label">System Log</p>
+        <div id="eventLog"></div>
+      </section>
+
+      <form class="controls" id="controlsForm">
+        <input id="guessInput" autocomplete="off" maxlength="60" placeholder="Letter or phrase" />
+        <button type="submit">Submit Guess</button>
+        <button type="button" id="newGameButton">New Protocol</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
+

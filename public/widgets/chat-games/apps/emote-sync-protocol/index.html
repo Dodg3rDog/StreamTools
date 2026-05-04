@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emote Sync Protocol</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="/shared/config/streamtools.config.js"></script>
+  <script src="/shared/js/apiClient.js"></script>
+  <script src="./emotes.config.js"></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main class="sync-module">
+    <section class="panel">
+      <header class="header">
+        <div>
+          <p class="eyebrow">AnthroCorp Cooperative Training</p>
+          <h1>Emote Sync Protocol</h1>
+        </div>
+        <div class="header-stats">
+          <div class="score-card"><span>Score</span><strong id="scoreCount">0</strong></div>
+          <div class="score-card"><span>Record</span><strong id="highScoreCount">0</strong></div>
+          <div class="status" id="status">STANDBY</div>
+        </div>
+      </header>
+
+      <section class="sequence-card">
+        <div class="sync-alert" id="syncAlert">SIGNAL SYNCHRONIZED</div>
+        <div class="section-title">Target Signal Pattern</div>
+        <div class="sequence" id="sequence"></div>
+      </section>
+
+      <section class="progress-row">
+        <div>
+          <p class="label">Sync Progress</p>
+          <div class="meter"><div id="progressFill"></div></div>
+        </div>
+        <div class="counter-grid">
+          <div><span>Step</span><strong id="stepCount">0 / 0</strong></div>
+          <div><span>Timer</span><strong id="timerCount">00</strong></div>
+          <div><span>Round</span><strong id="roundCount">0</strong></div>
+        </div>
+      </section>
+
+      <section class="incoming">
+        <p class="label">Last Transmission</p>
+        <div class="incoming-card" id="lastSubmission">Awaiting chat input...</div>
+      </section>
+
+      <section class="strikes-panel">
+        <p class="label">Desync Strikes</p>
+        <div class="strike-slots" id="strikeSlots"></div>
+      </section>
+
+      <section class="event-log">
+        <p class="label">Relay Log</p>
+        <div id="eventLog"></div>
+      </section>
+
+      <section class="leaders">
+        <div>
+          <p class="label">Top Sync Contributors</p>
+          <div id="correctLeaders"></div>
+        </div>
+        <div>
+          <p class="label">Top Desync Sources</p>
+          <div id="incorrectLeaders"></div>
+        </div>
+      </section>
+
+      <form class="controls" id="controlsForm">
+        <input id="submitInput" autocomplete="off" placeholder="Emote name" />
+        <button type="submit">Submit</button>
+        <button type="button" id="newRoundButton">New Pattern</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

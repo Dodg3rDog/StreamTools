@@ -12,6 +12,8 @@ const healthRoutes = require("./routes/health");
 const timerRoutes = require("./routes/timers");
 const pishockRoutes = require("./routes/pishock");
 const drawingSlotMachineRoutes = require("./routes/drawing-slot-machine");
+const codeBreakProtocolRoutes = require("./routes/chat-games-code-break-protocol");
+const emoteSyncProtocolRoutes = require("./routes/chat-games-emote-sync-protocol");
 
 const app = express();
 
@@ -36,6 +38,8 @@ app.use("/api", healthRoutes);
 app.use("/api/timers", timerRoutes);
 app.use("/api/pishock", pishockRoutes);
 app.use("/api/drawing-slot-machine", drawingSlotMachineRoutes);
+app.use("/api/chat-games/code-break-protocol", codeBreakProtocolRoutes);
+app.use("/api/chat-games/emote-sync-protocol", emoteSyncProtocolRoutes);
 
 app.listen(PORT, HOST, () => {
   console.log(`StreamTools server running at http://${HOST}:${PORT}`);

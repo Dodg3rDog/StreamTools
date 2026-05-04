@@ -10,6 +10,8 @@ process.env.PORT = process.env.PORT || "3054";
 console.log("[Workshop] Starting StreamTools workshop server");
 console.log(`[Workshop] PiShock widget: http://${process.env.HOST}:${process.env.PORT}/widgets/pishock-status/`);
 console.log(`[Workshop] Drawing slot widget: http://${process.env.HOST}:${process.env.PORT}/widgets/drawing-slot-machine/`);
+console.log(`[Workshop] Code Break Protocol: http://${process.env.HOST}:${process.env.PORT}/widgets/chat-games/apps/code-break-protocol/`);
+console.log(`[Workshop] Emote Sync Protocol: http://${process.env.HOST}:${process.env.PORT}/widgets/chat-games/apps/emote-sync-protocol/`);
 console.log(`[Workshop] Health: http://${process.env.HOST}:${process.env.PORT}/health`);
 
 require("../server");
