@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "start:workshop": "node scripts/start-workshop.js"
+    "start:workshop": "node scripts/start-workshop.js",
+    "start:picarto-bridge": "node bridges/picarto-streamerbot.js"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "pmi.js": "^1.0.4"
   }
 }
