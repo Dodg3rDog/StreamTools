@@ -6,21 +6,21 @@
   <title>Anthro-Corp PiShock Containment Status</title>
   <style>
     :root {
-      --bg: #05070d;
-      --panel: rgba(7, 16, 31, 0.88);
-      --panel-2: rgba(10, 26, 48, 0.72);
+      --bg: #030704;
+      --panel: rgba(4, 16, 9, 0.9);
+      --panel-2: rgba(7, 24, 14, 0.74);
       --cyan: #25d9ff;
-      --blue: #277cff;
+      --blue: #3d8dff;
       --green: #53ff9a;
       --yellow: #ffd166;
       --orange: #ff8a3d;
       --red: #ff3b5f;
-      --violet: #b56bff;
-      --text: #d7f7ff;
-      --muted: #7aa4b5;
-      --grid: rgba(37, 217, 255, 0.12);
-      --scanline: rgba(255, 255, 255, 0.035);
-      --glow: 0 0 16px rgba(37, 217, 255, 0.45), 0 0 34px rgba(39, 124, 255, 0.2);
+      --amber: #ffbf3d;
+      --text: #d8ffe6;
+      --muted: #76a887;
+      --grid: rgba(83, 255, 154, 0.1);
+      --scanline: rgba(210, 255, 223, 0.04);
+      --glow: 0 0 16px rgba(83, 255, 154, 0.35), 0 0 34px rgba(37, 217, 255, 0.16);
       --font-terminal: "Cascadia Mono", "Consolas", "Lucida Console", monospace;
       --boot-duration: 5.8s;
       --frame-inset: 28px;
@@ -33,12 +33,13 @@
       --bg-alpha: 1;
       --brand-title-size: clamp(18px, 2vw, 30px);
       --brand-subtitle-size: clamp(10px, 0.9vw, 14px);
-      --panel-label-size: 12px;
+      --panel-label-size: 24px;
       --pressure-size: clamp(44px, 7vw, 100px);
       --pressure-label-size: clamp(11px, 1vw, 16px);
       --metric-size: clamp(12px, 1vw, 16px);
       --footer-size: clamp(10px, 0.85vw, 13px);
       --gauge-size: min(86%, 550px);
+      --module-radius: 0px;
     }
 
     * { box-sizing: border-box; }
@@ -48,9 +49,8 @@
       min-height: 100vh;
       overflow: hidden;
       background:
-        radial-gradient(circle at 18% 12%, rgba(39, 124, 255, calc(0.25 * var(--bg-alpha))), transparent 28%),
-        radial-gradient(circle at 84% 76%, rgba(181, 107, 255, calc(0.18 * var(--bg-alpha))), transparent 26%),
-        linear-gradient(135deg, rgba(3, 5, 10, var(--bg-alpha)) 0%, rgba(7, 16, 31, var(--bg-alpha)) 48%, rgba(4, 6, 12, var(--bg-alpha)) 100%);
+        linear-gradient(180deg, rgba(4, 18, 9, var(--bg-alpha)) 0%, rgba(1, 6, 4, var(--bg-alpha)) 100%),
+        repeating-linear-gradient(90deg, rgba(83, 255, 154, calc(0.05 * var(--bg-alpha))) 0 1px, transparent 1px 74px);
       color: var(--text);
       font-family: var(--font-terminal);
     }
@@ -98,7 +98,7 @@
       border: 1px solid rgba(37, 217, 255, 0.5);
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
-        rgba(7, 16, 31, var(--panel-alpha));
+        rgba(4, 16, 9, var(--panel-alpha));
       box-shadow: var(--glow), inset 0 0 42px rgba(37, 217, 255, 0.08);
       overflow: hidden;
     }
@@ -157,6 +157,16 @@
       z-index: 2;
     }
 
+    body.alert-warning .dashboard {
+      animation: dashboardIn 0.8s ease forwards, terminalFlashYellow 1.1s steps(2, end) infinite;
+      animation-delay: calc(var(--boot-duration) + 0.25s), 0s;
+    }
+
+    body.alert-danger .dashboard {
+      animation: dashboardIn 0.8s ease forwards, terminalFlashRed 0.72s steps(2, end) infinite;
+      animation-delay: calc(var(--boot-duration) + 0.25s), 0s;
+    }
+
     .topbar,
     .footer {
       display: flex;
@@ -164,10 +174,12 @@
       justify-content: space-between;
       gap: 18px;
       border: 1px solid rgba(37, 217, 255, 0.28);
-      background: rgba(37, 217, 255, 0.055);
+      background: rgba(83, 255, 154, 0.06);
       padding: 12px 16px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
+      position: relative;
+      overflow: hidden;
     }
 
     .brand {
@@ -175,6 +187,19 @@
       align-items: center;
       gap: 14px;
       min-width: 0;
+    }
+
+    .mainframe-logo {
+      margin: 0;
+      color: var(--green);
+      font-size: clamp(5px, 0.46vw, 8px);
+      line-height: 0.9;
+      letter-spacing: 0;
+      text-shadow: 0 0 10px rgba(83, 255, 154, 0.55);
+      white-space: pre;
+      max-width: min(42vw, 520px);
+      overflow: hidden;
+      flex: 0 1 auto;
     }
 
     .brand-mark {
@@ -203,12 +228,19 @@
     }
 
     .status-pill {
-      border: 1px solid currentColor;
+      border: 2px solid currentColor;
       color: var(--green);
-      padding: 8px 12px;
-      box-shadow: 0 0 16px color-mix(in srgb, currentColor 45%, transparent);
+      padding: 12px 18px;
+      min-width: 150px;
+      text-align: center;
+      font-size: clamp(16px, 1.2vw, 24px);
+      font-weight: 950;
+      letter-spacing: 0.14em;
+      box-shadow: 0 0 20px color-mix(in srgb, currentColor 55%, transparent), inset 0 0 14px color-mix(in srgb, currentColor 18%, transparent);
       background: rgba(0, 0, 0, 0.25);
       white-space: nowrap;
+      position: relative;
+      z-index: 3;
     }
 
     .status-pill.warning { color: var(--yellow); }
@@ -223,8 +255,9 @@
     }
 
     .panel {
-      border: 1px solid rgba(37, 217, 255, 0.35);
-      background: rgba(10, 26, 48, var(--panel-2-alpha));
+      border: 1px solid rgba(83, 255, 154, 0.34);
+      border-radius: var(--module-radius);
+      background: rgba(7, 24, 14, var(--panel-2-alpha));
       box-shadow: inset 0 0 28px rgba(37, 217, 255, 0.08);
       position: relative;
       overflow: hidden;
@@ -239,6 +272,7 @@
       font-size: var(--panel-label-size);
       letter-spacing: 0.16em;
       text-transform: uppercase;
+      z-index: 2;
     }
 
     .gauge-panel {
@@ -288,7 +322,7 @@
     .needle {
       position: absolute;
       width: 45%;
-      height: 4px;
+      height: 8px;
       background: linear-gradient(90deg, transparent, #ffffff 20%, var(--cyan));
       left: 50%;
       top: 50%;
@@ -327,20 +361,153 @@
     .pressure-label {
       color: var(--muted);
       letter-spacing: 0.18em;
-      font-size: var(--pressure-label-size);
+      font-size: calc(var(--pressure-label-size) * 1.5);
       margin-top: 10px;
     }
 
     .side-stack {
       display: grid;
-      grid-template-rows: 1fr 1fr;
+      grid-template-rows: auto auto minmax(160px, 1fr) minmax(110px, 0.8fr);
       gap: 18px;
       min-height: 0;
     }
 
+    .signal-panel,
+    .viewer-panel,
     .metrics-panel,
     .log-panel {
-      padding: 44px 18px 18px;
+      padding: 58px 18px 18px;
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(52px, 1fr));
+      gap: 10px;
+    }
+
+    .signal {
+      position: relative;
+      min-height: 68px;
+      border: 1px solid rgba(83, 255, 154, 0.28);
+      background: rgba(0, 0, 0, 0.24);
+      display: grid;
+      grid-template-rows: 1fr auto;
+      place-items: center;
+      overflow: hidden;
+      padding: 8px 4px 24px;
+      row-gap: 8px;
+    }
+
+    .signal::before {
+      content: "";
+      grid-row: 1;
+      grid-column: 1;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 14px currentColor;
+      opacity: 0.42;
+      transform: translateY(5px);
+    }
+
+    .signal::after {
+      content: attr(data-symbol);
+      grid-row: 1;
+      grid-column: 1;
+      display: grid;
+      place-items: center;
+      color: #041006;
+      font-weight: 900;
+      font-size: 18px;
+      line-height: 1;
+      z-index: 1;
+      transform: translateY(5px);
+    }
+
+    .signal-label {
+      grid-row: 2;
+      grid-column: 1;
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transform: translateY(5px);
+    }
+
+    .signal.active::before { opacity: 1; background: var(--green); }
+    .signal.warning::before { opacity: 1; background: var(--yellow); }
+    .signal.danger::before { opacity: 1; background: var(--red); animation: dangerPulse 0.8s ease infinite; }
+    .signal.cooldown::before { opacity: 1; background: var(--blue); }
+    .signal.overload::before { opacity: 1; background: var(--orange); animation: dangerBlink 0.7s steps(2, end) infinite; }
+
+    .viewer-card {
+      display: grid;
+      grid-template-columns: 128px 1fr auto;
+      align-items: center;
+      gap: 22px;
+      min-height: 156px;
+    }
+
+    .viewer-image {
+      width: 128px;
+      height: 128px;
+      border: 1px solid rgba(83, 255, 154, 0.55);
+      background:
+        linear-gradient(135deg, rgba(83, 255, 154, 0.18), rgba(37, 217, 255, 0.08)),
+        rgba(0, 0, 0, 0.35);
+      object-fit: cover;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.45), 0 0 16px rgba(83, 255, 154, 0.18);
+    }
+
+    .viewer-name {
+      color: white;
+      font-size: clamp(24px, 2.2vw, 38px);
+      font-weight: 800;
+      text-transform: uppercase;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .viewer-badge {
+      display: inline-block;
+      margin-bottom: 8px;
+      border: 1px solid rgba(83, 255, 154, 0.65);
+      background: rgba(83, 255, 154, 0.1);
+      color: var(--green);
+      padding: 4px 8px;
+      font-size: clamp(12px, 0.9vw, 16px);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .viewer-meta {
+      color: var(--muted);
+      font-size: clamp(13px, 1vw, 18px);
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+
+    .viewer-role {
+      color: var(--cyan);
+      font-size: clamp(13px, 1vw, 18px);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    .viewer-value {
+      color: var(--amber);
+      font-size: clamp(42px, 4vw, 76px);
+      font-weight: 900;
+      text-align: right;
+      min-width: 72px;
     }
 
     .metric-list {
@@ -350,7 +517,7 @@
 
     .metric {
       display: grid;
-      grid-template-columns: 150px 1fr auto;
+      grid-template-columns: 34px 150px 1fr auto;
       align-items: center;
       gap: 12px;
       font-size: var(--metric-size);
@@ -358,6 +525,18 @@
     }
 
     .metric-name { color: var(--muted); letter-spacing: 0.08em; }
+    .metric-symbol {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(83, 255, 154, 0.35);
+      color: var(--green);
+      background: rgba(0, 0, 0, 0.3);
+      font-size: 16px;
+      font-weight: 900;
+      box-shadow: inset 0 0 10px rgba(83, 255, 154, 0.08);
+    }
     .metric-value { color: white; min-width: 54px; text-align: right; }
 
     .bar {
@@ -397,28 +576,326 @@
     .log-entry.warning { border-color: var(--yellow); }
     .log-entry.danger { border-color: var(--red); color: #ffd7df; }
 
+    .topbar::before,
+    .topbar::after,
+    .footer::before,
+    .footer::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 200%;
+      height: 7px;
+      opacity: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        90deg,
+        #ffd166 0 22px,
+        #050505 22px 44px
+      );
+      z-index: 1;
+    }
+
+    .topbar::before,
+    .footer::before { top: 0; }
+    .topbar::after,
+    .footer::after { bottom: 0; }
+
+    .topbar > *,
+    .footer > * {
+      position: relative;
+      z-index: 2;
+    }
+
     .footer {
-      font-size: var(--footer-size);
-      color: var(--muted);
+      font-size: clamp(18px, 1.45vw, 30px);
+      color: #f2fff6;
+      font-weight: 900;
+      min-height: 54px;
+      border-width: 2px;
+      text-shadow: 0 0 12px rgba(83, 255, 154, 0.42);
+    }
+
+    body.alert-warning .topbar,
+    body.alert-warning .footer {
+      background: rgba(45, 35, 4, 0.9);
+      border-color: rgba(255, 209, 102, 0.95);
+      color: #fff6cf;
+      animation: bannerWarningFlash 0.9s steps(2, end) infinite;
+    }
+
+    body.alert-warning .topbar::before,
+    body.alert-warning .topbar::after,
+    body.alert-warning .footer::before,
+    body.alert-warning .footer::after {
+      opacity: 1;
+    }
+
+    body.alert-warning .topbar::before,
+    body.alert-warning .footer::before {
+      animation: tickerStripeLeft 1.2s linear infinite;
+    }
+
+    body.alert-warning .topbar::after,
+    body.alert-warning .footer::after {
+      animation: tickerStripeRight 1.2s linear infinite;
+    }
+
+    body.alert-danger .topbar,
+    body.alert-danger .footer {
+      background: rgba(54, 4, 12, 0.94);
+      border-color: rgba(255, 59, 95, 1);
+      color: #ffe5ea;
+      animation: bannerDangerFlash 0.58s steps(2, end) infinite;
+    }
+
+    body.alert-danger .topbar::before,
+    body.alert-danger .topbar::after,
+    body.alert-danger .footer::before,
+    body.alert-danger .footer::after {
+      opacity: 1;
+      background: repeating-linear-gradient(
+        90deg,
+        #ff3b5f 0 22px,
+        #050505 22px 44px
+      );
+    }
+
+    body.alert-danger .topbar::before,
+    body.alert-danger .footer::before {
+      animation: tickerStripeLeft 0.9s linear infinite;
+    }
+
+    body.alert-danger .topbar::after,
+    body.alert-danger .footer::after {
+      animation: tickerStripeRight 0.9s linear infinite;
     }
 
     .ticker {
       overflow: hidden;
       white-space: nowrap;
       flex: 1;
+      position: relative;
+      z-index: 2;
     }
 
     .ticker span {
       display: inline-block;
-      animation: ticker 18s linear infinite;
+      animation: ticker 14s linear infinite;
       padding-left: 100%;
     }
 
     .mode-tag { color: var(--cyan); }
+    .mode-tag { position: relative; z-index: 2; }
+
+    body.mode-visual {
+      --frame-inset: 12px;
+      --dashboard-padding: 12px;
+      --dashboard-gap: 10px;
+      --brand-title-size: 16px;
+      --brand-subtitle-size: 10px;
+      --pressure-size: clamp(58px, 9vw, 126px);
+      --gauge-size: min(70vh, 58vw);
+    }
+
+    body.mode-visual .boot-screen,
+    body.mode-visual .brand-subtitle,
+    body.mode-visual .metric-name,
+    body.mode-visual .metric-value,
+    body.mode-visual .log-panel,
+    body.mode-visual .mode-tag {
+      display: none;
+    }
+
+    body.mode-visual .dashboard {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+
+    body.mode-visual .main-grid {
+      grid-template-columns: minmax(380px, 1fr) minmax(320px, 0.8fr);
+      gap: 10px;
+    }
+
+    body.mode-visual .side-stack {
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+    }
+
+    body.mode-visual .metrics-panel {
+      padding: 58px 14px 14px;
+    }
+
+    body.mode-visual .metric {
+      grid-template-columns: 38px 1fr;
+      gap: 0;
+    }
+
+    body.mode-visual .metric-symbol {
+      height: 32px;
+      width: 32px;
+      font-size: 18px;
+    }
+
+    body.mode-visual .bar {
+      height: 26px;
+    }
+
+    body.mode-visual .ticker span {
+      animation-duration: 12s;
+    }
+
+    body.mode-signals {
+      --frame-inset: 0px;
+      --dashboard-padding: 0;
+      --panel-alpha: 0;
+      --panel-2-alpha: 0.74;
+    }
+
+    body.mode-signals .boot-screen,
+    body.mode-signals .topbar,
+    body.mode-signals .gauge-panel,
+    body.mode-signals .viewer-panel,
+    body.mode-signals .metrics-panel,
+    body.mode-signals .log-panel,
+    body.mode-signals .footer {
+      display: none;
+    }
+
+    body.mode-signals .dashboard {
+      inset: 0;
+      opacity: 1;
+      transform: none;
+      animation: none;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      display: block;
+      padding: 0;
+    }
+
+    body.mode-signals .main-grid,
+    body.mode-signals .side-stack {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    body.mode-signals .signal-panel {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    body.mode-signals .signal-panel::before {
+      display: none;
+    }
+
+    body.mode-signals .signal-grid {
+      width: 100%;
+      height: 100%;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+    }
+
+    body.mode-signals .signal {
+      min-height: 100vh;
+      border-color: rgba(83, 255, 154, 0.3);
+      padding-bottom: min(16vh, 120px);
+    }
+
+    body.mode-signals .signal::before {
+      width: min(34vw, 18vh);
+      height: min(34vw, 18vh);
+    }
+
+    body.mode-signals .signal::after {
+      font-size: min(12vw, 8vh);
+    }
+
+    body.mode-signals .signal-label {
+      font-size: min(2.8vw, 4vh);
+    }
+
+    body.mode-viewer {
+      --frame-inset: 0px;
+      --panel-alpha: 0;
+      --panel-2-alpha: 0.78;
+    }
+
+    body.mode-viewer .boot-screen,
+    body.mode-viewer .topbar,
+    body.mode-viewer .gauge-panel,
+    body.mode-viewer .signal-panel,
+    body.mode-viewer .metrics-panel,
+    body.mode-viewer .log-panel,
+    body.mode-viewer .footer {
+      display: none;
+    }
+
+    body.mode-viewer .dashboard {
+      inset: 0;
+      opacity: 1;
+      transform: none;
+      animation: none;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      display: block;
+      padding: 0;
+    }
+
+    body.mode-viewer .main-grid,
+    body.mode-viewer .side-stack {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    body.mode-viewer .viewer-panel {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      display: grid;
+      align-items: center;
+    }
+
+    body.mode-viewer .viewer-panel::before {
+      display: none;
+    }
+
+    body.mode-viewer .viewer-card {
+      grid-template-columns: min(34vh, 190px) 1fr auto;
+    }
+
+    body.mode-viewer .viewer-image {
+      width: min(34vh, 190px);
+      height: min(34vh, 190px);
+    }
+
+    body.mode-viewer .viewer-name {
+      font-size: clamp(34px, 6vw, 92px);
+    }
+
+    body.mode-viewer .viewer-meta {
+      font-size: clamp(18px, 2.2vw, 32px);
+    }
+
+    body.mode-viewer .viewer-badge,
+    body.mode-viewer .viewer-role {
+      font-size: clamp(18px, 2vw, 30px);
+    }
+
+    body.mode-viewer .viewer-value {
+      font-size: clamp(56px, 8vw, 130px);
+    }
 
     /* ------------------------------------------------------------
        Display Modes
-       Use: ?mode=full | compact | mini | gauge | ticker | stage
+       Use: ?mode=full | compact | mini | visual | gauge | signals | viewer | ticker | stage
        Optional: &transparent=1, &boot=0, &pollMs=150
     ------------------------------------------------------------ */
 
@@ -430,6 +907,14 @@
       opacity: 1;
       transform: none;
       animation: none;
+    }
+
+    body.no-boot.alert-warning .dashboard {
+      animation: terminalFlashYellow 1.1s steps(2, end) infinite;
+    }
+
+    body.no-boot.alert-danger .dashboard {
+      animation: terminalFlashRed 0.72s steps(2, end) infinite;
     }
 
     body.transparent {
@@ -450,7 +935,7 @@
       --panel-2-alpha: 0.66;
       --brand-title-size: 18px;
       --brand-subtitle-size: 11px;
-      --panel-label-size: 10px;
+      --panel-label-size: 20px;
       --pressure-size: 54px;
       --pressure-label-size: 11px;
       --metric-size: 12px;
@@ -484,7 +969,9 @@
     }
 
     body.mode-compact .brand-subtitle,
+    body.mode-compact .mainframe-logo,
     body.mode-compact .mode-tag,
+    body.mode-compact .viewer-panel,
     body.mode-compact .log-panel,
     body.mode-compact .footer {
       display: none;
@@ -503,13 +990,13 @@
     }
 
     body.mode-compact .side-stack {
-      grid-template-rows: 1fr;
-      gap: 0;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
     }
 
     body.mode-compact .gauge-panel,
     body.mode-compact .metrics-panel {
-      padding: 28px 10px 10px;
+      padding: 48px 10px 10px;
     }
 
     body.mode-compact .metric-list {
@@ -517,7 +1004,7 @@
     }
 
     body.mode-compact .metric {
-      grid-template-columns: 82px minmax(80px, 1fr) minmax(66px, auto);
+      grid-template-columns: 24px 82px minmax(80px, 1fr) minmax(66px, auto);
       gap: 8px;
       min-width: 0;
     }
@@ -547,7 +1034,7 @@
       --panel-alpha: 0.78;
       --panel-2-alpha: 0.56;
       --brand-title-size: 14px;
-      --panel-label-size: 9px;
+      --panel-label-size: 18px;
       --pressure-size: 42px;
       --pressure-label-size: 9px;
       --metric-size: 10px;
@@ -557,7 +1044,9 @@
 
     body.mode-mini .boot-screen,
     body.mode-mini .brand-mark,
+    body.mode-mini .mainframe-logo,
     body.mode-mini .brand-subtitle,
+    body.mode-mini .viewer-panel,
     body.mode-mini .log-panel,
     body.mode-mini .mode-tag,
     body.mode-mini .footer {
@@ -578,12 +1067,13 @@
     }
 
     body.mode-mini .side-stack {
-      grid-template-rows: 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 7px;
     }
 
     body.mode-mini .gauge-panel,
     body.mode-mini .metrics-panel {
-      padding: 22px 7px 7px;
+      padding: 42px 7px 7px;
     }
 
     body.mode-mini .status-pill {
@@ -597,7 +1087,7 @@
     }
 
     body.mode-mini .metric {
-      grid-template-columns: 60px minmax(60px, 1fr) minmax(58px, auto);
+      grid-template-columns: 20px 60px minmax(60px, 1fr) minmax(58px, auto);
       gap: 5px;
       letter-spacing: 0;
       min-width: 0;
@@ -674,7 +1164,6 @@
     body.mode-ticker {
       --frame-inset: 0px;
       --panel-alpha: 0.72;
-      --footer-size: clamp(14px, 2vw, 28px);
     }
 
     body.mode-ticker .boot-screen,
@@ -701,38 +1190,127 @@
       align-self: end;
       min-height: 100%;
       border-color: rgba(37, 217, 255, 0.45);
-      background: rgba(7, 16, 31, var(--panel-alpha));
+      background: rgba(4, 16, 9, var(--panel-alpha));
       padding: 0 18px;
+      font-size: clamp(26px, 4vw, 58px);
     }
 
     body.mode-stage {
-      --frame-inset: 34px;
+      --frame-inset: clamp(8px, 2.2vw, 34px);
+      --dashboard-padding: clamp(10px, 1.4vw, 24px);
+      --dashboard-gap: clamp(8px, 1vw, 18px);
       --panel-alpha: 0.58;
       --panel-2-alpha: 0.48;
-      --brand-title-size: clamp(26px, 1.5vw, 42px);
-      --brand-subtitle-size: clamp(13px, 0.72vw, 18px);
-      --pressure-size: clamp(76px, 4.8vw, 150px);
-      --metric-size: clamp(15px, 0.86vw, 22px);
-      --footer-size: clamp(13px, 0.72vw, 18px);
-      --gauge-size: min(78%, 500px);
+      --brand-title-size: clamp(15px, 1.7vw, 34px);
+      --brand-subtitle-size: clamp(10px, 0.85vw, 16px);
+      --panel-label-size: clamp(14px, 1.3vw, 24px);
+      --pressure-size: clamp(48px, 6.2vw, 142px);
+      --pressure-label-size: clamp(9px, 0.95vw, 16px);
+      --metric-size: clamp(11px, 0.95vw, 20px);
+      --footer-size: clamp(12px, 0.95vw, 20px);
+      --gauge-size: min(70vmin, 78%, 520px);
     }
 
     body.mode-stage .boot-screen,
     body.mode-stage .dashboard {
-      width: min(1220px, calc(100vw - var(--frame-inset) * 2));
-      height: min(760px, calc(100vh - var(--frame-inset) * 2));
-      left: auto;
+      width: auto;
+      height: auto;
+      left: var(--frame-inset);
       right: var(--frame-inset);
       top: var(--frame-inset);
-      bottom: auto;
+      bottom: var(--frame-inset);
     }
 
     body.mode-stage .dashboard {
       backdrop-filter: blur(1.5px);
     }
 
+    body.mode-stage .main-grid {
+      grid-template-columns: minmax(280px, 1.08fr) minmax(260px, 0.92fr);
+      gap: clamp(8px, 1vw, 18px);
+    }
+
+    body.mode-stage .side-stack {
+      grid-template-rows: auto auto minmax(120px, 1fr) minmax(92px, 0.72fr);
+      gap: clamp(8px, 1vw, 18px);
+    }
+
+    body.mode-stage .signal-panel,
+    body.mode-stage .viewer-panel,
+    body.mode-stage .metrics-panel,
+    body.mode-stage .log-panel {
+      padding: clamp(38px, 3.9vw, 58px) clamp(10px, 1vw, 18px) clamp(10px, 1vw, 18px);
+    }
+
+    body.mode-stage .viewer-card {
+      grid-template-columns: clamp(72px, 10vw, 128px) 1fr auto;
+      gap: clamp(10px, 1.3vw, 22px);
+      min-height: clamp(92px, 12vw, 156px);
+    }
+
+    body.mode-stage .viewer-image {
+      width: clamp(72px, 10vw, 128px);
+      height: clamp(72px, 10vw, 128px);
+    }
+
+    body.mode-stage .viewer-name {
+      font-size: clamp(18px, 2.1vw, 38px);
+    }
+
+    body.mode-stage .viewer-value {
+      font-size: clamp(28px, 4vw, 76px);
+    }
+
+    body.mode-stage .metric {
+      grid-template-columns: clamp(24px, 2vw, 34px) minmax(90px, 150px) minmax(90px, 1fr) auto;
+      gap: clamp(6px, 0.8vw, 12px);
+    }
+
+    body.mode-stage .metric-symbol {
+      width: clamp(22px, 2vw, 30px);
+      height: clamp(22px, 2vw, 30px);
+      font-size: clamp(12px, 1.2vw, 16px);
+    }
+
+    body.mode-stage .signal-grid {
+      gap: clamp(5px, 0.7vw, 10px);
+    }
+
+    body.mode-stage .signal-label {
+      font-size: clamp(11px, 1vw, 18px);
+    }
+
     body.mode-stage .widget::before {
       opacity: 0.12;
+    }
+
+    @media (max-width: 1100px), (max-height: 700px) {
+      body.mode-stage .mainframe-logo {
+        display: none;
+      }
+
+      body.mode-stage .main-grid {
+        grid-template-columns: minmax(220px, 0.95fr) minmax(260px, 1.05fr);
+      }
+
+      body.mode-stage .brand-mark {
+        width: 34px;
+        height: 34px;
+      }
+    }
+
+    @media (max-width: 760px), (max-height: 560px) {
+      body.mode-stage .log-panel {
+        display: none;
+      }
+
+      body.mode-stage .side-stack {
+        grid-template-rows: auto auto 1fr;
+      }
+
+      body.mode-stage .main-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @keyframes lineIn { to { opacity: 1; transform: translateX(0); } from { opacity: 0; transform: translateX(-8px); } }
@@ -741,12 +1319,31 @@
     @keyframes dashboardIn { to { opacity: 1; transform: scale(1); } }
     @keyframes dangerBlink { 50% { opacity: 0.45; } }
     @keyframes dangerPulse { 50% { filter: brightness(1.6); } }
+    @keyframes terminalFlashYellow {
+      50% { box-shadow: 0 0 24px rgba(255, 209, 102, 0.6), inset 0 0 48px rgba(255, 209, 102, 0.16); border-color: rgba(255, 209, 102, 0.78); }
+    }
+    @keyframes terminalFlashRed {
+      50% { box-shadow: 0 0 28px rgba(255, 59, 95, 0.7), inset 0 0 56px rgba(255, 59, 95, 0.2); border-color: rgba(255, 59, 95, 0.9); }
+    }
+    @keyframes bannerWarningFlash {
+      50% { background: rgba(83, 64, 5, 0.95); box-shadow: inset 0 0 24px rgba(255, 209, 102, 0.2); }
+    }
+    @keyframes bannerDangerFlash {
+      50% { background: rgba(86, 5, 20, 0.98); box-shadow: inset 0 0 28px rgba(255, 59, 95, 0.28); }
+    }
+    @keyframes tickerStripeLeft {
+      to { transform: translateX(-44px); }
+    }
+    @keyframes tickerStripeRight {
+      from { transform: translateX(-44px); }
+      to { transform: translateX(0); }
+    }
     @keyframes ticker { to { transform: translateX(-100%); } }
 
     @media (max-width: 900px) {
       .main-grid { grid-template-columns: 1fr; }
       .side-stack { grid-template-rows: auto auto; }
-      .metric { grid-template-columns: 120px 1fr auto; }
+      .metric { grid-template-columns: 30px 120px 1fr auto; }
     }
   </style>
 </head>
@@ -778,6 +1375,12 @@
       <header class="topbar">
         <div class="brand">
           <div class="brand-mark">AC</div>
+          <pre class="mainframe-logo" aria-hidden="true"> █████╗ ███╗   ██╗████████╗██╗  ██╗██████╗  ██████╗        ██████╗ ██████╗ ██████╗ ██████╗ 
+██╔══██╗████╗  ██║╚══██╔══╝██║  ██║██╔══██╗██╔═══██╗      ██╔════╝██╔═══██╗██╔══██╗██╔══██╗
+███████║██╔██╗ ██║   ██║   ███████║██████╔╝██║   ██║█████╗██║     ██║   ██║██████╔╝██████╔╝
+██╔══██║██║╚██╗██║   ██║   ██╔══██║██╔══██╗██║   ██║╚════╝██║     ██║   ██║██╔══██╗██╔═══╝ 
+██║  ██║██║ ╚████║   ██║   ██║  ██║██║  ██║╚██████╔╝      ╚██████╗╚██████╔╝██║  ██║██║     
+╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝        ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     </pre>
           <div>
             <div class="brand-title">Anthro-Corp Containment Terminal</div>
             <div class="brand-subtitle">PiShock status / pressure capacitor / stream systems</div>
@@ -800,29 +1403,57 @@
         </div>
 
         <div class="side-stack">
+          <div class="panel signal-panel" data-label="Visual signal matrix">
+            <div class="signal-grid" aria-label="Symbol status indicators">
+              <div class="signal" id="pressureSignal" data-symbol="P" title="Pressure"><span class="signal-label">Pressure</span></div>
+              <div class="signal" id="chanceSignal" data-symbol="R" title="Random gate"><span class="signal-label">Gate</span></div>
+              <div class="signal" id="cooldownSignal" data-symbol="L" title="Safety lockout"><span class="signal-label">Lockout</span></div>
+              <div class="signal" id="overloadSignal" data-symbol="!" title="Overload"><span class="signal-label">Overload</span></div>
+              <div class="signal" id="hypeSignal" data-symbol="H" title="Hype boost"><span class="signal-label">Hype</span></div>
+            </div>
+          </div>
+
+          <div class="panel viewer-panel" data-label="Current contributor">
+            <div class="viewer-card">
+              <img class="viewer-image" id="viewerImage" alt="" />
+              <div>
+                <div class="viewer-badge" id="viewerBadge">Active Employee</div>
+                <div class="viewer-name" id="viewerName">AWAITING INPUT</div>
+                <div class="viewer-role" id="viewerRole">Containment Support Intern</div>
+                <div class="viewer-meta" id="viewerMeta">No pressure contributor queued</div>
+              </div>
+              <div class="viewer-value" id="viewerValue">0</div>
+            </div>
+          </div>
+
           <div class="panel metrics-panel" data-label="System indicators">
             <div class="metric-list">
               <div class="metric">
+                <div class="metric-symbol">P</div>
                 <div class="metric-name">Charge Pool</div>
                 <div class="bar"><div class="bar-fill" id="chargeBar"></div></div>
                 <div class="metric-value" id="chargeValue">0 / 100</div>
               </div>
               <div class="metric">
+                <div class="metric-symbol">I</div>
                 <div class="metric-name">Intensity</div>
                 <div class="bar"><div class="bar-fill" id="intensityBar"></div></div>
                 <div class="metric-value" id="intensityValue">0</div>
               </div>
               <div class="metric">
+                <div class="metric-symbol">R</div>
                 <div class="metric-name">Random Gate</div>
                 <div class="bar"><div class="bar-fill" id="chanceBar"></div></div>
                 <div class="metric-value" id="chanceValue">0%</div>
               </div>
               <div class="metric">
+                <div class="metric-symbol">L</div>
                 <div class="metric-name">Cooldown</div>
                 <div class="bar"><div class="bar-fill" id="cooldownBar"></div></div>
                 <div class="metric-value" id="cooldownValue">Ready</div>
               </div>
               <div class="metric">
+                <div class="metric-symbol">H</div>
                 <div class="metric-name">Hype Boost</div>
                 <div class="bar"><div class="bar-fill" id="hypeBar"></div></div>
                 <div class="metric-value" id="hypeValue">+0</div>
@@ -853,17 +1484,29 @@
     const controls = widgetConfig.controls || {};
     const displayConfig = widgetConfig.display || {};
     const debugConfig = widgetConfig.debug || {};
+    const defaultTickerText = "⚠️ ANTHRO-CORP NOTICE // PRESSURE BUS MONITORING ACTIVE // RELAY TERMINALS HOT // STATUS NOMINAL ⚠️";
 
     const state = {
       pressure: 0,
       charge: 0,
+      maxPressure: 100,
       maxCharge: 100,
       intensity: 0,
-      maxIntensity: 10,
+      maxIntensity: 15,
       chance: 0,
       cooldownRemaining: 0,
       cooldownTotal: 60,
       hypeBoost: 0,
+      overloadActive: false,
+      overloadVenting: false,
+      currentViewerName: "",
+      currentViewerImageUrl: "",
+      currentViewerRole: "",
+      currentViewerBadge: "Active Employee",
+      eventType: "",
+      eventValueBits: 0,
+      eventMessage: "",
+      tickerMessage: "",
       mode: "TEST SIGNAL",
       label: "containment pressure",
       logs: []
@@ -886,6 +1529,17 @@
       cooldownValue: document.getElementById("cooldownValue"),
       hypeBar: document.getElementById("hypeBar"),
       hypeValue: document.getElementById("hypeValue"),
+      pressureSignal: document.getElementById("pressureSignal"),
+      chanceSignal: document.getElementById("chanceSignal"),
+      cooldownSignal: document.getElementById("cooldownSignal"),
+      overloadSignal: document.getElementById("overloadSignal"),
+      hypeSignal: document.getElementById("hypeSignal"),
+      viewerImage: document.getElementById("viewerImage"),
+      viewerBadge: document.getElementById("viewerBadge"),
+      viewerName: document.getElementById("viewerName"),
+      viewerRole: document.getElementById("viewerRole"),
+      viewerMeta: document.getElementById("viewerMeta"),
+      viewerValue: document.getElementById("viewerValue"),
       eventLog: document.getElementById("eventLog"),
       modeTag: document.getElementById("modeTag"),
       tickerText: document.getElementById("tickerText")
@@ -899,7 +1553,8 @@
       return max <= 0 ? 0 : clamp((value / max) * 100, 0, 100);
     }
 
-    function classifyPressure(value) {
+    function classifyPressure(value, maxPressure = 100) {
+      if (value > 100 || maxPressure > 100) return { text: "OVERLOAD", className: "danger" };
       if (value >= 85) return { text: "CRITICAL", className: "danger" };
       if (value >= 65) return { text: "ELEVATED", className: "warning" };
       if (value <= 0) return { text: "IDLE", className: "idle" };
@@ -911,6 +1566,10 @@
       el.style.setProperty("--value", `${v}%`);
       el.classList.toggle("warning", v >= warningAt && v < dangerAt);
       el.classList.toggle("danger", v >= dangerAt);
+    }
+
+    function setSignal(el, stateName) {
+      el.className = `signal ${stateName || ""}`.trim();
     }
 
     function addLog(message, level = "") {
@@ -928,17 +1587,22 @@
     }
 
     function render() {
-      state.pressure = clamp(state.pressure, 0, 100);
+      state.maxPressure = clamp(state.maxPressure || state.maxCharge || 100, 100, 150);
+      state.pressure = clamp(state.pressure, 0, state.maxPressure);
+      state.maxCharge = state.maxPressure;
       const chargePct = percent(state.charge, state.maxCharge);
       const intensityPct = percent(state.intensity, state.maxIntensity);
       const cooldownPct = state.cooldownTotal > 0 ? percent(state.cooldownTotal - state.cooldownRemaining, state.cooldownTotal) : 100;
       const hypePct = percent(state.hypeBoost, 5);
-      const status = classifyPressure(state.pressure);
+      const pressurePct = percent(state.pressure, state.maxPressure);
+      const status = classifyPressure(state.pressure, state.maxPressure);
+      const dangerAlert = state.overloadVenting || state.overloadActive || status.className === "danger";
+      const warningAlert = !dangerAlert && (state.cooldownRemaining > 0 || status.className === "warning" || state.chance >= 45);
 
       const sweepDegrees = 280;
       const startAngle = -220;
-      const needleAngle = startAngle + (state.pressure / 100) * sweepDegrees;
-      const fillDegrees = (state.pressure / 100) * sweepDegrees;
+      const needleAngle = startAngle + (pressurePct / 100) * sweepDegrees;
+      const fillDegrees = (pressurePct / 100) * sweepDegrees;
 
       els.gauge.style.setProperty("--gauge-green", `${Math.min(fillDegrees, 150)}deg`);
       els.gauge.style.setProperty("--gauge-yellow", `${Math.min(Math.max(fillDegrees, 150), 215)}deg`);
@@ -950,6 +1614,8 @@
       els.pressureLabel.textContent = state.label;
       els.statePill.textContent = status.text;
       els.statePill.className = `status-pill ${status.className}`.trim();
+      document.body.classList.toggle("alert-danger", dangerAlert);
+      document.body.classList.toggle("alert-warning", warningAlert);
 
       setBar(els.chargeBar, chargePct);
       els.chargeValue.textContent = `${Math.round(state.charge)} / ${Math.round(state.maxCharge)}`;
@@ -965,6 +1631,38 @@
 
       setBar(els.hypeBar, hypePct, 60, 90);
       els.hypeValue.textContent = `+${Math.round(state.hypeBoost)}`;
+
+      setSignal(els.pressureSignal, state.pressure > 100 ? "danger" : state.pressure >= 65 ? "warning" : state.pressure > 0 ? "active" : "");
+      setSignal(els.chanceSignal, state.chance >= 75 ? "danger" : state.chance >= 45 ? "warning" : state.chance > 0 ? "active" : "");
+      setSignal(els.cooldownSignal, state.cooldownRemaining > 0 ? "cooldown" : "active");
+      setSignal(els.overloadSignal, state.overloadVenting ? "danger" : state.overloadActive ? "overload" : "");
+      setSignal(els.hypeSignal, state.hypeBoost > 0 ? "active" : "");
+
+      const viewerName = state.currentViewerName || "AWAITING INPUT";
+      els.viewerName.textContent = viewerName;
+      els.viewerBadge.textContent = state.currentViewerBadge || "Active Employee";
+      els.viewerRole.textContent = state.currentViewerRole || "Containment Support Intern";
+      els.viewerMeta.textContent = state.eventType
+        ? `${state.eventType} / pressure event`
+        : "No pressure contributor queued";
+      els.viewerValue.textContent = Math.round(state.eventValueBits || 0);
+      if (state.currentViewerImageUrl) {
+        els.viewerImage.src = state.currentViewerImageUrl;
+      } else {
+        els.viewerImage.removeAttribute("src");
+      }
+
+      if (state.tickerMessage) {
+        els.tickerText.textContent = state.tickerMessage;
+      } else if (state.overloadVenting) {
+        els.tickerText.textContent = "🚨 VENTING SEQUENCE ACTIVE // PRESSURE RELEASE IN PROGRESS // MAINTAIN CLEARANCE // 🚨";
+      } else if (state.overloadActive) {
+        els.tickerText.textContent = "🚨 OVERLOAD PROTOCOL ACTIVE // RED-ZONE PRESSURE AUTHORIZED // NORMAL DISCHARGE LOCKED OUT // 🚨";
+      } else if (state.cooldownRemaining > 0) {
+        els.tickerText.textContent = "⚠️ SAFETY LOCKOUT ACTIVE // PRESSURE EVENTS BANKED // RELAY RECOVERY WINDOW IN PROGRESS // ⚠️";
+      } else {
+        els.tickerText.textContent = defaultTickerText;
+      }
 
       els.modeTag.textContent = `MODE: ${state.mode}`;
     }
@@ -1011,7 +1709,7 @@
 
     document.body.classList.add(`mode-${displayMode}`);
 
-    if (transparent || ["compact", "mini", "gauge", "ticker", "stage"].includes(displayMode)) {
+    if (transparent || ["compact", "mini", "visual", "gauge", "signals", "viewer", "ticker", "stage"].includes(displayMode)) {
       document.body.classList.add("transparent");
     }
 
@@ -1020,7 +1718,11 @@
     }
 
     const configuredPollUrl = apiConfig.statusEndpoint || "/api/pishock/status";
-    const pollUrl = controls.demoMode === true
+    const demoParam = params.get("demo");
+    const demoMode = demoParam
+      ? ["1", "true", "yes"].includes(demoParam.toLowerCase())
+      : controls.demoMode === true;
+    const pollUrl = demoMode
       ? ""
       : (params.get("poll") || configuredPollUrl);
     const pollMs = clamp(
@@ -1063,24 +1765,42 @@
           }
 
           const status = raw.status || raw;
+          const pressureGauge = Number.isFinite(Number(status.pressureGauge))
+            ? Number(status.pressureGauge)
+            : Number(status.chargePool);
+          const maxPressureGauge = Number.isFinite(Number(status.maxPressureGauge))
+            ? Number(status.maxPressureGauge)
+            : 100;
 
           const mappedPayload = {
-            pressure: clamp(status.chargePool, 0, 100),
-            charge: clamp(status.chargePool, 0, 100),
-            maxCharge: 100,
-            intensity: clamp(status.lastIntensity, 0, 25),
-            maxIntensity: 25,
+            pressure: clamp(pressureGauge, 0, 150),
+            charge: clamp(pressureGauge, 0, 150),
+            maxPressure: clamp(maxPressureGauge, 100, 150),
+            maxCharge: clamp(maxPressureGauge, 100, 150),
+            intensity: clamp(status.lastIntensity || Math.ceil(pressureGauge / 10), 0, 15),
+            maxIntensity: 15,
             hypeBoost: clamp(status.hypeLevel, 0, 10),
-            chance: status.overloadArmed ? 100 : 0,
-            mode: status.overloadArmed
+            chance: clamp(status.chancePercent, 0, 100),
+            cooldownRemaining: clamp(status.cooldownRemaining, 0, 600),
+            cooldownTotal: clamp(status.cooldownTotal, 0, 600),
+            overloadActive: status.overloadActive === true,
+            overloadVenting: status.overloadVenting === true,
+            currentViewerName: status.currentViewerName || "",
+            currentViewerImageUrl: status.currentViewerImageUrl || "",
+            currentViewerRole: status.currentViewerRole || "",
+            currentViewerBadge: status.currentViewerBadge || "Active Employee",
+            eventMessage: status.eventMessage || "",
+            eventType: status.eventType || "",
+            eventValueBits: clamp(status.eventValueBits, 0, 999999),
+            mode: status.overloadActive
               ? "OVERLOAD ARMED"
               : (status.mode || "LIVE").toUpperCase()
           };
 
-          if (status.mode === "discharge" || status.mode === "overload") {
+          if (status.mode === "discharge" || status.mode === "overload" || status.mode === "venting") {
             mappedPayload.eventMessage =
-              `Discharge confirmed at intensity ${status.lastIntensity}. Capacitor ${status.chargePool}%.`;
-            mappedPayload.eventLevel = status.mode === "overload" ? "danger" : "warning";
+              status.eventMessage || `Discharge confirmed at intensity ${status.lastIntensity}. Pressure ${pressureGauge}%.`;
+            mappedPayload.eventLevel = status.mode === "overload" || status.mode === "venting" ? "danger" : "warning";
           }
 
           const signature = JSON.stringify(mappedPayload);
@@ -1109,20 +1829,44 @@
     } else {
       // Demo signal so the widget has life before integration.
       addLog("Boot diagnostics complete. Awaiting relay telemetry.");
+      addLog("Demo telemetry loop active.", "warning");
       let t = 0;
       setInterval(() => {
         t += 1;
-        const simulatedPressure = 45 + Math.sin(t / 3) * 28 + Math.sin(t / 7) * 12;
+        const phase = t % 72;
+        const overloadDemo = phase >= 44 && phase < 62;
+        const ventingDemo = phase >= 62;
+        const cooldownDemo = phase >= 18 && phase < 32;
+        const simulatedPressure = overloadDemo || ventingDemo
+          ? clamp(105 + Math.sin(t / 3) * 28 + (ventingDemo ? -((phase - 62) * 4) : 12), 30, 150)
+          : clamp(45 + Math.sin(t / 3) * 28 + Math.sin(t / 7) * 12, 0, 100);
+
         updateStatus({
-          pressure: clamp(simulatedPressure, 0, 100),
-          charge: clamp(30 + Math.sin(t / 4) * 25 + t % 20, 0, 100),
-          maxCharge: 100,
-          intensity: clamp(Math.round(simulatedPressure / 10), 0, 10),
-          chance: clamp(18 + Math.sin(t / 5) * 14, 0, 100),
-          cooldownRemaining: Math.max(0, 18 - (t % 24)),
-          cooldownTotal: 18,
+          pressure: simulatedPressure,
+          charge: simulatedPressure,
+          maxPressure: overloadDemo || ventingDemo ? 150 : 100,
+          maxCharge: overloadDemo || ventingDemo ? 150 : 100,
+          intensity: clamp(Math.ceil(simulatedPressure / 10), 0, 15),
+          maxIntensity: 15,
+          chance: clamp(24 + Math.sin(t / 5) * 26 + (phase > 10 ? 18 : 0), 0, 100),
+          cooldownRemaining: cooldownDemo ? Math.max(0, 32 - phase) : 0,
+          cooldownTotal: cooldownDemo ? 14 : 0,
           hypeBoost: t % 16 > 10 ? 2 : 0,
-          mode: "TEST SIGNAL"
+          overloadActive: overloadDemo,
+          overloadVenting: ventingDemo,
+          currentViewerName: t % 8 > 3 ? "Night Howler" : "AC Contractor",
+          currentViewerRole: t % 8 > 3 ? "Pressure Systems Associate" : "Containment Support Intern",
+          currentViewerBadge: t % 8 > 3 ? "Active Employee" : "Temporary Contractor",
+          eventType: t % 8 > 3 ? "cheer" : "gift-sub",
+          eventValueBits: t % 8 > 3 ? 700 : 1400,
+          eventMessage: ventingDemo
+            ? "Automated venting sequence active"
+            : overloadDemo
+              ? "Overload red-zone authorization active"
+              : cooldownDemo
+                ? "Safety lockout active. Pressure retained"
+                : "Pressure event logged",
+          mode: demoMode ? "DEMO SIGNAL" : "TEST SIGNAL"
         });
       }, 1200);
     }
