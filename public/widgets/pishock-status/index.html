@@ -187,6 +187,11 @@
       align-items: center;
       gap: 14px;
       min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .brand > div:last-child {
+      min-width: 0;
     }
 
     .mainframe-logo {
@@ -219,6 +224,8 @@
       color: white;
       text-shadow: 0 0 18px rgba(37, 217, 255, 0.5);
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .brand-subtitle {
@@ -239,6 +246,9 @@
       box-shadow: 0 0 20px color-mix(in srgb, currentColor 55%, transparent), inset 0 0 14px color-mix(in srgb, currentColor 18%, transparent);
       background: rgba(0, 0, 0, 0.25);
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 0 1 auto;
       position: relative;
       z-index: 3;
     }
@@ -687,6 +697,488 @@
     .mode-tag { color: var(--cyan); }
     .mode-tag { position: relative; z-index: 2; }
 
+    .console-screen {
+      display: none;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .console-frame {
+      border: 1px solid rgba(83, 255, 154, 0.48);
+      background:
+        linear-gradient(180deg, rgba(83, 255, 154, 0.045), rgba(0, 0, 0, 0.08)),
+        rgba(1, 8, 4, 0.86);
+      box-shadow: inset 0 0 28px rgba(83, 255, 154, 0.1);
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
+    }
+
+    .console-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(83, 255, 154, 0.28);
+      background: rgba(83, 255, 154, 0.07);
+      color: var(--green);
+      font-size: clamp(12px, 0.82vw, 16px);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .console-title .console-window-id {
+      color: var(--muted);
+      font-size: 0.82em;
+    }
+
+    .console-badge {
+      display: grid;
+      grid-template-columns: clamp(84px, 8vw, 132px) 1fr;
+      gap: 14px;
+      padding: 14px;
+      align-items: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .console-badge-photo {
+      width: 100%;
+      aspect-ratio: 1;
+      border: 1px solid rgba(83, 255, 154, 0.45);
+      background:
+        linear-gradient(135deg, rgba(83, 255, 154, 0.18), rgba(37, 217, 255, 0.08)),
+        repeating-linear-gradient(0deg, rgba(83, 255, 154, 0.08) 0 1px, transparent 1px 5px),
+        rgba(0, 0, 0, 0.32);
+      object-fit: cover;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .console-badge-fields {
+      display: grid;
+      align-content: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .console-badge-tag {
+      color: var(--green);
+      font-size: clamp(11px, 0.78vw, 15px);
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .console-badge-name {
+      color: white;
+      font-size: clamp(19px, 1.65vw, 34px);
+      font-weight: 950;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .console-badge-role,
+    .console-badge-event {
+      color: var(--muted);
+      font-size: clamp(11px, 0.82vw, 16px);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .console-registers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 14px;
+      align-content: end;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .console-register {
+      border: 1px solid rgba(83, 255, 154, 0.2);
+      background: rgba(0, 0, 0, 0.22);
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .console-register-key {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .console-register-value {
+      color: #d8ffe6;
+      font-size: clamp(16px, 1.25vw, 26px);
+      font-weight: 950;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .console-bars {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(18px, 1fr));
+      align-items: end;
+      gap: 8px;
+      height: 100%;
+      min-height: 0;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .console-vbar {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 6px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .console-vbar-track {
+      position: relative;
+      border: 1px solid rgba(83, 255, 154, 0.28);
+      background:
+        repeating-linear-gradient(0deg, rgba(83, 255, 154, 0.12) 0 1px, transparent 1px 10%),
+        rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+    }
+
+    .console-vbar-fill {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--value, 0%);
+      background: linear-gradient(0deg, var(--green), var(--yellow), var(--red));
+      box-shadow: 0 0 16px rgba(83, 255, 154, 0.34);
+      transition: height 550ms ease;
+    }
+
+    .console-vbar-label {
+      color: var(--muted);
+      font-size: clamp(10px, 0.72vw, 14px);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .console-pressure-bar {
+      width: 100%;
+      height: 28px;
+      border: 1px solid rgba(83, 255, 154, 0.45);
+      background:
+        repeating-linear-gradient(90deg, rgba(83, 255, 154, 0.13) 0 1px, transparent 1px 10%),
+        rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .console-pressure-bar::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--value, 0%);
+      background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+      box-shadow: 0 0 18px rgba(83, 255, 154, 0.38);
+      transition: width 550ms ease;
+    }
+
+    .console-output {
+      height: 100%;
+      min-height: 0;
+      padding: 14px;
+      color: #caffd9;
+      font-size: clamp(13px, 0.9vw, 18px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .console-output.scroller {
+      justify-content: flex-start;
+      display: block;
+      position: relative;
+      overflow: hidden;
+      animation: none;
+    }
+
+    .console-scroll-track {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: max-content;
+      animation: consoleScroll 34s linear infinite;
+      will-change: transform;
+    }
+
+    .console-line {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 0 8px rgba(83, 255, 154, 0.32);
+      line-height: 1.35;
+      min-height: 1.35em;
+      flex: 0 0 auto;
+    }
+
+    .console-line.warning { color: var(--yellow); }
+    .console-line.danger { color: #ff9aac; }
+    .console-line.dim { color: var(--muted); }
+
+    .console-cursor {
+      display: inline-block;
+      width: 10px;
+      height: 1em;
+      margin-left: 4px;
+      background: var(--green);
+      vertical-align: -0.16em;
+      animation: consoleCursor 0.9s steps(2, end) infinite;
+    }
+
+    body.mode-console {
+      --frame-inset: clamp(8px, 1.8vw, 26px);
+      --dashboard-padding: clamp(10px, 1.4vw, 22px);
+      --dashboard-gap: clamp(8px, 1vw, 16px);
+      --brand-title-size: clamp(16px, 1.5vw, 28px);
+      --brand-subtitle-size: clamp(10px, 0.78vw, 14px);
+      --footer-size: clamp(16px, 1.25vw, 26px);
+      --panel-alpha: 0.9;
+      --panel-2-alpha: 0.7;
+    }
+
+    body.mode-console .boot-screen,
+    body.mode-console .main-grid {
+      display: none;
+    }
+
+    body.mode-console .dashboard {
+      opacity: 1;
+      transform: none;
+      animation: none;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    body.mode-console .console-screen {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.86fr) minmax(440px, 1.14fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas:
+        "badge bars"
+        "events diagnostics";
+      gap: var(--dashboard-gap);
+      min-height: 0;
+    }
+
+    body.mode-console .console-frame {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+
+    body.mode-console .console-frame.badge {
+      grid-area: badge;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    body.mode-console .console-frame.bars {
+      grid-area: bars;
+    }
+
+    body.mode-console .console-frame.output {
+      grid-area: events;
+    }
+
+    body.mode-console .console-frame.diagnostics {
+      grid-area: diagnostics;
+    }
+
+    body.mode-console .topbar {
+      background: rgba(83, 255, 154, 0.05);
+    }
+
+    body.mode-console .mainframe-logo {
+      font-size: clamp(4px, 0.38vw, 7px);
+      max-width: min(34vw, 470px);
+    }
+
+    @media (max-width: 980px), (max-height: 620px) {
+      body.mode-console .mainframe-logo {
+        display: none;
+      }
+
+      body.mode-console .console-screen {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "badge"
+          "bars"
+          "events"
+          "diagnostics";
+        grid-template-rows:
+          minmax(0, 0.95fr)
+          minmax(0, 1fr)
+          minmax(0, 0.85fr)
+          minmax(0, 0.85fr);
+      }
+
+      body.mode-console .console-frame {
+        min-height: 0;
+      }
+
+      body.mode-console .console-badge {
+        grid-template-columns: clamp(64px, 18vw, 108px) 1fr;
+        padding: 10px;
+      }
+
+      body.mode-console .console-registers {
+        gap: 6px;
+        padding: 0 10px 10px;
+      }
+
+      body.mode-console .console-register {
+        padding: 6px;
+      }
+
+      body.mode-console .console-bars {
+        padding: 10px;
+        gap: 6px;
+      }
+    }
+
+    @media (max-width: 980px) {
+      body.mode-console .console-frame.badge {
+        grid-template-columns: minmax(0, 1fr) minmax(118px, 0.36fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas:
+          "title title"
+          "employee registers";
+      }
+
+      body.mode-console .console-frame.badge .console-title {
+        grid-area: title;
+      }
+
+      body.mode-console .console-badge {
+        grid-area: employee;
+        grid-template-columns: clamp(76px, 16vw, 118px) minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px;
+      }
+
+      body.mode-console .console-registers {
+        grid-area: registers;
+        grid-template-columns: 1fr;
+        align-content: stretch;
+        padding: 12px 12px 12px 0;
+      }
+
+      body.mode-console .console-register {
+        display: grid;
+        align-content: center;
+      }
+
+      body.mode-console .topbar {
+        gap: 10px;
+      }
+
+      body.mode-console .brand {
+        gap: 10px;
+      }
+
+      body.mode-console .status-pill {
+        flex: 0 1 clamp(76px, 22vw, 128px);
+        min-width: 0;
+        padding: 9px 10px;
+        font-size: clamp(12px, 2.8vw, 17px);
+        letter-spacing: 0.08em;
+      }
+
+      body.mode-console .console-badge-name {
+        font-size: clamp(22px, 5vw, 36px);
+      }
+
+      body.mode-console .console-badge-role,
+      body.mode-console .console-badge-event {
+        font-size: clamp(12px, 2.5vw, 17px);
+      }
+    }
+
+    @media (max-width: 700px) and (min-height: 850px) {
+      body.mode-console {
+        --dashboard-padding: 8px;
+        --dashboard-gap: 7px;
+      }
+
+      body.mode-console .topbar {
+        min-height: 56px;
+        padding: 8px 10px;
+      }
+
+      body.mode-console .brand-subtitle,
+      body.mode-console .mode-tag {
+        display: none;
+      }
+
+      body.mode-console .brand {
+        gap: 8px;
+      }
+
+      body.mode-console .brand-title {
+        font-size: clamp(13px, 3.55vw, 18px);
+      }
+
+      body.mode-console .status-pill {
+        flex-basis: clamp(54px, 17vw, 82px);
+        padding: 7px 6px;
+        font-size: clamp(10px, 2.6vw, 13px);
+        letter-spacing: 0.04em;
+      }
+
+      body.mode-console .console-title {
+        min-height: 30px;
+        padding: 5px 8px;
+        font-size: 11px;
+      }
+
+      body.mode-console .console-badge-name {
+        font-size: clamp(20px, 5.4vw, 34px);
+      }
+
+      body.mode-console .console-badge-role,
+      body.mode-console .console-badge-event,
+      body.mode-console .console-badge-tag {
+        font-size: 11px;
+      }
+
+      body.mode-console .console-output {
+        padding: 8px;
+        gap: 3px;
+        font-size: 11px;
+      }
+
+      body.mode-console .console-scroll-track {
+        gap: 3px;
+      }
+    }
+
     body.mode-visual {
       --frame-inset: 12px;
       --dashboard-padding: 12px;
@@ -895,7 +1387,7 @@
 
     /* ------------------------------------------------------------
        Display Modes
-       Use: ?mode=full | compact | mini | visual | gauge | signals | viewer | ticker | stage
+       Use: ?mode=full | compact | mini | visual | console | gauge | signals | viewer | ticker | stage
        Optional: &transparent=1, &boot=0, &pollMs=150
     ------------------------------------------------------------ */
 
@@ -1338,6 +1830,11 @@
       from { transform: translateX(-44px); }
       to { transform: translateX(0); }
     }
+    @keyframes consoleCursor { 50% { opacity: 0; } }
+    @keyframes consoleScroll {
+      from { transform: translateY(0); }
+      to { transform: translateY(-50%); }
+    }
     @keyframes ticker { to { transform: translateX(-100%); } }
 
     @media (max-width: 900px) {
@@ -1388,6 +1885,66 @@
         </div>
         <div class="status-pill" id="statePill">NOMINAL</div>
       </header>
+
+      <section class="console-screen" aria-label="Mainframe terminal console">
+        <div class="console-frame badge" aria-label="Active employee badge and registers">
+          <div class="console-title">
+            <span>Personnel / Relay Register</span>
+            <span class="console-window-id">WIN-01</span>
+          </div>
+          <div class="console-badge">
+            <img class="console-badge-photo" id="consoleBadgeImage" alt="" />
+            <div class="console-badge-fields">
+              <div class="console-badge-tag" id="consoleBadgeTag">Active Employee</div>
+              <div class="console-badge-name" id="consoleBadgeName">Awaiting Input</div>
+              <div class="console-badge-role" id="consoleBadgeRole">Containment Support Intern</div>
+              <div class="console-badge-event" id="consoleBadgeEvent">No event queued</div>
+            </div>
+          </div>
+          <div class="console-registers">
+            <div class="console-register">
+              <div class="console-register-key">Gauge</div>
+              <div class="console-register-value" id="consolePressure">000/100</div>
+            </div>
+            <div class="console-register">
+              <div class="console-register-key">Impulse</div>
+              <div class="console-register-value" id="consoleIntensity">INT 00</div>
+            </div>
+            <div class="console-register">
+              <div class="console-register-key">Gate</div>
+              <div class="console-register-value" id="consoleChance">00%</div>
+            </div>
+            <div class="console-register">
+              <div class="console-register-key">Lockout</div>
+              <div class="console-register-value" id="consoleCooldown">Ready</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="console-frame bars" aria-label="Pressure column monitor">
+          <div class="console-title">
+            <span>Pressure Column Monitor</span>
+            <span class="console-window-id">WIN-02</span>
+          </div>
+          <div class="console-bars" id="consoleBars"></div>
+        </div>
+
+        <div class="console-frame output" aria-label="Event logging output">
+          <div class="console-title">
+            <span>Event Log</span>
+            <span class="console-window-id">WIN-03</span>
+          </div>
+          <div class="console-output" id="consoleOutput"></div>
+        </div>
+
+        <div class="console-frame diagnostics" aria-label="Scrolling diagnostics output">
+          <div class="console-title">
+            <span>Diagnostic Scroll</span>
+            <span class="console-window-id">WIN-04</span>
+          </div>
+          <div class="console-output scroller" id="consoleDiagnostics"></div>
+        </div>
+      </section>
 
       <section class="main-grid">
         <div class="panel gauge-panel" data-label="Primary pressure gauge">
@@ -1511,6 +2068,7 @@
       label: "containment pressure",
       logs: []
     };
+    const diagnosticsCache = { key: "", html: "" };
 
     const els = {
       widget: document.getElementById("widget"),
@@ -1540,6 +2098,18 @@
       viewerRole: document.getElementById("viewerRole"),
       viewerMeta: document.getElementById("viewerMeta"),
       viewerValue: document.getElementById("viewerValue"),
+      consoleBadgeImage: document.getElementById("consoleBadgeImage"),
+      consoleBadgeTag: document.getElementById("consoleBadgeTag"),
+      consoleBadgeName: document.getElementById("consoleBadgeName"),
+      consoleBadgeRole: document.getElementById("consoleBadgeRole"),
+      consoleBadgeEvent: document.getElementById("consoleBadgeEvent"),
+      consoleBars: document.getElementById("consoleBars"),
+      consolePressure: document.getElementById("consolePressure"),
+      consoleIntensity: document.getElementById("consoleIntensity"),
+      consoleChance: document.getElementById("consoleChance"),
+      consoleCooldown: document.getElementById("consoleCooldown"),
+      consoleOutput: document.getElementById("consoleOutput"),
+      consoleDiagnostics: document.getElementById("consoleDiagnostics"),
       eventLog: document.getElementById("eventLog"),
       modeTag: document.getElementById("modeTag"),
       tickerText: document.getElementById("tickerText")
@@ -1570,6 +2140,67 @@
 
     function setSignal(el, stateName) {
       el.className = `signal ${stateName || ""}`.trim();
+    }
+
+    function seededRandom(seed) {
+      let value = Math.max(1, Math.floor(seed) % 2147483647);
+      return () => {
+        value = (value * 16807) % 2147483647;
+        return (value - 1) / 2147483646;
+      };
+    }
+
+    function pick(list, rand) {
+      return list[Math.floor(rand() * list.length) % list.length];
+    }
+
+    function buildDiagnosticScroll(statusLevel, pressureUnits, maxPressureUnits, viewerName, role) {
+      const cycle = Math.floor(Date.now() / 45000);
+      const seed = cycle * 4099
+        + Math.round(state.chance) * 97
+        + (state.overloadActive ? 719 : 0)
+        + (state.overloadVenting ? 1423 : 0)
+        + (state.cooldownRemaining > 0 ? 337 : 0);
+      const rand = seededRandom(seed);
+      const channels = ["AC-PSR", "CAP-BUS", "RELAY", "OBS-LINK", "EMP-ID", "HYPE-AMP", "GATE", "VENT"];
+      const verbs = ["READ", "VERIFY", "ROUTE", "SAMPLE", "ASSERT", "WRITE", "POLL", "QUEUE", "HASH", "TRACE"];
+      const targets = [
+        "PRESSURE_REGISTER",
+        "CAPACITOR_MATRIX",
+        "EMPLOYEE_BADGE",
+        "STREAM_INPUT",
+        "LOCKOUT_WINDOW",
+        "RANDOM_GATE",
+        "DISCHARGE_QUEUE",
+        "OVERLAY_PAYLOAD",
+        "RELAY_STATUS",
+        "TICKER_BUS",
+        "PROFILE_IMAGE_CACHE",
+        "HYPE_TRAIN_OFFSET"
+      ];
+      const suffixes = [
+        `P=${pressureUnits}/${maxPressureUnits}`,
+        `GATE=${Math.round(state.chance)}%`,
+        `EMP=${viewerName.slice(0, 18).toUpperCase()}`,
+        `ROLE=${role.slice(0, 18).toUpperCase()}`,
+        `INT=${String(Math.round(state.intensity)).padStart(2, "0")}`,
+        `LOCK=${state.cooldownRemaining > 0 ? "ACTIVE" : "CLEAR"}`,
+        `MODE=${state.mode}`,
+        `CRC=${Math.floor(rand() * 65535).toString(16).toUpperCase().padStart(4, "0")}`
+      ];
+      const diagnostics = [
+        statusLevel === "danger" ? "ALERT RED-ZONE TELEMETRY PRIORITY" : "STATUS NOMINAL TELEMETRY PRIORITY",
+        state.overloadActive ? "ALERT OVERLOAD_ZONE AUTHORIZED" : "RED_ZONE LOCKED",
+        state.cooldownRemaining > 0 ? "WARN SAFETY_LOCKOUT ACTIVE" : "LOCKOUT CLEAR",
+        state.overloadVenting ? "DANGER VENT_SEQUENCE RUNNING" : "VENT_SEQUENCE STANDBY"
+      ];
+
+      for (let i = 0; i < 42; i++) {
+        const address = Math.floor(0x1000 + rand() * 0xEFFF).toString(16).toUpperCase().padStart(4, "0");
+        diagnostics.push(`${address} ${pick(channels, rand)}::${pick(verbs, rand)} ${pick(targets, rand)} ${pick(suffixes, rand)}`);
+      }
+
+      return diagnostics;
     }
 
     function addLog(message, level = "") {
@@ -1665,6 +2296,86 @@
       }
 
       els.modeTag.textContent = `MODE: ${state.mode}`;
+
+      renderConsole(status, pressurePct);
+    }
+
+    function renderConsole(status, pressurePct) {
+      if (!els.consoleOutput) return;
+
+      const viewerName = state.currentViewerName || "AWAITING INPUT";
+      const role = state.currentViewerRole || "CONTAINMENT SUPPORT INTERN";
+      const badge = state.currentViewerBadge || "ACTIVE EMPLOYEE";
+      const eventType = state.eventType || "NO EVENT";
+      const eventBits = Math.round(state.eventValueBits || 0);
+      const cooldown = state.cooldownRemaining > 0 ? `${Math.ceil(state.cooldownRemaining)} SEC` : "READY";
+      const level = status.className === "danger" ? "danger" : status.className === "warning" ? "warning" : "";
+      const pressureUnits = Math.round(state.pressure);
+      const maxPressureUnits = Math.round(state.maxPressure);
+
+      if (state.currentViewerImageUrl) {
+        els.consoleBadgeImage.src = state.currentViewerImageUrl;
+      } else {
+        els.consoleBadgeImage.removeAttribute("src");
+      }
+
+      els.consoleBadgeTag.textContent = badge;
+      els.consoleBadgeName.textContent = viewerName;
+      els.consoleBadgeRole.textContent = role;
+      els.consoleBadgeEvent.textContent = `${eventType} / ${eventBits} BITS`;
+      els.consolePressure.textContent = `${String(pressureUnits).padStart(3, "0")}/${maxPressureUnits}`;
+      els.consoleIntensity.textContent = `INT ${String(Math.round(state.intensity)).padStart(2, "0")}`;
+      els.consoleChance.textContent = `${String(Math.round(state.chance)).padStart(2, "0")}%`;
+      els.consoleCooldown.textContent = cooldown;
+
+      const barCount = 10;
+      const unitSize = maxPressureUnits / barCount;
+      const bars = [];
+      for (let i = 0; i < barCount; i++) {
+        const lower = i * unitSize;
+        const fill = clamp(((state.pressure - lower) / unitSize) * 100, 0, 100);
+        const label = String(Math.round((i + 1) * unitSize)).padStart(3, "0");
+        bars.push(`
+          <div class="console-vbar">
+            <div class="console-vbar-track"><div class="console-vbar-fill" style="--value:${fill}%"></div></div>
+            <div class="console-vbar-label">${label}</div>
+          </div>
+        `);
+      }
+      els.consoleBars.innerHTML = bars.join("");
+
+      const output = [
+        { text: `[${new Date().toLocaleTimeString()}] AC-PSR: TELEMETRY BUS SYNC COMPLETE`, level: "" },
+        { text: `[${new Date().toLocaleTimeString()}] PRESSURE REGISTER: ${pressureUnits} OF ${maxPressureUnits} UNITS`, level },
+        { text: `[${new Date().toLocaleTimeString()}] RANDOM GATE: ${Math.round(state.chance)} PERCENT / HYPE OFFSET +${Math.round(state.hypeBoost)}`, level: state.chance >= 45 ? "warning" : "" },
+        { text: `[${new Date().toLocaleTimeString()}] EMPLOYEE RECORD: ${viewerName} / ${role}`, level: "" },
+        { text: `[${new Date().toLocaleTimeString()}] EVENT BUFFER: ${state.eventMessage || "NO ACTIVE DIRECTIVE"}`, level: state.overloadActive || state.overloadVenting ? "danger" : state.cooldownRemaining > 0 ? "warning" : "" },
+        { text: `[${new Date().toLocaleTimeString()}] SYSTEM STATE: ${state.mode}`, level },
+        { text: "> AWAITING NEXT STREAM INPUT", level: "" }
+      ];
+
+      els.consoleOutput.innerHTML = output.map((line, index) => {
+        const cursor = index === output.length - 1 ? '<span class="console-cursor"></span>' : "";
+        return `<div class="console-line ${line.level}">${line.text}${cursor}</div>`;
+      }).join("");
+
+      const diagnosticKey = [
+        Math.floor(Date.now() / 45000),
+        state.cooldownRemaining > 0 ? "cooldown" : "ready",
+        state.overloadActive ? "overload" : "locked",
+        state.overloadVenting ? "venting" : "standby"
+      ].join(":");
+
+      if (diagnosticsCache.key !== diagnosticKey) {
+        const diagnostics = buildDiagnosticScroll(level, pressureUnits, maxPressureUnits, viewerName, role);
+        const diagnosticLines = diagnostics.concat(diagnostics).map((line) => {
+          const lineLevel = line.includes("DANGER") || line.includes("OVERLOAD") || line.includes("ALERT") ? "danger" : line.includes("WARN") ? "warning" : line.includes("MONITORING") ? "dim" : "";
+          return `<div class="console-line ${lineLevel}">> ${line}</div>`;
+        }).join("");
+        diagnosticsCache.key = diagnosticKey;
+        diagnosticsCache.html = `<div class="console-scroll-track">${diagnosticLines}</div>`;
+        els.consoleDiagnostics.innerHTML = diagnosticsCache.html;
+      }
     }
 
     function updateStatus(payload = {}) {
@@ -1709,7 +2420,7 @@
 
     document.body.classList.add(`mode-${displayMode}`);
 
-    if (transparent || ["compact", "mini", "visual", "gauge", "signals", "viewer", "ticker", "stage"].includes(displayMode)) {
+    if (transparent || ["compact", "mini", "visual", "console", "gauge", "signals", "viewer", "ticker", "stage"].includes(displayMode)) {
       document.body.classList.add("transparent");
     }
 

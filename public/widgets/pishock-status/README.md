@@ -32,6 +32,7 @@ Full:    http://127.0.0.1:3054/widgets/pishock-status/
 Compact: http://127.0.0.1:3054/widgets/pishock-status/?mode=compact
 Mini:    http://127.0.0.1:3054/widgets/pishock-status/?mode=mini
 Visual:  http://127.0.0.1:3054/widgets/pishock-status/?mode=visual&transparent=true
+Console: http://127.0.0.1:3054/widgets/pishock-status/?mode=console&transparent=true
 Gauge:   http://127.0.0.1:3054/widgets/pishock-status/?mode=gauge&transparent=true
 Signals: http://127.0.0.1:3054/widgets/pishock-status/?mode=signals&transparent=true
 Viewer:  http://127.0.0.1:3054/widgets/pishock-status/?mode=viewer&transparent=true
@@ -43,6 +44,7 @@ Add `demo=true` to any URL to run animated local demo telemetry without using th
 
 ```text
 Visual demo:  http://127.0.0.1:3054/widgets/pishock-status/?mode=visual&transparent=true&demo=true
+Console demo: http://127.0.0.1:3054/widgets/pishock-status/?mode=console&transparent=true&demo=true
 Signals demo: http://127.0.0.1:3054/widgets/pishock-status/?mode=signals&transparent=true&demo=true
 Viewer demo:  http://127.0.0.1:3054/widgets/pishock-status/?mode=viewer&transparent=true&demo=true
 ```
@@ -73,6 +75,7 @@ Full dashboard: /widgets/pishock-status/
 Compact:        /widgets/pishock-status/?mode=compact
 Mini:           /widgets/pishock-status/?mode=mini
 Visual:         /widgets/pishock-status/?mode=visual
+Console:        /widgets/pishock-status/?mode=console
 Gauge only:     /widgets/pishock-status/?mode=gauge
 Signals only:   /widgets/pishock-status/?mode=signals
 Viewer only:    /widgets/pishock-status/?mode=viewer
@@ -82,7 +85,7 @@ Stage panel:    /widgets/pishock-status/?mode=stage
 
 Add `transparent=true` for transparent OBS backgrounds, `boot=false` to skip the boot animation, and `demo=true` to use animated local demo telemetry.
 
-`full` is the operator/mainframe console with readable text. `visual`, `signals`, `gauge`, `viewer`, and `ticker` are intended for OBS scene composition where color, symbols, and section-specific views are easier to read on stream.
+`full` is the operator/mainframe dashboard with readable text. `console` is a computer-terminal register view. `visual`, `signals`, `gauge`, `viewer`, and `ticker` are intended for OBS scene composition where color, symbols, and section-specific views are easier to read on stream.
 
 ## Config Options
 
