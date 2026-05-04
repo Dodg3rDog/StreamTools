@@ -11,6 +11,7 @@ require("dotenv").config({
 const healthRoutes = require("./routes/health");
 const timerRoutes = require("./routes/timers");
 const pishockRoutes = require("./routes/pishock");
+const drawingSlotMachineRoutes = require("./routes/drawing-slot-machine");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/", healthRoutes);
 app.use("/api", healthRoutes);
 app.use("/api/timers", timerRoutes);
 app.use("/api/pishock", pishockRoutes);
+app.use("/api/drawing-slot-machine", drawingSlotMachineRoutes);
 
 app.listen(PORT, HOST, () => {
   console.log(`StreamTools server running at http://${HOST}:${PORT}`);

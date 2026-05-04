@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drawing Slot Machine</title>
+
+  <!-- 1) Shared button styles (press/disabled animation) -->
+  <link rel="stylesheet" href="./slotButton.common.css" />
+
+  <!-- 2) Existing slot machine page styles -->
+  <link rel="stylesheet" href="./slotMachine.css" />
+
+  <!-- Your JS can be deferred so DOM exists when it runs -->
+  <script src="./slotMachine.js" defer></script>
+</head>
+
+
+<body>
+
+   
+
+    <div class="slot-machine" id="slotMachine">
+             <div id="slotLoadingIndicator" style="display:none;
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    background: rgba(40,60,120,0.93);
+    color: #fff; 
+    padding: 16px 40px; 
+    border-radius: 18px;
+    font-size: 2rem;
+    font-family: inherit;
+    z-index: 9999;">
+  Loading slot machine assets...
+</div>
+        <div class="test-background" id="testbackground"></div>
+        <div class="backboard-lightbar-light" id="backboardLightbarLight"></div>
+
+        <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/lightbar_backing.png" class="lightbar-backing">
+        <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/backing.png" class="backing">
+
+        <div class="lightband-tiles" id="lightbandTiles"></div>
+        <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/marquee.png" class="marquee">
+        <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/modifier_backboard.png" class="modifier-Backboard">
+
+
+        <!-- Modifier Sign -->
+        <div class="modifier-backboard-light" id="modifierBackboardLight"></div>
+
+        <div class="modifier-sign" id="modifierSign">  
+            <img id="modifierSignImage" src="" style="display:none;"><!-- The image will be swapped dynamically -->
+        </div>
+
+        
+        
+
+        <!-- Main Reels -->
+        <div class="main-tiles-container">
+            <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/tile_window_view.png" class="tile-window-view">
+
+            <!-- Reel 1 -->
+            <div class="slot-reel-container-1">
+                <div class="slot-reel" id="slotReel1">
+                    <div class="slot-tile-wrapper">
+                        <img class="slot-tile-image" id="reel1Tile1Img" src="/assets/drawing-slot-machine/images/slot_machine/species/Default.png">
+                    </div>
+                    <div class="slot-tile-wrapper">
+                        <img class="slot-tile-image" id="reel1Tile2Img" src="/assets/drawing-slot-machine/images/slot_machine/species/Default.png">
+                    </div>
+                    <div class="slot-tile-wrapper">
+                        <img class="slot-tile-image" id="reel1Tile3Img" src="/assets/drawing-slot-machine/images/slot_machine/species/Default.png">
+                    </div>
+                </div>
+            </div><!-- End of Reel 1 -->
+            
+            <!-- Reel 2 -->
+            <div class="slot-reel-container-2">
+                <div class="slot-reel-center-reel" id="slotReel2">
+                    <div class="slot-tile-wrapper center-tile">
+                        <img class="slot-tile-image" id="reel2Tile1Img" src="/assets/drawing-slot-machine/images/slot_machine/themes/Default.png">
+                    </div>
+                    <div class="slot-tile-wrapper center-tile">
+                        <img class="slot-tile-image" id="reel2Tile2Img" src="/assets/drawing-slot-machine/images/slot_machine/themes/Default.png">
+                    </div>
+                    <div class="slot-tile-wrapper center-tile">
+                        <img class="slot-tile-image" id="reel2Tile3Img" src="/assets/drawing-slot-machine/images/slot_machine/themes/Default.png">
+                    </div>
+                </div>
+            </div><!-- End of Reel 2 --> 
+
+            <!-- Reel 3 -->
+            <div class="slot-reel-container-3">
+                <div class="slot-reel" id="slotReel3">
+                    <div class="slot-tile-wrapper">
+                        <img class="slot-tile-image" id="reel3Tile1Img" src="/assets/drawing-slot-machine/images/slot_machine/poses/Default.png">
+                    </div>
+                    <div class="slot-tile-wrapper">
+                        <img class="slot-tile-image" id="reel3Tile2Img" src="/assets/drawing-slot-machine/images/slot_machine/poses/Default.png">
+                    </div>
+                    <div class="slot-tile-wrapper">
+                        <img class="slot-tile-image" id="reel3Tile3Img" src="/assets/drawing-slot-machine/images/slot_machine/poses/Default.png">
+                    </div>
+                </div>
+            </div><!-- End of Reel 3 -->
+        </div>  <!-- End of Main Reels Group -->
+
+        <div id="awooButtonContainer" style="display: block;">
+            <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/awoo_button_base.png" class="button-base">
+            <div class="awoo-push-button" id="awooPushButton">
+                <img src="/assets/drawing-slot-machine/images/slot_machine/overlay/awoo_button.png" class="awoo-button">
+            </div>
+        </div>
+
+
+<!-- Modifier Reel -->
+        <div id="modifierReelOverlay" style="display: none;">
+            <div class="modifier-reel-content">
+                <img class="modifier-glass" src="/assets/drawing-slot-machine/images/slot_machine/overlay/modifier_glass.png">
+                <div id="modifierReelSlot" class="modifier-reel-slot">
+                <img id="modifierReelTileImg" src="">
+            </div>
+        </div><!-- End of Modifier Reel Group -->
+        
+
+
+        <!-- Audio Assets-->
+        <audio id="buttonsound" src="/assets/drawing-slot-machine/sfx/slot_machine/button_press.wav" preload="auto"></audio>
+        <audio id="spinAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/spinAudio.mp3" preload="auto" loop></audio>
+         <audio id="respinAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/spinAudio.mp3" preload="auto" loop></audio>
+        <audio id="matchErrorAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/matchedError.mp3" preload="auto"></audio>
+        <audio id="reel1StopAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/reelStop.mp3" preload="auto"></audio>
+        <audio id="reel2StopAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/reelStop.mp3" preload="auto"></audio>
+        <audio id="reel3StopAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/reelStop.mp3" preload="auto"></audio>
+        <audio id="reelReleaseAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/reelRelease.mp3" preload="auto"></audio>
+        <audio id="winAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/winSound.wav" preload="auto"></audio>
+        <!-- Audio elements -->
+        <audio id="modifierRevealAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/modifier_reveal.wav" preload="auto"></audio>
+        <!-- Add one audio element per modifier, e.g.: -->
+        <audio id="modifierSussyAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/sussy.mp3" preload="auto"></audio>
+        <audio id="modifierArtsyAudio" src="/assets/drawing-slot-machine/sfx/slot_machine/artsy.wav" preload="auto"></audio>
+    
+
+    </div>
+</body>
+</html>

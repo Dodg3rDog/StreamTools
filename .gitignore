@@ -17,10 +17,15 @@ backups/
 *.zip
 *.7z
 *.rar
+*.psd
+
+# raw staging imports
+import/
 
 # local runtime/cache files
 .cache/
 *.pid
+server/data/
 
 # operating system files
 .DS_Store

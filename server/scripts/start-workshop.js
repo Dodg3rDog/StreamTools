@@ -8,7 +8,8 @@ process.env.HOST = process.env.HOST || "127.0.0.1";
 process.env.PORT = process.env.PORT || "3054";
 
 console.log("[Workshop] Starting StreamTools workshop server");
-console.log(`[Workshop] Widget: http://${process.env.HOST}:${process.env.PORT}/widgets/pishock-status/`);
+console.log(`[Workshop] PiShock widget: http://${process.env.HOST}:${process.env.PORT}/widgets/pishock-status/`);
+console.log(`[Workshop] Drawing slot widget: http://${process.env.HOST}:${process.env.PORT}/widgets/drawing-slot-machine/`);
 console.log(`[Workshop] Health: http://${process.env.HOST}:${process.env.PORT}/health`);
 
 require("../server");

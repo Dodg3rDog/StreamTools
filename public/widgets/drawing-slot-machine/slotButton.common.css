@@ -1,0 +1,48 @@
+:root{
+  --btn-press-translate: 2px;
+  --btn-press-scale: .98;
+  --btn-t-fast: 60ms;
+  --btn-t-med: 120ms;
+}
+
+/* Transparent page by default for OBS */
+html, body { background: transparent; margin: 0; padding: 0; }
+
+/* Center & stack the base plate and the clickable button */
+.button-base,
+.awoo-push-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+}
+
+/* Z-order: base behind, button on top */
+.button-base { z-index: 0; }
+.awoo-push-button { z-index: 1; cursor: pointer; }
+
+/* Disable interactions while slot is spinning */
+.awoo-push-button.disabled { pointer-events: none; }
+
+/* The button image */
+.awoo-button {
+  display: block;
+  transform: translateZ(0);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,.35));
+  transition: filter var(--btn-t-med) ease,
+              transform var(--btn-t-fast) ease,
+              opacity var(--btn-t-med) ease;
+}
+
+/* Press animation (same feel as slot page) */
+.awoo-push-button.pressed .awoo-button {
+  transform: translateY(var(--btn-press-translate)) scale(var(--btn-press-scale));
+  filter: brightness(1.05);
+}
+
+/* Dim look when disabled (spinning) */
+.awoo-push-button.disabled .awoo-button {
+  filter: brightness(0.55) saturate(0.7);
+  opacity: 0.65;
+  transform: translateZ(0);
+}

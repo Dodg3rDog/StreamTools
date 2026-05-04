@@ -1,0 +1,513 @@
+/* style.css */
+html,body{
+
+width: 100vw;
+height: 100vh;
+margin: 0;
+padding: 0;
+overflow: hidden;
+background: transparent;
+position: relative;
+display: grid;
+place-items: center;
+}
+
+/* Loading Indicator */
+#slotLoadingIndicator {
+    display: none;
+    position: fixed;  /* instead of absolute */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    background: rgba(40,60,120,0.93);
+    color: #ffffff; 
+    padding: 16px 40px; 
+    border-radius: 18px;
+    font-size: 2rem;
+    font-family: inherit;
+    z-index: 9999 !important;  /* ensure it’s above everything */
+    box-shadow: 0 0 40px 8px #10104099;
+}
+
+/* #region  | Slot Machine Container */
+.slot-machine {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(var(--slot-scale, 1));
+                transform-origin: center center;
+                width: 1920px;
+                height: 1080px;
+                background-color:#4e2bff;
+                border-radius: 15px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                z-index: 1; /* Set a lower z-index for the slot machine */
+}
+
+.test-background {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%; /* Make it span the entire width */
+                height: 100%; /* Make it take the full height of the parent */
+                background-color: #ff004400;
+                z-index: 2;
+}            
+
+.lightbar-backing {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%; /* Make it span the entire width */
+                height: 100%; /* Make it take the full height of the parent */
+                object-fit: cover; /* Ensure the image fills the area without distorting */
+                z-index: 9;
+}           
+
+
+.backboard-lightbar-light {
+                position: absolute;
+                top: 0;  /* Adjust this if you want it somewhere else, e.g. top: 10px; */
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%; /* Will span the full width of the slot machine */
+                height: 100%; /* Height of the light bar */
+                background: linear-gradient(90deg, #ff0044 25%, #b72fec 50%, #ff0044 75%); /* Gradient of colors */
+                background-size: 300% 100%;
+                animation: lightBarSpin 4s linear infinite;
+                
+                /* Apply Mask */
+                mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/new_lightbar_backing.png);
+                mask-size: auto;
+                mask-repeat: no-repeat;
+                mask-position: center;
+
+                /* For WebKit browsers (Chrome, Safari, etc.) */
+                -webkit-mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/new_lightbar_backing.png);
+                -webkit-mask-size: auto;
+                -webkit-mask-repeat: no-repeat;
+                -webkit-mask-position: center;
+                z-index: 10; /* Make sure the light bar is above the slot machine */
+}            
+
+.backing {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;   /* Fills the parent container */
+                height: 100%;
+                object-fit: cover; /* Ensures it scales nicely */
+                z-index: 15;  /* This keeps it between the background and the animated lights */
+}            
+
+
+.lightband-tiles {
+                position: absolute;
+                top: 0;  /* Adjust this if you want it somewhere else, e.g. top: 10px; */
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%; /* Will span the full width of the slot machine */
+                height: 100%; /* Height of the light bar */
+                background: linear-gradient(90deg, #b72fec 25%, #ff0044 50%, #b72fec 75%); /* Gradient of colors */
+                background-size: 300% 100%;
+                animation: lightBarSpin 4s linear infinite;
+                   /* Apply Mask */
+                mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/lightband_tiles.png);
+                mask-size: cover;
+                mask-repeat: no-repeat;
+                mask-position: center;
+
+                /* For WebKit browsers (Chrome, Safari, etc.) */
+                -webkit-mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/lightband_tiles.png);
+                -webkit-mask-size: cover;
+                -webkit-mask-repeat: no-repeat;
+                -webkit-mask-position: center;
+             
+                z-index: 18; /* Make sure the light bar is above the slot machine */
+
+}            
+
+.marquee {
+                position: absolute;
+                top:0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%;
+                height: 100%;
+                z-index: 29;
+}            
+
+.modifier-Backboard {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;   /* Fills the parent container */
+                height: 100%;
+                object-fit: cover; /* Ensures it scales nicely */
+                z-index: 30;  /* This keeps it between the background and the animated lights */
+}            
+
+.modifier-backboard-light {
+                position: absolute;
+                top: 0;  /* Adjust this if you want it somewhere else, e.g. top: 10px; */
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%; /* Will span the full width of the slot machine */
+                height: 100%; /* Height of the light bar */
+                background: linear-gradient(90deg, #b72fec 25%, #ff0044 50%, #b72fec 75%); /* Gradient of colors */
+                background-size: 300% 100%;
+                animation: lightBarSpin 4s linear infinite;
+                   /* Apply Mask */
+                mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/lightband_modifier_backboard.png);
+                mask-size: cover;
+                mask-repeat: no-repeat;
+                mask-position: center;
+
+                /* For WebKit browsers (Chrome, Safari, etc.) */
+                -webkit-mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/lightband_modifier_backboard.png);
+                -webkit-mask-size: cover;
+                -webkit-mask-repeat: no-repeat;
+                -webkit-mask-position: center;
+             
+                z-index: 35; /* Make sure the light bar is above the slot machine */
+}
+/* #endregion */
+
+/* #region  | Awoo Button */
+
+/* One anchor for both base & button */
+#awooButtonContainer {
+  position: absolute;
+  top: 71.4%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 55;           /* above decor, below top-most UI */
+}
+
+/* Base/backplate sits at the container's origin */
+.button-base {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 51;
+}
+
+/* Clickable wrapper sits exactly over the base */
+.awoo-push-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 55;
+  cursor: pointer;
+}
+
+/* The button image fills from the same origin */
+.awoo-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Override shared centering for the slot page’s anchored container */
+#awooButtonContainer .button-base,
+#awooButtonContainer .awoo-push-button,
+#awooButtonContainer .awoo-button {
+  top: 0;
+  left: 0;
+  transform: none;          /* <-- kills translate(-50%,-50%) from shared CSS */
+}
+
+/* Anchor stays the only thing positioned on the page */
+#awooButtonContainer {
+  position: absolute;
+  top: 71.4%;               /* nudge this to move the whole assembly up/down */
+  left: 44.5%;
+  transform: translate(-50%, -50%);
+  z-index: 55;
+}
+
+
+
+/* #endregion */
+
+/* #region  | Main Reels */
+.main-tiles-container {
+    position: absolute;
+    top:0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    z-index: 22;
+
+}
+
+.tile-window-view {
+    position: absolute;
+    top:0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    background-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/tile_window_view.png);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    filter: drop-shadow(0 0 3px #20202a80);
+    z-index: 25;
+}
+
+.slot-reel-container-1 {
+    position: absolute;
+    top: 46.05%; /* Position vertically (adjust as needed) */
+    left: 37.32%;
+    transform: translate(-50%, -50%);
+    width: 192px;       /* Adjust this to your tile width */
+    height: 250px;      /* Height of one tile (the visible window) */
+    overflow: hidden;
+    z-index: 20;
+    mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/left_and_right_glass.png);
+    mask-size: cover;
+    mask-repeat: no-repeat;
+    mask-position: center;
+}
+
+.slot-reel-container-2 {
+    position: absolute;
+    top: 45.85%; /* Position vertically (adjust as needed) */
+    left: 49.67%;
+    transform: translate(-50%, -50%);
+    width: 255px;       /* Adjust this to your tile width */
+    height: 315px;      /* Height of one tile (the visible window) */
+    overflow: hidden;
+    z-index: 20;
+    mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/center_tile_mask.png);
+    mask-size: auto;
+    mask-repeat: no-repeat;
+    mask-position: center;
+}
+
+.slot-reel-container-3 {
+    position: absolute;
+    top: 46.35%; /* Position vertically (adjust as needed) */
+    left: 62.22%;
+    transform: translate(-50%, -50%);
+    width: 192px;       /* Adjust this to your tile width */
+    height: 250px;      /* Height of one tile (the visible window) */
+    overflow: hidden;
+    z-index: 20;
+    mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/left_and_right_glass.png);
+    mask-size: cover;
+    mask-repeat: no-repeat;
+    mask-position: center;
+}
+
+.slot-reel {
+    display: flex;
+    flex-direction: column;
+}
+
+
+
+.slot-tile {
+    width: 192px;       /* Match container width */
+    height: 250px;      /* Match container height */
+}
+
+.slot-tile-center {
+    width:258px;
+    height: 319px;
+}
+
+.slot-reel-center-reel.stopping {
+    transition: transform 0.5s cubic-bezier(0.25, 1.5, 0.5, 1);
+}
+
+
+.slot-reel.stopping {
+    transition: transform 0.5s cubic-bezier(0.25, 1.5, 0.5, 1);
+}
+
+.slot-tile-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* or use object-fit: cover for full crop/fill */
+    display: block;
+    /* Optional: background for transparency troubleshooting */
+    background: #202d4a;
+    /* Optional: add a border or shadow for jackpot highlighting */
+}
+
+.slot-tile-wrapper {
+    width: 199px;    /* or whatever your tile size is */
+    height: 257px;
+    overflow: hidden;
+    position: relative;
+}
+
+.center-tile {
+    z-index: 10;
+    width:auto;
+    height: auto;
+    transform: scale(1);
+    box-shadow: 0 2px 20px 5px #1748aa6c;
+    border-radius: 18px;
+    /* Optional: add a glow for jackpot */
+}
+/* #endregion */
+
+/* #region  | Jackpot Effects */
+.jackpot-glow {
+    box-shadow: 0 0 25px 8px #fdd835, 0 0 10px 3px #fff;
+    border-radius: 14px;
+    z-index: 10;
+}
+/* #endregion */
+
+/* #region  | Reel slip and jerk effect */
+.slot-reel.slip-down {
+    transform: translateY(15px);
+    transition: transform 0.18s cubic-bezier(.5,2,0,1);
+}
+.slot-reel.slip-up {
+    transform: translateY(-15px);
+    transition: transform 0.18s cubic-bezier(.5,2,0,1);
+}
+.slot-reel.jerk {
+    transform: translateY(0px);
+    transition: transform 0.08s cubic-bezier(.75,-1,1,1.5);
+}
+/* Center reel */
+.slot-reel-center-reel.slip-down {
+    transform: translateY(15px);
+    transition: transform 0.18s cubic-bezier(.5,2,0,1);
+}
+.slot-reel-center-reel.slip-up {
+    transform: translateY(-15px);
+    transition: transform 0.18s cubic-bezier(.5,2,0,1);
+}
+.slot-reel-center-reel.jerk {
+    transform: translateY(0px);
+    transition: transform 0.08s cubic-bezier(.75,-1,1,1.5);
+}
+/* #endregion */
+
+/* #region  | Modifier Sign */
+.modifier-sign {
+      perspective: 5;
+    width: 100%; /* adjust as needed */
+    height: 100%;
+    margin: 0 auto;
+    position: relative;
+    transform-style: preserve-3d;
+    z-index: 40;
+}
+.modifier-sign .flipper {
+      width: 100%;
+    height: 100%;
+    position: absolute;
+    transition: transform 0.6s cubic-bezier(.5,1.6,.4,1);
+    transform-origin: center;
+    transform: rotateX(-90deg);
+    backface-visibility: hidden;
+    z-index: 41;
+}
+.modifier-sign.flipped .flipper {
+    transform: rotateX(0deg);
+}
+
+#modifierSignImage {
+    position: absolute;
+                top:0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%;
+                height: 100%;
+                size: auto; 
+                z-index: 40;
+}
+/* #endregion */
+
+/* #region  | Modifier Reel */
+#modifierReelOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    mask-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/backing.png);
+    z-index: 26;
+}
+.modifier-reel-content {
+    position: relative;
+    top: 35%;
+    left: 49.8%;
+    transform: translate(-50%, 100vh) scale(0.98);  /* Start offscreen at bottom */
+    opacity: 1;
+    transition: none;
+    width: 226px;
+    height: 226px;
+    filter: drop-shadow(0 0px 12px #20202a80);
+    background-image: url(/assets/drawing-slot-machine/images/slot_machine/overlay/modifier_tile.png);
+    z-index: 27;
+}
+.modifier-glass {
+    position: relative;
+    top: 0%;
+    left: 49.8%;
+    transform: translateX(-50%);
+    width: 226px;
+    height: 226px;
+    filter: drop-shadow(0 0 3px #20202a80);
+    z-index: 28;
+}
+#modifierReelTileImg {
+    position:absolute;
+    top: 0%;
+    left: 49.8%;
+    transform: translateX(-50%);
+    width: 226px;
+    height: 226px;
+    display:none;
+    z-index: 27;
+}
+/* VISIBLE state - overlays open */
+#modifierReelOverlay[style*="display: flex"] .modifier-reel-content,
+#modifierReelOverlay[style*="display: block"] .modifier-reel-content {
+    animation: slideUpBounce 0.68s cubic-bezier(.25,1.7,.35,1) forwards;
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+}
+.modifier-reel-content.out {
+  animation: slideBounceOut 0.65s cubic-bezier(.4,1.7,.35,1) forwards !important;
+}
+/* #endregion */
+
+/* Animations */
+@keyframes lightBarSpin {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 100% 0;
+    }
+}
+
+@keyframes slideUpBounce {
+  0%   { transform: translate(-50%, 100vh) scale(1); opacity: 1; }
+  65%  { transform: translate(-50%, 0px) scale(1.025); opacity: 1; }
+  78%  { transform: translate(-50%, 10px) scale(1); opacity: 1; }
+  90%  { transform: translate(-50%, -4px) scale(1.01); opacity: 1; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+@keyframes slideBounceOut {
+  0%   { transform: translate(-50%, 0) scale(1);      opacity: 1; }
+  20%  { transform: translate(-50%, -38px) scale(1.05); opacity: 1; }
+  40%  { transform: translate(-50%, 0) scale(0.98);    opacity: 1; }
+  100% { transform: translate(-50%, 100vh) scale(0.95); opacity: 1; }
+}
+
+
+
+/* Animations End */
