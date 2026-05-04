@@ -50,6 +50,10 @@ function setForgeSpinStatus(spinning, by = 'slot') {
 const REEL_COUNT = 3;
 const REEL_IDS = ["slotReel1", "slotReel2", "slotReel3"]; // (HTML IDs of reel containers)
 const REEL_CATEGORIES = ["Species", "Themes", "Poses"];   // Used for pathing and history
+const CYLINDER_FACE_COUNT = 12;
+const CYLINDER_FACE_ANGLE = 360 / CYLINDER_FACE_COUNT;
+const CYLINDER_RADIUS = [430, 520, 430];
+const CYLINDER_FACE_SCALE = [0.76, 0.78, 0.76];
 const GRAPHICS_PATHS = [
     "/assets/drawing-slot-machine/images/slot_machine/species/",
     "/assets/drawing-slot-machine/images/slot_machine/themes/",
@@ -74,6 +78,7 @@ const JACKPOT_PATH = "/assets/drawing-slot-machine/images/slot_machine/jackpot/"
 let modifierType = null;        // Stores the type (e.g., "sussy", "artsy")
 let modifierPending = false;    // Has a modifier been received & waiting for win?
 let modifierRevealInProgress = false; // Prevents double-reveals
+let localModifierTestMode = false; // Keeps URL test modifiers from being cleared by polling
 // Map modifier types to images and audio (expand as needed)
 const MODIFIER_CONFIG = {
     "sussy": {
@@ -94,6 +99,63 @@ const MODIFIER_CONFIG = {
     }
 };
 
+const MODIFIER_ALIASES = {
+    sus: "sussy",
+    sussy: "sussy",
+    artsy: "artsy",
+    art: "artsy",
+    respin: "respin",
+    reroll: "respin",
+    style: "style"
+};
+
+function getUrlFlag(params, key, defaultValue = false) {
+    const value = params.get(key);
+    if (value == null) return defaultValue;
+    return !["0", "false", "no", "off"].includes(String(value).toLowerCase());
+}
+
+function normalizeModifierType(value) {
+    if (!value) return null;
+    const cleanValue = String(value)
+        .toLowerCase()
+        .trim()
+        .replace(/^(modify|modifier|mod)[-_:\s]*/, "");
+    const alias = MODIFIER_ALIASES[cleanValue] || cleanValue;
+    return MODIFIER_CONFIG[alias] ? alias : null;
+}
+
+function getUrlModifierTest() {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode") || "";
+    const modeModifierMatch = mode.match(/^(?:modify|modifier|mod)[-_:\s]*(.+)$/i);
+    const explicitModifier = params.get("modifier") || params.get("mod");
+    const type = normalizeModifierType(explicitModifier || modeModifierMatch?.[1]);
+
+    if (!type) return null;
+
+    return {
+        type,
+        autoSpin: getUrlFlag(params, "autospin", Boolean(modeModifierMatch))
+    };
+}
+
+function applyUrlModifierTestMode() {
+    const test = getUrlModifierTest();
+    if (!test) return;
+
+    localModifierTestMode = true;
+    modifierType = test.type;
+    modifierPending = true;
+    console.log(`[URL Test] modifier queued: ${modifierType}`);
+
+    if (test.autoSpin) {
+        setTimeout(() => {
+            if (!isSpinning) safeSpinRequest();
+        }, 600);
+    }
+}
+
 // ---- Jackpot Odds Settings ---- //
 let jackpotChance = 8;   // Default % chance, adjustable via setJackpotChance()
 let forcedJackpotMin = 0; // Tracks forced jackpots per spin (see guarantee logic)
@@ -106,10 +168,13 @@ let spinningReels = [false, false, false]; // Tracks which reels are spinning (b
 let currentResults = [null, null, null];   // Tracks current center tile for each reel
 let jackpotLanded = [false, false, false]; // Tracks if a reel has hit jackpot this spin
 let reelSpinTokens = [0, 0, 0];             // Cancels stale reel loops when a respin restarts the same reel
+let reelRotationSteps = [0, 0, 0];          // Current cylinder index/rotation per reel
 // Modifier reel state
 let currentModifierReelType = null;
 let modifierReelImages = [];
 let modifierReelResult = null;
+let modifierReelSpinning = false;
+let modifierReelSpinToken = 0;
 
 // ---- History & Control ---- //
 let last10History = [];    // Last 10 results (from Forge)
@@ -128,6 +193,10 @@ const SPIN_MAX_MS = 6000;
 const RESPIN_DELAY_MS = 2200;   // Delay before re-spins, for effect
 const SLIP_ANIMATION_MS = 180;  // For "catch" animation
 const JERK_ANIMATION_MS = 80;   // For "jerk back" animation
+const MODIFIER_SPIN_MIN_TICKS = 20;
+const MODIFIER_SPIN_EXTRA_TICKS = 10;
+const MODIFIER_SPIN_BASE_DELAY_MS = 45;
+const MODIFIER_SPIN_DECEL_MS = 7;
 const spinAudio = document.getElementById('spinAudio');
 const reelStopAudio = [
   document.getElementById('reel1StopAudio'),
@@ -312,6 +381,62 @@ function getRandomJackpotImage() {
     return JACKPOT_PATH + pickRandom(JACKPOT_IMAGES);
 }
 
+function setupCylinderReels() {
+    reelElements.forEach((reel, reelIndex) => {
+        if (!reel || reel.dataset.cylinderReady === "true") return;
+
+        const existingWrappers = Array.from(reel.getElementsByClassName("slot-tile-wrapper"));
+        const defaultSrc = existingWrappers[0]?.querySelector("img")?.src || "";
+        const isCenter = reelIndex === 1;
+
+        while (existingWrappers.length < CYLINDER_FACE_COUNT) {
+            const wrapper = document.createElement("div");
+            wrapper.className = `slot-tile-wrapper${isCenter ? " center-tile" : ""}`;
+            const img = document.createElement("img");
+            img.className = "slot-tile-image";
+            img.src = defaultSrc;
+            wrapper.appendChild(img);
+            reel.appendChild(wrapper);
+            existingWrappers.push(wrapper);
+        }
+
+        existingWrappers.forEach((wrapper, faceIndex) => {
+            wrapper.style.setProperty("--face-index", faceIndex);
+            wrapper.style.setProperty("--face-angle", `${CYLINDER_FACE_ANGLE}deg`);
+            wrapper.style.setProperty("--reel-radius", `${CYLINDER_RADIUS[reelIndex]}px`);
+            wrapper.style.setProperty("--face-scale", CYLINDER_FACE_SCALE[reelIndex]);
+            wrapper.dataset.faceIndex = String(faceIndex);
+        });
+
+        reel.classList.add("is-cylinder");
+        reel.style.setProperty("--reel-rotation", "0deg");
+        reel.dataset.cylinderReady = "true";
+    });
+}
+
+function getFrontFaceIndex(reelIndex) {
+    return ((reelRotationSteps[reelIndex] % CYLINDER_FACE_COUNT) + CYLINDER_FACE_COUNT) % CYLINDER_FACE_COUNT;
+}
+
+function getReelFace(reelIndex, faceIndex) {
+    const reel = reelElements[reelIndex];
+    return reel?.querySelector(`.slot-tile-wrapper[data-face-index="${faceIndex}"]`);
+}
+
+function setReelRotation(reelIndex, stepDelta = 0, direction = 1) {
+    const reel = reelElements[reelIndex];
+    if (!reel) return;
+
+    reelRotationSteps[reelIndex] += stepDelta * direction;
+    reel.style.setProperty("--reel-rotation", `${-reelRotationSteps[reelIndex] * CYLINDER_FACE_ANGLE}deg`);
+}
+
+function getCurrentReelResult(reelIndex) {
+    const face = getReelFace(reelIndex, getFrontFaceIndex(reelIndex));
+    const img = face?.querySelector("img");
+    return img?.src?.split("/").pop() || "";
+}
+
 /*
     ============= SECTION 4: REEL SPIN & ANIMATION LOGIC =============
 */
@@ -339,17 +464,17 @@ function doReelReleaseAnimation(reelIndex, mainDirection, callback) {
 }
 
 function shiftReelTiles(reelIndex, newImageSrc, isJackpot = false) {
-    let reel = reelElements[reelIndex];
-    let wrappers = Array.from(reel.getElementsByClassName("slot-tile-wrapper"));
-    let images = wrappers.map(w => w.querySelector("img"));
+    const direction = spinDirection[reelIndex] || 1;
+    const nextStep = reelRotationSteps[reelIndex] + direction;
+    const nextFaceIndex = ((nextStep % CYLINDER_FACE_COUNT) + CYLINDER_FACE_COUNT) % CYLINDER_FACE_COUNT;
+    const face = getReelFace(reelIndex, nextFaceIndex);
+    const img = face?.querySelector("img");
 
-    // Shift: img3 -> img2, img2 -> img1, img1 (top) gets new image
-    images[2].src = images[1].src;
-    images[1].src = images[0].src;
-    images[0].src = newImageSrc;
+    if (!img) return;
 
-    if (isJackpot) images[0].classList.add("jackpot-glow");
-    else images[0].classList.remove("jackpot-glow");
+    img.src = newImageSrc;
+    img.classList.toggle("jackpot-glow", Boolean(isJackpot));
+    setReelRotation(reelIndex, 1, direction);
 }
 
 function spinReel(reelIndex, duration, direction = 1, speed = 1) {
@@ -431,13 +556,17 @@ function doReelCatchAnimation(reelIndex, direction = 1, forceOnStop = false, spi
 
       // ✅ force the final visible tile if required
       if (forceOnStop) {
-        const wrappers = Array.from(reel.getElementsByClassName("slot-tile-wrapper"));
-        const images = wrappers.map(w => w.querySelector("img"));
+        const face = getReelFace(reelIndex, getFrontFaceIndex(reelIndex));
+        const img = face?.querySelector("img");
         const finalJackpot = getRandomJackpotImage();
-        images[0].src = finalJackpot; // top becomes the final “center” on stop
+        if (img) {
+          img.src = finalJackpot;
+          img.classList.add("jackpot-glow");
+        }
         jackpotLanded[reelIndex] = true;
       }
 
+      reel.classList.remove("fast-spin");
       spinningReels[reelIndex] = false;
       handleReelStop(reelIndex);
     }, JERK_ANIMATION_MS);
@@ -449,9 +578,7 @@ function doReelCatchAnimation(reelIndex, direction = 1, forceOnStop = false, spi
     ============= SECTION 5: RESULT & HISTORY LOGIC =============
 */
 function handleReelStop(reelIndex) {
-    let wrappers = Array.from(reelElements[reelIndex].getElementsByClassName("slot-tile-wrapper"));
-    let middleImg = wrappers[0].querySelector("img");
-    let resultFilename = middleImg.src.split("/").pop();
+    let resultFilename = getCurrentReelResult(reelIndex);
     currentResults[reelIndex] = resultFilename;
 
     spinningReels[reelIndex] = false;
@@ -515,6 +642,7 @@ function triggerRespins(indices) {
 
     for (let i of respinIndices) {
         spinDirection[i] = Math.random() < 0.5 ? 1 : -1;
+        reelElements[i]?.classList.add("fast-spin");
         let respinDuration = SPIN_MIN_MS + Math.random() * (SPIN_MAX_MS - SPIN_MIN_MS);
         spinReel(i, respinDuration, spinDirection[i]);
     }
@@ -716,6 +844,115 @@ function revealModifierSign(type, opts = {}) {
 }
 
 // Modifier Reel Logic
+function getModifierImagePath(type, filename) {
+    return `/assets/drawing-slot-machine/images/slot_machine/modifiers/${type}/${filename}`;
+}
+
+function formatModifierResultName(filename) {
+    return String(filename || "").replace(/\.[^.]+$/, "");
+}
+
+async function loadModifierReelImages(type) {
+    const response = await fetch(`/assets/drawing-slot-machine/images/slot_machine/modifiers/${type}.json`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Modifier image list failed for ${type}: ${response.status}`);
+
+    const images = await response.json();
+    if (!Array.isArray(images) || images.length === 0) {
+        throw new Error(`Modifier image list is empty for ${type}`);
+    }
+
+    return images;
+}
+
+function setModifierReelTile(type, filename, imgEl, ui = {}) {
+    const src = getModifierImagePath(type, filename);
+    imgEl.src = encodeURI(src);
+    imgEl.alt = formatModifierResultName(filename);
+    imgEl.style.display = "block";
+    if (ui.typeEl) {
+        ui.typeEl.textContent = `${type.toUpperCase()} MODIFIER`;
+    }
+    if (ui.labelEl) {
+        ui.labelEl.textContent = formatModifierResultName(filename);
+    }
+    if (ui.statusEl && ui.status) {
+        ui.statusEl.textContent = ui.status;
+    }
+    return src;
+}
+
+async function waitForAnimationEnd(element, fallbackMs = 700) {
+    return new Promise((resolve) => {
+        if (!element) return resolve();
+
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            clearTimeout(timeout);
+            element.removeEventListener("animationend", finish);
+            element.removeEventListener("transitionend", finish);
+            resolve();
+        };
+
+        const timeout = setTimeout(finish, fallbackMs);
+        element.addEventListener("animationend", finish, { once: true });
+        element.addEventListener("transitionend", finish, { once: true });
+    });
+}
+
+async function spinModifierReel(type, images, imgEl, ui, slot) {
+    const token = ++modifierReelSpinToken;
+    const ticks = MODIFIER_SPIN_MIN_TICKS + Math.floor(Math.random() * MODIFIER_SPIN_EXTRA_TICKS);
+    let selectedFilename = null;
+
+    modifierReelSpinning = true;
+    slot.classList.remove("slip-up", "slip-down", "jerk", "locked", "stamping");
+    slot.classList.add("printing");
+    if (ui.statusEl) ui.statusEl.textContent = "SCANNING...";
+
+    for (let i = 0; i < ticks; i++) {
+        if (token !== modifierReelSpinToken) return null;
+
+        selectedFilename = pickRandom(images);
+        const status = i < ticks - 5 ? "PRINTING..." : "EVALUATING...";
+        setModifierReelTile(type, selectedFilename, imgEl, { ...ui, status });
+        await sleep(MODIFIER_SPIN_BASE_DELAY_MS + (i * MODIFIER_SPIN_DECEL_MS));
+    }
+
+    if (token !== modifierReelSpinToken || !selectedFilename) return null;
+
+    slot.classList.remove("printing");
+    slot.classList.add("slip-up");
+    playAudioCue(reelStopAudio[1], 600);
+    await sleep(SLIP_ANIMATION_MS);
+
+    slot.classList.remove("slip-up");
+    slot.classList.add("jerk");
+    await sleep(JERK_ANIMATION_MS);
+
+    slot.classList.remove("jerk");
+    slot.classList.add("stamping");
+    if (ui.statusEl) ui.statusEl.textContent = "LOCKING...";
+    await sleep(280);
+
+    slot.classList.remove("stamping");
+    slot.classList.add("locked");
+    if (ui.statusEl) ui.statusEl.textContent = "FORGE TAG APPLIED";
+    modifierReelSpinning = false;
+
+    const result = {
+        type,
+        filename: selectedFilename,
+        src: getModifierImagePath(type, selectedFilename)
+    };
+
+    modifierReelResult = result;
+    document.dispatchEvent(new CustomEvent("modifier:complete", { detail: result }));
+    console.log("[ModifierReel] result:", result);
+    return result;
+}
+
 async function showModifierReel(type, opts = {}) {
 
     currentModifierReelType = type;
@@ -723,12 +960,23 @@ async function showModifierReel(type, opts = {}) {
     modifierReelResult = null;
     const { slideFirst = true, playRevealSound = false } = opts;
     const overlay = document.getElementById("modifierReelOverlay");
+    const reelContent = overlay?.querySelector(".modifier-reel-content");
     const header = document.getElementById("modifierReelHeader");
     const imgEl = document.getElementById("modifierReelTileImg");
+    const typeEl = document.getElementById("modifierReelTypeLabel");
+    const labelEl = document.getElementById("modifierReelTileLabel");
+    const statusEl = document.getElementById("modifierReelStatus");
     const slot = document.getElementById("modifierReelSlot");
-    overlay.style.display = "flex";
+    if (!overlay || !imgEl || !slot) return null;
+
     if (header) header.textContent = `MODIFIER: ${type.toUpperCase()}`;
     imgEl.src = "";
+    imgEl.style.display = "none";
+    if (typeEl) typeEl.textContent = `${type.toUpperCase()} MODIFIER`;
+    if (labelEl) labelEl.textContent = "";
+    if (statusEl) statusEl.textContent = "READY TO PRINT";
+    slot.classList.remove("slip-up", "slip-down", "jerk", "spinning", "printing", "stamping", "locked");
+    if (reelContent) reelContent.classList.remove("out");
 
    const revealAudio = document.getElementById("modifierRevealAudio");
 if (playRevealSound && revealAudio) {
@@ -737,67 +985,44 @@ if (playRevealSound && revealAudio) {
 }
 
     try {
-        const res = await fetch(`/assets/drawing-slot-machine/images/slot_machine/modifiers/${type}.json`);
-        modifierReelImages = await res.json();
+        modifierReelImages = await loadModifierReelImages(type);
     } catch (e) {
         if (header) header.textContent = "No options for this modifier!";
-        return;
+        console.warn("[ModifierReel]", e);
+        return null;
     }
 
-    slot.classList.remove("slip-up", "slip-down", "jerk");
+    const ui = { typeEl, labelEl, statusEl };
+    setModifierReelTile(type, pickRandom(modifierReelImages), imgEl, { ...ui, status: "READY TO PRINT" });
 
-// Build a spin routine we can start after the slide
-const startSpin = () => {
-  // --- Spin ---
-  let spins = 18 + Math.floor(Math.random() * 7);
-  let spinDelay = 55;
-  let i = 0;
-  let spinInt = setInterval(() => {
-    let img = modifierReelImages[Math.floor(Math.random() * modifierReelImages.length)];
-    imgEl.src = `/assets/drawing-slot-machine/images/slot_machine/modifiers/${type}/${img}`;
-    i++;
-    if (i >= spins) {
-      clearInterval(spinInt);
-      // --- Catch ---
-      slot.classList.add("slip-up");
-      setTimeout(() => {
-        slot.classList.remove("slip-up");
-        slot.classList.add("jerk");
-        setTimeout(() => {
-          slot.classList.remove("jerk");
-          modifierReelResult = imgEl.src;
-        }, 90);
-      }, 150);
+    const entranceComplete = slideFirst
+        ? waitForAnimationEnd(reelContent, 760)
+        : sleep(120);
+
+    overlay.style.display = "flex";
+    if (slideFirst) {
+        await entranceComplete;
+    } else if (entranceComplete) {
+        await entranceComplete;
     }
-  }, spinDelay);
-};
 
-// New behavior: optional slide-up first, otherwise legacy slip-down then spin
-if (slideFirst) {
-  // Slide UP (CSS) then spin
-  slot.classList.add("slip-up");
-  function onAnimEnd() {
-    slot.removeEventListener("animationend", onAnimEnd);
-    slot.classList.remove("slip-up");
-    startSpin();
-  }
-  slot.addEventListener("animationend", onAnimEnd, { once: true });
-} else {
-  // Legacy: slip-down then spin
-  slot.classList.add("slip-down");
-  setTimeout(() => {
-    slot.classList.remove("slip-down");
-    startSpin();
-  }, 0);
-}
+    const spinResult = spinModifierReel(type, modifierReelImages, imgEl, ui, slot);
 
     const closeBtn = document.getElementById("modifierReelClose");
     if (closeBtn) closeBtn.onclick = () => {
+        modifierReelSpinToken++;
+        modifierReelSpinning = false;
         overlay.style.display = "none";
         imgEl.src = "";
+        imgEl.style.display = "none";
+        if (typeEl) typeEl.textContent = "";
+        if (labelEl) labelEl.textContent = "";
+        if (statusEl) statusEl.textContent = "";
         currentModifierReelType = null;
         modifierReelResult = null;
     };
+
+    return spinResult;
 }
 
 /*
@@ -1016,7 +1241,7 @@ function startStreamToolsPolling() {
       }
 
       const modifier = remoteState.modifier || {};
-      if ((modifier.ts || 0) !== lastModifierTs) {
+      if (!localModifierTestMode && (modifier.ts || 0) !== lastModifierTs) {
         lastModifierTs = modifier.ts || 0;
         if (modifier.type) {
           modifierType = String(modifier.type).toLowerCase();
@@ -1048,43 +1273,57 @@ function startStreamToolsPolling() {
 window.addEventListener("DOMContentLoaded", async () => {
     // Late-bind reel DOM nodes now that the HTML exists
     reelElements = REEL_IDS.map(id => document.getElementById(id));
+    setupCylinderReels();
     if (loadingIndicator) loadingIndicator.style.display = "block";
     await preloadAllImages();
     await loadHistoryFromServer();
 
     const awooButton = document.getElementById('awooPushButton');
     if (awooButton) {
-        awooButton.addEventListener("mousedown", () => {
+        const pressButton = (event) => {
             if (isSpinning) return;
+            event?.preventDefault?.();
+            if (isButtonActive) return;
             isButtonActive = true;
             awooButton.classList.add("pressed");
+            if (event?.pointerId != null) awooButton.setPointerCapture?.(event.pointerId);
             if (buttonSound) { buttonSound.currentTime = 0; buttonSound.play().catch(()=>{}); }
             isPausedFromHold = false;
             holdTimer = setTimeout(() => {
                 if (buttonSound) { buttonSound.pause(); }
                 isPausedFromHold = true;
             }, holdDelay);
-        });
+        };
 
-        awooButton.addEventListener("mouseup", () => {
+        const releaseButton = (event, shouldSpin = true) => {
             if (!isButtonActive) return;
+            event?.preventDefault?.();
             awooButton.classList.remove("pressed");
+            if (event?.pointerId != null && awooButton.hasPointerCapture?.(event.pointerId)) {
+                awooButton.releasePointerCapture(event.pointerId);
+            }
             clearTimeout(holdTimer);
             if (isPausedFromHold && buttonSound) buttonSound.play().catch(()=>{});
             isButtonActive = false;
-            if (!isSpinning) {
+            if (shouldSpin && !isSpinning) {
                 setTimeout(() => {
                     safeSpinRequest();
                 }, 120);
             }
+        };
+
+        awooButton.addEventListener("pointerdown", pressButton);
+        awooButton.addEventListener("pointerup", (event) => releaseButton(event, true));
+        awooButton.addEventListener("pointercancel", (event) => releaseButton(event, false));
+
+        window.addEventListener("keydown", (event) => {
+            if (event.code !== "Space" || event.repeat) return;
+            pressButton(event);
         });
 
-        awooButton.addEventListener("mouseleave", () => {
-            if (isButtonActive) {
-                awooButton.classList.remove("pressed");
-                clearTimeout(holdTimer);
-                isButtonActive = false;
-            }
+        window.addEventListener("keyup", (event) => {
+            if (event.code !== "Space") return;
+            releaseButton(event, true);
         });
     } else {
         console.log('Awoo button NOT found!');
@@ -1092,6 +1331,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     await initJackpotFromServer();
     startStreamToolsPolling();
+    applyUrlModifierTestMode();
 
 });
 
@@ -1118,6 +1358,7 @@ for (let i = 0; i < target; i++) forceJackpotOnStop[order[i]] = true;
     await loadHistoryFromServer();
 
     for (let i = 0; i < REEL_COUNT; i++) {
+        reelElements[i]?.classList.add("fast-spin");
         let spinDuration = SPIN_MIN_MS + Math.random() * (SPIN_MAX_MS - SPIN_MIN_MS);
         spinReel(i, spinDuration, 1);
     }
