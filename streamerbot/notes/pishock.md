@@ -73,6 +73,19 @@ Normal operation caps at 100%. The Overload redeem allows the gauge to enter the
 
 Gift subs and subs count as 700 bits for chance and pressure calculations.
 
+Pressure gain is tuned so `1000 bits = 100%` gauge pressure:
+
+```text
+1-9 bits      = 0% pressure
+10 bits       = 1% pressure
+100 bits      = 10% pressure
+700 bits/sub  = 70% pressure
+1000 bits     = 100% pressure
+1500 bits     = 150% pressure during overload
+```
+
+Pressure gain uses whole percent points per event, so repeated 1-bit cheers cannot gradually fill the gauge.
+
 ## Bit-Weighted Chance
 
 A cheer/sub event should roll for an impulse event using a bit-weighted chance. Hype Train level adds +5% chance per level while active. Once the Hype Train ends, the bonus resets.
@@ -114,11 +127,13 @@ On shock:
 ```text
 reset ps_missCount
 vent pressure by 10%
-start random cooldown between 30 and 90 seconds
+start random cooldown between 30 and 30 seconds during beta testing
 relay mode = discharge
 ```
 
 During cooldown, cheers/subs still add pressure and can update the current viewer display, but no normal shock should discharge.
+
+`Anthro-Corp_Relay_Status_Update` sends `ps_cooldownUntilUtc` to the workbench server. The server recalculates `cooldownRemaining` on every widget poll, so the overlay can clear cooldown even if Streamer.bot does not post again exactly when the timer expires.
 
 ## Overload Protocol
 
@@ -129,6 +144,15 @@ ps_overloadActive = true
 ps_maxPressureGauge = 150
 ps_overloadUntilUtc = now + 5 minutes
 relay mode = overload-armed
+```
+
+Streamer.bot action:
+
+```text
+AnthroCorp_Arm_Overload
+Anthro-Corp_Relay_Status_Update
+Delay 5 minutes
+Start overload vent sequence
 ```
 
 Widget behavior:
@@ -143,6 +167,8 @@ show that normal discharges are locked out
 During overload lockout, no normal shock should discharge. Cheers/subs still add pressure up to 150%.
 
 When pressure reaches 150%, or when the 5-minute timer expires, begin overload venting. Venting sends one shock per 10% pressure step until pressure reaches the safe pressure target of 30%.
+
+Every pressure event action should check `shouldStartOverloadVent` immediately after `AnthroCorp_Process_Pressure_Event`. If it is true, start the overload vent sequence instead of waiting for the 5-minute delayed action.
 
 Example from 150%:
 
@@ -166,6 +192,24 @@ ps_overloadVenting = false
 relay mode = recovery
 ```
 
+Venting is prepared one step at a time so the private PiShock action remains the only action that sends impulses:
+
+```text
+AnthroCorp_Prepare_Vent_Step
+If shouldVentDischarge == true:
+  AnthroCorp_Debug_PiShock_Args during beta testing
+  PiShock V2 private action
+  Anthro-Corp_Relay_Status_Update
+  wait 1 second
+  repeat while shouldContinueVenting == true
+AnthroCorp_Complete_Venting
+Anthro-Corp_Relay_Status_Update
+```
+
+If Streamer.bot looping is awkward during beta testing, duplicate the vent step block up to 12 times. The step action stops preparing shocks once the pressure reaches 30%.
+
+If the widget first shows 140% when overload venting begins, that usually means the 150% trigger was reached and the first 10% vent step already posted its relay update.
+
 Suggested recovery ticker copy:
 
 ```text
@@ -179,8 +223,17 @@ A future channel point redemption should flush the system using the same step-do
 Flush target:
 
 ```text
-30% safe pressure
+0% full pressure purge
 ```
+
+Manual flush uses the same step action as overload venting, but passes:
+
+```text
+ventMode = flush
+ventTargetPressure = 0
+```
+
+Pass the same arguments into `AnthroCorp_Complete_Venting` so it finishes at 0% instead of the overload recovery target of 30%.
 
 ## Viewer Attribution
 
@@ -245,7 +298,9 @@ venting
 Recommended discharge action order:
 
 ```text
-AnthroCorp_Prepare_Discharge
+AnthroCorp_Process_Pressure_Event
+If shouldDischarge == true:
+AnthroCorp_Debug_PiShock_Args during beta testing
 PiShock V2 private action
 AnthroCorp_Announce_Discharge
 Anthro-Corp_Relay_Status_Update
@@ -279,3 +334,11 @@ POST /api/pishock/status
 ```
 
 The route requires the `Authorization: Bearer <token>` header.
+
+The workbench server writes each status POST to:
+
+```text
+server/data/pishock/status-events.ndjson
+```
+
+`server/data/` is ignored by git and can be reviewed after stream tests.

@@ -650,6 +650,36 @@
       animation: tickerStripeRight 1.2s linear infinite;
     }
 
+    body.alert-cooldown .topbar,
+    body.alert-cooldown .footer {
+      background: rgba(3, 22, 42, 0.94);
+      border-color: rgba(61, 141, 255, 0.96);
+      color: #d7ecff;
+      animation: bannerCooldownFlash 1.05s steps(2, end) infinite;
+    }
+
+    body.alert-cooldown .topbar::before,
+    body.alert-cooldown .topbar::after,
+    body.alert-cooldown .footer::before,
+    body.alert-cooldown .footer::after {
+      opacity: 1;
+      background: repeating-linear-gradient(
+        90deg,
+        #3d8dff 0 22px,
+        #050505 22px 44px
+      );
+    }
+
+    body.alert-cooldown .topbar::before,
+    body.alert-cooldown .footer::before {
+      animation: tickerStripeLeft 1.35s linear infinite;
+    }
+
+    body.alert-cooldown .topbar::after,
+    body.alert-cooldown .footer::after {
+      animation: tickerStripeRight 1.35s linear infinite;
+    }
+
     body.alert-danger .topbar,
     body.alert-danger .footer {
       background: rgba(54, 4, 12, 0.94);
@@ -690,8 +720,12 @@
 
     .ticker span {
       display: inline-block;
-      animation: ticker 14s linear infinite;
+      animation: tickerIdle 165s linear infinite;
       padding-left: 100%;
+    }
+
+    body.ticker-continuous .ticker span {
+      animation: ticker 14s linear infinite;
     }
 
     .mode-tag { color: var(--cyan); }
@@ -1820,6 +1854,9 @@
     @keyframes bannerWarningFlash {
       50% { background: rgba(83, 64, 5, 0.95); box-shadow: inset 0 0 24px rgba(255, 209, 102, 0.2); }
     }
+    @keyframes bannerCooldownFlash {
+      50% { background: rgba(4, 38, 76, 0.98); box-shadow: inset 0 0 28px rgba(61, 141, 255, 0.3); }
+    }
     @keyframes bannerDangerFlash {
       50% { background: rgba(86, 5, 20, 0.98); box-shadow: inset 0 0 28px rgba(255, 59, 95, 0.28); }
     }
@@ -1834,6 +1871,10 @@
     @keyframes consoleScroll {
       from { transform: translateY(0); }
       to { transform: translateY(-50%); }
+    }
+    @keyframes tickerIdle {
+      0%, 82% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
     }
     @keyframes ticker { to { transform: translateX(-100%); } }
 
@@ -1964,7 +2005,7 @@
             <div class="signal-grid" aria-label="Symbol status indicators">
               <div class="signal" id="pressureSignal" data-symbol="P" title="Pressure"><span class="signal-label">Pressure</span></div>
               <div class="signal" id="chanceSignal" data-symbol="R" title="Random gate"><span class="signal-label">Gate</span></div>
-              <div class="signal" id="cooldownSignal" data-symbol="L" title="Safety lockout"><span class="signal-label">Lockout</span></div>
+              <div class="signal" id="cooldownSignal" data-symbol="❄" title="Cooldown freeze"><span class="signal-label">Freeze</span></div>
               <div class="signal" id="overloadSignal" data-symbol="!" title="Overload"><span class="signal-label">Overload</span></div>
               <div class="signal" id="hypeSignal" data-symbol="H" title="Hype boost"><span class="signal-label">Hype</span></div>
             </div>
@@ -2056,6 +2097,7 @@
       hypeBoost: 0,
       overloadActive: false,
       overloadVenting: false,
+      overloadRemaining: 0,
       currentViewerName: "",
       currentViewerImageUrl: "",
       currentViewerRole: "",
@@ -2227,8 +2269,10 @@
       const hypePct = percent(state.hypeBoost, 5);
       const pressurePct = percent(state.pressure, state.maxPressure);
       const status = classifyPressure(state.pressure, state.maxPressure);
+      const modeKey = (state.mode || "").toLowerCase();
+      const activeCooldown = state.cooldownRemaining > 0 || modeKey === "cooldown";
       const dangerAlert = state.overloadVenting || state.overloadActive || status.className === "danger";
-      const warningAlert = !dangerAlert && (state.cooldownRemaining > 0 || status.className === "warning" || state.chance >= 45);
+      const warningAlert = !dangerAlert && activeCooldown;
 
       const sweepDegrees = 280;
       const startAngle = -220;
@@ -2246,7 +2290,9 @@
       els.statePill.textContent = status.text;
       els.statePill.className = `status-pill ${status.className}`.trim();
       document.body.classList.toggle("alert-danger", dangerAlert);
-      document.body.classList.toggle("alert-warning", warningAlert);
+      document.body.classList.toggle("alert-cooldown", warningAlert);
+      document.body.classList.toggle("alert-warning", false);
+      document.body.classList.toggle("ticker-continuous", activeCooldown);
 
       setBar(els.chargeBar, chargePct);
       els.chargeValue.textContent = `${Math.round(state.charge)} / ${Math.round(state.maxCharge)}`;
@@ -2258,14 +2304,14 @@
       els.chanceValue.textContent = `${Math.round(state.chance)}%`;
 
       setBar(els.cooldownBar, cooldownPct, 999, 999);
-      els.cooldownValue.textContent = state.cooldownRemaining > 0 ? `${Math.ceil(state.cooldownRemaining)}s` : "Ready";
+      els.cooldownValue.textContent = activeCooldown ? `${Math.ceil(state.cooldownRemaining)}s` : "Ready";
 
       setBar(els.hypeBar, hypePct, 60, 90);
       els.hypeValue.textContent = `+${Math.round(state.hypeBoost)}`;
 
       setSignal(els.pressureSignal, state.pressure > 100 ? "danger" : state.pressure >= 65 ? "warning" : state.pressure > 0 ? "active" : "");
       setSignal(els.chanceSignal, state.chance >= 75 ? "danger" : state.chance >= 45 ? "warning" : state.chance > 0 ? "active" : "");
-      setSignal(els.cooldownSignal, state.cooldownRemaining > 0 ? "cooldown" : "active");
+      setSignal(els.cooldownSignal, activeCooldown ? "cooldown" : "active");
       setSignal(els.overloadSignal, state.overloadVenting ? "danger" : state.overloadActive ? "overload" : "");
       setSignal(els.hypeSignal, state.hypeBoost > 0 ? "active" : "");
 
@@ -2287,10 +2333,13 @@
         els.tickerText.textContent = state.tickerMessage;
       } else if (state.overloadVenting) {
         els.tickerText.textContent = "🚨 VENTING SEQUENCE ACTIVE // PRESSURE RELEASE IN PROGRESS // MAINTAIN CLEARANCE // 🚨";
+      } else if ((state.mode || "").toLowerCase() === "flush") {
+        els.tickerText.textContent = "🚨 MANUAL FLUSH ACTIVE // FULL PRESSURE PURGE IN PROGRESS // MAINTAIN CLEARANCE // 🚨";
       } else if (state.overloadActive) {
-        els.tickerText.textContent = "🚨 OVERLOAD PROTOCOL ACTIVE // RED-ZONE PRESSURE AUTHORIZED // NORMAL DISCHARGE LOCKED OUT // 🚨";
-      } else if (state.cooldownRemaining > 0) {
-        els.tickerText.textContent = "⚠️ SAFETY LOCKOUT ACTIVE // PRESSURE EVENTS BANKED // RELAY RECOVERY WINDOW IN PROGRESS // ⚠️";
+        const overloadTimer = state.overloadRemaining > 0 ? ` // AUTO-VENT IN ${Math.ceil(state.overloadRemaining)} SEC` : "";
+        els.tickerText.textContent = `🚨 OVERLOAD PROTOCOL ACTIVE // RED-ZONE PRESSURE AUTHORIZED // NORMAL DISCHARGE LOCKED OUT${overloadTimer} // 🚨`;
+      } else if (activeCooldown) {
+        els.tickerText.textContent = "🧊 COOLDOWN FREEZE ACTIVE // ⛔ DISCHARGE INHIBITED // PRESSURE EVENTS BANKED // RELAY RECOVERY WINDOW IN PROGRESS // 🧊";
       } else {
         els.tickerText.textContent = defaultTickerText;
       }
@@ -2496,6 +2545,7 @@
             cooldownTotal: clamp(status.cooldownTotal, 0, 600),
             overloadActive: status.overloadActive === true,
             overloadVenting: status.overloadVenting === true,
+            overloadRemaining: clamp(status.overloadRemaining, 0, 600),
             currentViewerName: status.currentViewerName || "",
             currentViewerImageUrl: status.currentViewerImageUrl || "",
             currentViewerRole: status.currentViewerRole || "",

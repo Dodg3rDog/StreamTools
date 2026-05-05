@@ -28,8 +28,28 @@ public class CPHInline
             int lastIntensity = GetInt("ps_lastFinalIntensity", 0);
             int chancePercent = GetInt("ps_lastChancePercent", 0);
             int missCount = GetInt("ps_missCount", 0);
-            int cooldownRemaining = GetInt("ps_cooldownRemaining", 0);
             int cooldownTotal = GetInt("ps_cooldownSeconds", 0);
+            string cooldownUntilUtc = GetString("ps_cooldownUntilUtc", "");
+            DateTime cooldownUntil = GetDate("ps_cooldownUntilUtc", DateTime.MinValue);
+            int cooldownRemaining = 0;
+            if (cooldownUntil != DateTime.MinValue && DateTime.UtcNow < cooldownUntil)
+            {
+                cooldownRemaining = (int)Math.Ceiling((cooldownUntil - DateTime.UtcNow).TotalSeconds);
+                CPH.SetGlobalVar("ps_cooldownRemaining", cooldownRemaining, true);
+            }
+            else if (cooldownUntil != DateTime.MinValue)
+            {
+                cooldownTotal = 0;
+                cooldownUntilUtc = "";
+                CPH.SetGlobalVar("ps_cooldownUntilUtc", "", true);
+                CPH.SetGlobalVar("ps_cooldownSeconds", 0, true);
+                CPH.SetGlobalVar("ps_cooldownRemaining", 0, true);
+            }
+            string overloadUntilUtc = GetString("ps_overloadUntilUtc", "");
+            DateTime overloadUntil = GetDate("ps_overloadUntilUtc", DateTime.MinValue);
+            int overloadRemaining = 0;
+            if (overloadUntil != DateTime.MinValue && DateTime.UtcNow < overloadUntil)
+                overloadRemaining = (int)Math.Ceiling((overloadUntil - DateTime.UtcNow).TotalSeconds);
             string currentViewerName = GetString("ps_lastViewerName", "");
             string currentViewerImageUrl = GetString("ps_lastViewerImageUrl", "");
             string eventMessage = GetString("ps_lastEventMessage", "");
@@ -57,6 +77,9 @@ public class CPHInline
                 + "\"missCount\":" + missCount + ","
                 + "\"cooldownRemaining\":" + cooldownRemaining + ","
                 + "\"cooldownTotal\":" + cooldownTotal + ","
+                + "\"cooldownUntilUtc\":\"" + EscapeJson(cooldownUntilUtc) + "\","
+                + "\"overloadRemaining\":" + overloadRemaining + ","
+                + "\"overloadUntilUtc\":\"" + EscapeJson(overloadUntilUtc) + "\","
                 + "\"currentViewerName\":\"" + EscapeJson(currentViewerName) + "\","
                 + "\"currentViewerImageUrl\":\"" + EscapeJson(currentViewerImageUrl) + "\","
                 + "\"eventMessage\":\"" + EscapeJson(eventMessage) + "\","
@@ -116,6 +139,17 @@ public class CPHInline
         {
             string value = CPH.GetGlobalVar<string>(name, true);
             return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
+        catch { return fallback; }
+    }
+
+    private DateTime GetDate(string name, DateTime fallback)
+    {
+        try
+        {
+            string value = CPH.GetGlobalVar<string>(name, true);
+            DateTime parsed;
+            return DateTime.TryParse(value, out parsed) ? parsed.ToUniversalTime() : fallback;
         }
         catch { return fallback; }
     }

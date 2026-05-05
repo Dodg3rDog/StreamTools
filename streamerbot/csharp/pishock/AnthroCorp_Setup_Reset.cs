@@ -16,6 +16,7 @@ public class CPHInline
         CPH.SetGlobalVar("ps_overloadArmed", false, true);
         CPH.SetGlobalVar("ps_overloadActive", false, true);
         CPH.SetGlobalVar("ps_overloadVenting", false, true);
+        CPH.SetGlobalVar("ps_overloadVentRequested", false, true);
         CPH.SetGlobalVar("ps_overloadUntilUtc", "", true);
         CPH.SetGlobalVar("ps_missCount", 0, true);
         CPH.SetGlobalVar("ps_cooldownUntilUtc", "", true);

@@ -10,15 +10,14 @@ public class CPHInline
     private const int NormalMaxPressure = 100;
     private const int OverloadMaxPressure = 150;
     private const int SafePressure = 30;
-    private const int PressurePer100Bits = 5;
-    private const int MinimumPressureGain = 5;
-    private const int MaximumPressureGain = 50;
+    private const int BitsPerPressurePoint = 10;
+    private const int MaximumPressureGain = 150;
     private const int PressureVentPerShock = 10;
     private const int GiftSubEquivalentBits = 700;
     private const int PityMissLimit = 5;
     private const int HypeChancePerLevel = 5;
-    private const int CooldownMinSeconds = 30;
-    private const int CooldownMaxSeconds = 90;
+    private const int CooldownMinSeconds = 10;
+    private const int CooldownMaxSeconds = 30;
     private const int ViewerDisplayCooldownSeconds = 10;
     private const int ShockDurationSeconds = 1;
 
@@ -46,6 +45,10 @@ public class CPHInline
 
         bool overloadActive = GetBool("ps_overloadActive", false);
         bool overloadVenting = GetBool("ps_overloadVenting", false);
+        DateTime overloadUntil = GetDate("ps_overloadUntilUtc", DateTime.MinValue);
+        bool overloadTimerExpired = overloadActive &&
+            overloadUntil != DateTime.MinValue &&
+            now >= overloadUntil;
 
         int maxPressure = overloadActive ? OverloadMaxPressure : NormalMaxPressure;
         int pressureBefore = GetInt("ps_pressureGauge", GetInt("ps_chargePool", 0));
@@ -55,6 +58,12 @@ public class CPHInline
         DateTime cooldownUntil = GetDate("ps_cooldownUntilUtc", DateTime.MinValue);
         bool inCooldown = now < cooldownUntil;
         int cooldownRemaining = inCooldown ? (int)Math.Ceiling((cooldownUntil - now).TotalSeconds) : 0;
+        if (!inCooldown && cooldownUntil != DateTime.MinValue)
+        {
+            cooldownUntil = DateTime.MinValue;
+            inCooldown = false;
+            cooldownRemaining = 0;
+        }
 
         int baseChance = GetBaseChance(eventBits);
         int hypeBonus = Clamp(hypeLevel * HypeChancePerLevel, 0, 100);
@@ -65,10 +74,11 @@ public class CPHInline
         bool pityGuaranteed = eligibleForRoll && missCount >= PityMissLimit;
         int roll = eligibleForRoll ? Rng.Next(1, 101) : 0;
         bool shouldDischarge = eligibleForRoll && (pityGuaranteed || roll <= chancePercent);
+        bool shouldStartOverloadVent = false;
 
         int finalIntensity = 0;
         int pressureAfterEvent = pressureAfterCharge;
-        int cooldownSeconds = 0;
+        int cooldownSeconds = inCooldown ? GetInt("ps_cooldownSeconds", 0) : 0;
         string relayMode = "charge";
         string eventMessage = "Pressure event logged";
 
@@ -79,8 +89,22 @@ public class CPHInline
         }
         else if (overloadActive)
         {
-            relayMode = "overload";
-            eventMessage = "Overload containment charging";
+            shouldStartOverloadVent = overloadTimerExpired || pressureAfterCharge >= OverloadMaxPressure;
+            if (shouldStartOverloadVent)
+            {
+                overloadVenting = true;
+                cooldownUntil = DateTime.MinValue;
+                cooldownRemaining = 0;
+                relayMode = "venting";
+                eventMessage = overloadTimerExpired
+                    ? "Overload timer expired. Venting sequence requested"
+                    : "Maximum overload pressure reached. Venting sequence requested";
+            }
+            else
+            {
+                relayMode = "overload";
+                eventMessage = "Overload containment charging";
+            }
         }
         else if (inCooldown)
         {
@@ -124,12 +148,15 @@ public class CPHInline
         CPH.SetGlobalVar("ps_cooldownSeconds", cooldownSeconds, true);
         CPH.SetGlobalVar("ps_cooldownRemaining", cooldownRemaining, true);
         CPH.SetGlobalVar("ps_cooldownUntilUtc", cooldownUntil == DateTime.MinValue ? "" : cooldownUntil.ToString("o"), true);
+        CPH.SetGlobalVar("ps_overloadVenting", overloadVenting, true);
+        CPH.SetGlobalVar("ps_overloadVentRequested", shouldStartOverloadVent, true);
         CPH.SetGlobalVar("ps_relayMode", relayMode, true);
         CPH.SetGlobalVar("ps_lastEventType", eventType, true);
         CPH.SetGlobalVar("ps_lastEventValueBits", eventBits, true);
         CPH.SetGlobalVar("ps_lastEventMessage", eventMessage, true);
 
         CPH.SetArgument("shouldDischarge", shouldDischarge);
+        CPH.SetArgument("shouldStartOverloadVent", shouldStartOverloadVent);
         CPH.SetArgument("relayMode", relayMode);
         CPH.SetArgument("pressureGauge", pressureAfterEvent);
         CPH.SetArgument("maxPressureGauge", maxPressure);
@@ -144,6 +171,7 @@ public class CPHInline
             CPH.SetArgument("duration", ShockDurationSeconds);
             CPH.SetArgument("op", 0);
             CPH.SetArgument("mode", 0);
+            CPH.SetArgument("shocker", 0);
             CPH.SetArgument("log", "PRESSURE EVENT");
         }
 
@@ -154,7 +182,10 @@ public class CPHInline
             " Chance=" + chancePercent +
             " Roll=" + roll +
             " Misses=" + missCount +
-            " Discharge=" + shouldDischarge
+            " Discharge=" + shouldDischarge +
+            " Cooldown=" + inCooldown +
+            " CooldownRemaining=" + cooldownRemaining +
+            " RelayMode=" + relayMode
         );
 
         return true;
@@ -184,8 +215,8 @@ public class CPHInline
     {
         if (eventBits <= 0) return 0;
 
-        int gain = (int)Math.Ceiling(eventBits / 100.0) * PressurePer100Bits;
-        return Clamp(gain, MinimumPressureGain, MaximumPressureGain);
+        int gain = eventBits / BitsPerPressurePoint;
+        return Clamp(gain, 0, MaximumPressureGain);
     }
 
     private int GetBaseChance(int eventBits)
