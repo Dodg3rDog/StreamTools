@@ -1421,7 +1421,7 @@
 
     /* ------------------------------------------------------------
        Display Modes
-       Use: ?mode=full | compact | mini | visual | console | gauge | signals | viewer | ticker | stage
+       Use: ?mode=full | compact | mini | visual | console | radial | gauge | signals | viewer | ticker | stage
        Optional: &transparent=1, &boot=0, &pollMs=150
     ------------------------------------------------------------ */
 
@@ -1687,6 +1687,562 @@
       padding: 0;
     }
 
+    .radial-screen {
+      display: none;
+    }
+
+    body.mode-radial {
+      --frame-inset: clamp(8px, 2vw, 28px);
+      --dashboard-padding: clamp(10px, 2vw, 28px);
+      --radial-readable: Bahnschrift, "Agency FB", "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+      --panel-alpha: 0.68;
+      --panel-2-alpha: 0.5;
+      --green: #25ffc8;
+      --cyan: #1595ff;
+      --yellow: #ffb84d;
+      --red: #ff2fd1;
+      --muted: #6480a8;
+      color: #d8f3ff;
+      font-family: var(--radial-readable);
+      font-weight: 700;
+    }
+
+    body.mode-radial .boot-screen,
+    body.mode-radial .topbar,
+    body.mode-radial .console-screen,
+    body.mode-radial .main-grid,
+    body.mode-radial .footer {
+      display: none;
+    }
+
+    body.mode-radial .dashboard {
+      --radial-frame-size: min(800px, 90vmin);
+      --radial-dial-size: min(680px, 76vmin);
+      opacity: 1;
+      transform: none;
+      animation: none;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+      overflow: visible;
+      display: grid;
+      grid-template-rows: 1fr;
+      place-items: center;
+      padding: var(--dashboard-padding);
+    }
+
+    body.mode-radial.alert-danger .dashboard,
+    body.mode-radial.alert-warning .dashboard,
+    body.mode-radial.alert-cooldown .dashboard {
+      animation: none;
+    }
+
+    body.mode-radial .radial-screen {
+      position: relative;
+      overflow: visible;
+      width: var(--radial-frame-size);
+      height: var(--radial-frame-size);
+      min-width: var(--radial-frame-size);
+      min-height: var(--radial-frame-size);
+      max-width: var(--radial-frame-size);
+      max-height: var(--radial-frame-size);
+      aspect-ratio: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      align-items: center;
+      place-items: center;
+      padding: clamp(14px, 2.4vw, 34px);
+      border: 1px solid rgba(21, 149, 255, 0.2);
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(255, 47, 209, 0.12), transparent 28%),
+        radial-gradient(circle at 50% 56%, rgba(21, 149, 255, 0.2), transparent 52%),
+        linear-gradient(180deg, rgba(2, 12, 28, 0.96), rgba(2, 6, 16, 0.9));
+      box-shadow:
+        0 0 44px rgba(21, 149, 255, 0.18),
+        inset 0 0 70px rgba(0, 0, 0, 0.52);
+    }
+
+    body.mode-radial.radial-no-frame .radial-screen {
+      width: var(--radial-frame-size);
+      height: var(--radial-frame-size);
+      min-width: var(--radial-frame-size);
+      min-height: var(--radial-frame-size);
+      max-width: var(--radial-frame-size);
+      max-height: var(--radial-frame-size);
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.46));
+    }
+
+    body.mode-radial.radial-no-frame .radial-screen::before,
+    body.mode-radial.radial-no-frame .radial-screen::after {
+      display: none;
+    }
+
+    body.mode-radial .radial-screen::before,
+    body.mode-radial .radial-screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    body.mode-radial .radial-screen::before {
+      background:
+        repeating-linear-gradient(0deg, rgba(70, 160, 255, 0.055) 0 1px, transparent 1px 5px),
+        linear-gradient(90deg, rgba(21, 149, 255, 0.1), transparent 18%, transparent 82%, rgba(255, 47, 209, 0.1));
+      mix-blend-mode: screen;
+      opacity: 0.66;
+    }
+
+    body.mode-radial .radial-screen::after {
+      background:
+        radial-gradient(circle at center, transparent 0 56%, rgba(0, 0, 0, 0.34) 100%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 36%);
+      opacity: 0.82;
+    }
+
+    .radial-plaque {
+      position: absolute;
+      left: 50%;
+      top: clamp(12px, 1.8vw, 24px);
+      transform: translateX(-50%);
+      z-index: 3;
+      padding: 5px 14px;
+      border: 1px solid rgba(21, 149, 255, 0.28);
+      border-radius: 999px;
+      background: rgba(2, 9, 22, 0.64);
+      color: rgba(126, 203, 255, 0.78);
+      font-size: clamp(12px, 1.35vmin, 17px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      box-shadow: 0 0 18px rgba(21, 149, 255, 0.12), inset 0 0 12px rgba(21, 149, 255, 0.08);
+    }
+
+    body.mode-radial.radial-no-pill .radial-plaque {
+      display: none;
+    }
+
+    .radial-startup-logo {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: grid;
+      place-items: center;
+      box-sizing: border-box;
+      padding: 0 clamp(8px, 2vw, 24px);
+      overflow: visible;
+      color: #f6fbff;
+      font-family: var(--font-terminal);
+      font-size: clamp(6px, 1vw, 13px);
+      font-weight: 400;
+      line-height: 1.08;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      background: radial-gradient(circle at center, rgba(2, 12, 28, 0.96), rgba(2, 6, 16, 0.92) 62%, transparent 100%);
+      text-shadow:
+        0 0 18px rgba(21, 149, 255, 0.75),
+        0 0 34px rgba(255, 47, 209, 0.38);
+      pointer-events: none;
+      animation: radialStartupLogo 2.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .radial-startup-logo pre {
+      margin: 0;
+      display: block;
+      width: max-content;
+      min-width: 106ch;
+      max-width: none;
+      font-family: var(--font-terminal);
+      font-weight: 400;
+      font-size: inherit;
+      line-height: inherit;
+      white-space: pre;
+      text-align: left;
+      transform: translateX(-0.5ch);
+    }
+
+    .radial-dial {
+      position: relative;
+      width: var(--radial-dial-size);
+      height: var(--radial-dial-size);
+      min-width: var(--radial-dial-size);
+      min-height: var(--radial-dial-size);
+      max-width: var(--radial-dial-size);
+      max-height: var(--radial-dial-size);
+      aspect-ratio: 1;
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      margin-top: 0;
+      filter: drop-shadow(0 0 28px rgba(21, 149, 255, 0.28));
+      animation: radialDialIntro 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .radial-dial::before,
+    .radial-dial::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .radial-dial::before {
+      inset: 3%;
+      border: 0;
+      background:
+        conic-gradient(from 204deg, rgba(21, 149, 255, 0.9) 0deg 272deg, transparent 272deg 360deg);
+      mask: radial-gradient(circle, transparent 0 70%, #000 71% 72.5%, transparent 73.5%);
+      box-shadow: 0 0 32px rgba(21, 149, 255, 0.36);
+    }
+
+    .radial-dial::after {
+      inset: 22%;
+      border: 2px solid rgba(37, 255, 200, 0.62);
+      background:
+        radial-gradient(circle at center, rgba(37, 255, 200, 0.14), transparent 58%),
+        radial-gradient(circle at 42% 34%, rgba(255, 255, 255, 0.12), transparent 28%);
+      box-shadow:
+        0 0 32px rgba(37, 255, 200, 0.32),
+        inset 0 0 44px rgba(37, 255, 200, 0.14);
+      animation: radialScanner 12s linear infinite;
+    }
+
+    .radial-segments {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+    }
+
+    .radial-barcode-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.5;
+      z-index: 1;
+      mix-blend-mode: screen;
+    }
+
+    .radial-barcode-ring.outer {
+      background: repeating-conic-gradient(
+        from 4deg,
+        rgba(126, 203, 255, 0.72) 0deg 1.2deg,
+        transparent 1.2deg 3.2deg,
+        rgba(37, 255, 200, 0.44) 3.2deg 4.1deg,
+        transparent 4.1deg 7.6deg
+      );
+      mask: radial-gradient(circle, transparent 0 76%, #000 76.6% 78.2%, transparent 78.8%);
+      filter: drop-shadow(0 0 8px rgba(21, 149, 255, 0.22));
+      animation: radialBarcodeSlow 46s linear infinite;
+    }
+
+    .radial-barcode-ring.inner {
+      background: repeating-conic-gradient(
+        from -11deg,
+        rgba(37, 255, 200, 0.58) 0deg 0.8deg,
+        transparent 0.8deg 2.4deg,
+        rgba(21, 149, 255, 0.5) 2.4deg 3deg,
+        transparent 3deg 6.4deg
+      );
+      mask: radial-gradient(circle, transparent 0 49%, #000 49.7% 51.2%, transparent 51.9%);
+      filter: drop-shadow(0 0 7px rgba(37, 255, 200, 0.18));
+      animation: radialBarcodeSlow 38s linear infinite reverse;
+    }
+
+    .radial-pressure-segments,
+    .radial-spectrum {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      z-index: 1;
+    }
+
+    .radial-spectrum {
+      animation: radialSpectrumDrift 18s linear infinite;
+    }
+
+    .radial-ticker {
+      position: absolute;
+      inset: -4%;
+      z-index: 4;
+      overflow: visible;
+      animation: radialTickerSpin 28s linear infinite;
+      pointer-events: none;
+    }
+
+    .radial-ticker text {
+      fill: var(--radial-ticker-color, rgba(126, 203, 255, 0.78));
+      font-size: 14px;
+      font-family: var(--radial-readable);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      text-shadow: 0 0 8px var(--radial-ticker-glow, rgba(21, 149, 255, 0.48));
+    }
+
+    body.mode-radial.radial-ticker-alert .radial-ticker text {
+      animation: radialTickerAlertFlash 0.55s steps(2, end) infinite;
+      text-shadow: none;
+    }
+
+    .radial-segment {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: var(--segment-width, clamp(8px, 1.5vmin, 16px));
+      height: var(--segment-height, clamp(24px, 5vmin, 56px));
+      transform:
+        translate(-50%, -50%)
+        rotate(var(--angle))
+        translateY(calc(var(--radial-radius, clamp(126px, 26vmin, 292px)) * -1));
+      border: 0;
+      border-radius: 999px;
+      background: rgba(20, 76, 132, 0.42);
+      border: 1px solid rgba(126, 203, 255, 0.12);
+      box-shadow: 0 0 8px rgba(21, 149, 255, 0.08);
+      transition: background 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .radial-segment.filled {
+      background: linear-gradient(180deg, #b5fff0 0%, var(--green) 58%, #0e8b81 100%);
+      border-color: rgba(181, 255, 240, 0.58);
+      box-shadow: 0 0 14px rgba(37, 255, 200, 0.58);
+    }
+
+    .radial-segment.warning {
+      background: linear-gradient(180deg, #ffe4a0 0%, var(--yellow) 58%, #c56b15 100%);
+      border-color: rgba(255, 228, 160, 0.56);
+      box-shadow: 0 0 16px rgba(255, 184, 77, 0.6);
+    }
+
+    .radial-segment.danger {
+      background: linear-gradient(180deg, #ffd3f5 0%, var(--red) 58%, #9d1fff 100%);
+      border-color: rgba(255, 211, 245, 0.58);
+      box-shadow: 0 0 18px rgba(255, 47, 209, 0.68);
+    }
+
+    .radial-pressure-segment {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: clamp(9px, 1.35vmin, 15px);
+      height: clamp(30px, 4.4vmin, 52px);
+      border-radius: 999px;
+      background: rgba(19, 70, 128, 0.42);
+      transform:
+        translate(-50%, -50%)
+        rotate(var(--angle))
+        translateY(calc(clamp(92px, 18vmin, 202px) * -1));
+      box-shadow: 0 0 10px rgba(21, 149, 255, 0.08);
+    }
+
+    .radial-pressure-segment.filled {
+      background: linear-gradient(180deg, var(--pressure-gradient-start, #25ffc8) 0%, var(--pressure-gradient-mid, #1595ff) 58%, var(--pressure-gradient-end, #1535ff) 100%);
+      box-shadow: 0 0 12px var(--radial-pressure-glow, rgba(21, 149, 255, 0.58));
+    }
+
+    .radial-pressure-segment.warning {
+      background: linear-gradient(180deg, var(--pressure-gradient-start, #25ffc8) 0%, var(--pressure-gradient-mid, #ffb84d) 60%, var(--pressure-gradient-end, #dd6f1e) 100%);
+      box-shadow: 0 0 14px var(--radial-pressure-glow, rgba(255, 184, 77, 0.58));
+    }
+
+    .radial-pressure-segment.danger {
+      background: linear-gradient(180deg, var(--pressure-gradient-start, #25ffc8) 0%, var(--pressure-gradient-mid, #ffb84d) 48%, var(--pressure-gradient-end, #ff2fd1) 100%);
+      box-shadow: 0 0 16px var(--radial-pressure-glow, rgba(255, 47, 209, 0.68));
+    }
+
+    .radial-pressure-solid {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: visible;
+      display: none;
+      border-radius: 50%;
+    }
+
+    .radial-pressure-solid-segment {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: clamp(9px, 1.28vmin, 14px);
+      height: clamp(34px, 5vmin, 58px);
+      border-radius: 999px;
+      background: rgba(19, 70, 128, 0.36);
+      transform:
+        translate(-50%, -50%)
+        rotate(var(--angle))
+        translateY(calc(clamp(92px, 18vmin, 202px) * -1));
+      box-shadow: 0 0 10px rgba(21, 149, 255, 0.08);
+    }
+
+    .radial-pressure-solid-segment.filled {
+      background: linear-gradient(180deg, var(--pressure-gradient-start, #25ffc8) 0%, var(--pressure-gradient-mid, #1595ff) 58%, var(--pressure-gradient-end, #1535ff) 100%);
+      box-shadow: 0 0 12px var(--radial-pressure-glow, rgba(21, 149, 255, 0.58));
+    }
+
+    .radial-pressure-solid-segment.warning {
+      background: linear-gradient(180deg, var(--pressure-gradient-start, #25ffc8) 0%, var(--pressure-gradient-mid, #ffb84d) 60%, var(--pressure-gradient-end, #dd6f1e) 100%);
+      box-shadow: 0 0 14px var(--radial-pressure-glow, rgba(255, 184, 77, 0.58));
+    }
+
+    .radial-pressure-solid-segment.danger {
+      background: linear-gradient(180deg, var(--pressure-gradient-start, #25ffc8) 0%, var(--pressure-gradient-mid, #ffb84d) 48%, var(--pressure-gradient-end, #ff2fd1) 100%);
+      box-shadow: 0 0 16px var(--radial-pressure-glow, rgba(255, 47, 209, 0.68));
+    }
+
+    body.mode-radial.radial-pressure-solid .radial-pressure-solid {
+      display: block;
+    }
+
+    body.mode-radial.radial-pressure-solid .radial-pressure-segments {
+      display: none;
+    }
+
+    .radial-spectrum-bar {
+      --spectrum-height: clamp(14px, 2.3vmin, 28px);
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: clamp(7px, 1.05vmin, 11px);
+      height: var(--spectrum-height);
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--spectrum-color, var(--radial-pressure-color, #1595ff)), rgba(21, 149, 255, 0.28));
+      opacity: var(--spectrum-opacity, 0.42);
+      transform:
+        translate(-50%, -50%)
+        rotate(var(--angle))
+        translateY(calc(clamp(104px, 21vmin, 230px) * -1));
+      transform-origin: center;
+      box-shadow: 0 0 16px var(--spectrum-color, var(--radial-pressure-color, #1595ff));
+      animation: spectrumPulse var(--spectrum-speed, 1.8s) ease-in-out infinite alternate;
+      animation-delay: var(--spectrum-delay, 0s);
+      transition: opacity 220ms ease, background 220ms ease;
+    }
+
+    .radial-core {
+      width: 43%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border: 2px solid rgba(37, 255, 200, 0.62);
+      background:
+        radial-gradient(circle at center, rgba(37, 255, 200, 0.14), transparent 62%),
+        rgba(3, 10, 24, 0.94);
+      box-shadow:
+        0 0 34px rgba(37, 255, 200, 0.28),
+        inset 0 0 36px rgba(37, 255, 200, 0.14);
+      z-index: 2;
+    }
+
+    .radial-core.alert-message {
+      animation: radialMessageFlash 0.5s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-core {
+      animation: radialPushCore 1.8s ease-in-out infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-pressure-segments,
+    body.mode-radial.radial-overload-wave .radial-pressure-solid {
+      animation: radialPushInner 1.8s ease-in-out infinite;
+      animation-delay: 0.08s;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-spectrum {
+      animation: radialSpectrumDrift 18s linear infinite, radialPushSpectrum 1.8s ease-in-out infinite;
+      animation-delay: 0s, 0.16s;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-segments {
+      animation: radialPushOuter 1.8s ease-in-out infinite;
+      animation-delay: 0.24s;
+    }
+
+    .radial-pressure {
+      color: var(--radial-pressure-color, #1595ff);
+      font-size: clamp(58px, 10.4vmin, 132px);
+      line-height: 0.82;
+      text-shadow: 0 0 18px var(--radial-pressure-glow, rgba(21, 149, 255, 0.58));
+    }
+
+    .radial-percent {
+      color: var(--radial-pressure-color, #1595ff);
+      font-size: 0.34em;
+    }
+
+    .radial-caption {
+      margin-top: clamp(7px, 1vmin, 12px);
+      color: rgba(126, 203, 255, 0.82);
+      font-size: clamp(16px, 2.1vmin, 26px);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .radial-charge-line {
+      margin-top: clamp(5px, 0.8vmin, 10px);
+      color: #f6fbff;
+      font-size: clamp(28px, 4vmin, 52px);
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(21, 149, 255, 0.45);
+    }
+
+    .radial-message-line {
+      display: block;
+      color: var(--yellow);
+      font-size: clamp(22px, 3.7vmin, 48px);
+      line-height: 1.04;
+      text-transform: uppercase;
+      text-shadow: 0 0 16px rgba(255, 184, 77, 0.68);
+    }
+
+    .radial-event-image {
+      display: none;
+      width: clamp(106px, 17vmin, 190px);
+      height: clamp(106px, 17vmin, 190px);
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(37, 255, 200, 0.82);
+      box-shadow:
+        0 0 22px rgba(37, 255, 200, 0.34),
+        inset 0 0 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .radial-core.event-image-mode .radial-event-image {
+      display: block;
+    }
+
+    .radial-core.event-image-mode .radial-pressure,
+    .radial-core.event-image-mode .radial-caption,
+    .radial-core.event-image-mode .radial-charge-line {
+      display: none;
+    }
+
+    @media (max-width: 850px), (max-aspect-ratio: 4 / 5) {
+      body.mode-radial .dashboard {
+        --radial-frame-size: min(800px, 92vmin);
+        --radial-dial-size: min(680px, 78vmin);
+      }
+
+      body.mode-radial .radial-screen {
+        grid-template-columns: 1fr;
+        width: var(--radial-frame-size);
+        height: var(--radial-frame-size);
+        min-width: var(--radial-frame-size);
+        min-height: var(--radial-frame-size);
+        max-width: var(--radial-frame-size);
+        max-height: var(--radial-frame-size);
+      }
+    }
+
     body.mode-ticker {
       --frame-inset: 0px;
       --panel-alpha: 0.72;
@@ -1872,6 +2428,64 @@
       from { transform: translateY(0); }
       to { transform: translateY(-50%); }
     }
+    @keyframes radialScanner {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes radialStartupLogo {
+      0% { opacity: 0; transform: scale(1.16); filter: blur(5px); }
+      16%, 58% { opacity: 1; transform: scale(1); filter: blur(0); }
+      100% { opacity: 0; transform: scale(0.18); visibility: hidden; filter: blur(2px); }
+    }
+    @keyframes radialDialIntro {
+      0%, 52% { opacity: 0; transform: scale(0.62) rotate(-10deg); filter: blur(4px); }
+      100% { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+    }
+    @keyframes radialSpectrumDrift {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes radialBarcodeSlow {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes radialTickerSpin {
+      to { transform: rotate(-360deg); }
+    }
+    @keyframes spectrumPulse {
+      from { height: calc(var(--spectrum-height) * 0.48); filter: brightness(0.72); }
+      to { height: calc(var(--spectrum-height) * 1.18); filter: brightness(1.45); }
+    }
+    @keyframes radialMessageFlash {
+      50% {
+        border-color: rgba(255, 184, 77, 0.92);
+        box-shadow:
+          0 0 34px rgba(255, 184, 77, 0.35),
+          inset 0 0 34px rgba(255, 184, 77, 0.16);
+      }
+    }
+    @keyframes radialTickerAlertFlash {
+      50% {
+        fill: #f6fbff;
+      }
+    }
+    @keyframes radialPushCore {
+      0%, 100% { transform: scale(1); }
+      32% { transform: scale(1.075); }
+      62% { transform: scale(0.99); }
+    }
+    @keyframes radialPushInner {
+      0%, 100% { transform: scale(1); }
+      38% { transform: scale(1.045); }
+      68% { transform: scale(0.995); }
+    }
+    @keyframes radialPushSpectrum {
+      0%, 100% { transform: scale(1) rotate(0); }
+      44% { transform: scale(1.035) rotate(0); }
+      72% { transform: scale(0.997) rotate(0); }
+    }
+    @keyframes radialPushOuter {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.025); }
+      78% { transform: scale(0.998); }
+    }
     @keyframes tickerIdle {
       0%, 82% { transform: translateX(0); }
       100% { transform: translateX(-100%); }
@@ -1987,6 +2601,40 @@
         </div>
       </section>
 
+      <section class="radial-screen" aria-label="Radial PiShock containment overlay">
+        <div class="radial-startup-logo" aria-hidden="true"><pre> █████╗ ███╗   ██╗████████╗██╗  ██╗██████╗  ██████╗        ██████╗ ██████╗ ██████╗ ██████╗
+██╔══██╗████╗  ██║╚══██╔══╝██║  ██║██╔══██╗██╔═══██╗      ██╔════╝██╔═══██╗██╔══██╗██╔══██╗
+███████║██╔██╗ ██║   ██║   ███████║██████╔╝██║   ██║█████╗██║     ██║   ██║██████╔╝██████╔╝
+██╔══██║██║╚██╗██║   ██║   ██╔══██║██╔══██╗██║   ██║╚════╝██║     ██║   ██║██╔══██╗██╔═══╝
+██║  ██║██║ ╚████║   ██║   ██║  ██║██║  ██║╚██████╔╝      ╚██████╗╚██████╔╝██║  ██║██║
+╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝        ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     </pre></div>
+        <div class="radial-plaque">AC-PSR // Containment Voltage Bus</div>
+        <div class="radial-dial">
+          <svg class="radial-ticker" viewBox="0 0 200 200" aria-hidden="true">
+            <defs>
+              <path id="radialTickerPath" d="M 100,100 m -97,0 a 97,97 0 1,1 194,0 a 97,97 0 1,1 -194,0"></path>
+            </defs>
+            <text>
+              <textPath id="radialTickerText" href="#radialTickerPath" startOffset="0%">AC-PSR // CONTAINMENT BUS NOMINAL // PRESSURE MONITORING ACTIVE //</textPath>
+            </text>
+          </svg>
+          <div class="radial-barcode-ring outer" aria-hidden="true"></div>
+          <div class="radial-barcode-ring inner" aria-hidden="true"></div>
+          <div class="radial-segments" id="radialSegments" aria-hidden="true"></div>
+          <div class="radial-pressure-segments" id="radialPressureSegments" aria-hidden="true"></div>
+          <div class="radial-pressure-solid" id="radialPressureSolid" aria-hidden="true"></div>
+          <div class="radial-spectrum" id="radialSpectrum" aria-hidden="true"></div>
+          <div class="radial-core">
+            <div>
+          <div class="radial-pressure"><span id="radialPressureValue">0</span><span class="radial-percent" id="radialPercent">%</span></div>
+          <div class="radial-caption" id="radialPressureLabel">Pressure</div>
+          <div class="radial-charge-line" id="radialChargeLine">0c | 0s</div>
+              <img class="radial-event-image" id="radialEventImage" alt="" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="main-grid">
         <div class="panel gauge-panel" data-label="Primary pressure gauge">
           <div class="gauge-wrap" id="gaugeWrap">
@@ -2091,6 +2739,11 @@
       maxCharge: 100,
       intensity: 0,
       maxIntensity: 15,
+      currentVoltage: 0,
+      storedVoltage: 0,
+      normalVoltageCap: 10,
+      overloadVoltageCap: 15,
+      overloadRequired: false,
       chance: 0,
       cooldownRemaining: 0,
       cooldownTotal: 60,
@@ -2111,6 +2764,11 @@
       logs: []
     };
     const diagnosticsCache = { key: "", html: "" };
+    let radialMessageUntil = 0;
+    let radialLastAlertKey = "";
+    let radialMessageType = "";
+    let radialMessageText = "";
+    let radialMessageTimer = 0;
 
     const els = {
       widget: document.getElementById("widget"),
@@ -2152,6 +2810,16 @@
       consoleCooldown: document.getElementById("consoleCooldown"),
       consoleOutput: document.getElementById("consoleOutput"),
       consoleDiagnostics: document.getElementById("consoleDiagnostics"),
+      radialSegments: document.getElementById("radialSegments"),
+      radialPressureSegments: document.getElementById("radialPressureSegments"),
+      radialPressureSolid: document.getElementById("radialPressureSolid"),
+      radialSpectrum: document.getElementById("radialSpectrum"),
+      radialTickerText: document.getElementById("radialTickerText"),
+      radialPressureValue: document.getElementById("radialPressureValue"),
+      radialPercent: document.getElementById("radialPercent"),
+      radialPressureLabel: document.getElementById("radialPressureLabel"),
+      radialChargeLine: document.getElementById("radialChargeLine"),
+      radialEventImage: document.getElementById("radialEventImage"),
       eventLog: document.getElementById("eventLog"),
       modeTag: document.getElementById("modeTag"),
       tickerText: document.getElementById("tickerText")
@@ -2163,6 +2831,15 @@
 
     function percent(value, max) {
       return max <= 0 ? 0 : clamp((value / max) * 100, 0, 100);
+    }
+
+    function firstFinite(...values) {
+      for (const value of values) {
+        const number = Number(value);
+        if (Number.isFinite(number)) return number;
+      }
+
+      return 0;
     }
 
     function classifyPressure(value, maxPressure = 100) {
@@ -2259,6 +2936,227 @@
       `).join("");
     }
 
+    function renderRadial(status, activeCooldown) {
+      if (!els.radialSegments) return;
+
+      const normalCap = clamp(state.normalVoltageCap || 10, 1, 15);
+      const overloadCap = clamp(state.overloadVoltageCap || 15, normalCap, 15);
+      const activeCap = state.overloadActive ? overloadCap : normalCap;
+      const currentVoltage = clamp(firstFinite(state.currentVoltage, state.intensity), 0, overloadCap);
+      const storedVoltage = clamp(state.storedVoltage, 0, 99);
+      const overloadRequired = state.overloadRequired || (!state.overloadActive && currentVoltage >= normalCap);
+
+      const intensitySegmentCount = 18;
+      if (els.radialSegments.children.length !== intensitySegmentCount) {
+        const arcStart = -156;
+        const arcSweep = 312;
+        const maxHeightIndex = 9;
+        els.radialSegments.innerHTML = Array.from({ length: intensitySegmentCount }, (_, index) => {
+          const progress = index / (intensitySegmentCount - 1);
+          const heightProgress = Math.min(index, maxHeightIndex) / maxHeightIndex;
+          const postMaxProgress = Math.max(0, index - maxHeightIndex) / (intensitySegmentCount - maxHeightIndex - 1);
+          const width = 12 + progress * 18 + postMaxProgress * 46;
+          const height = 22 + heightProgress * 62;
+          const radius = 124 + progress * 26;
+          const angle = arcStart + (index * arcSweep / (intensitySegmentCount - 1));
+          return `<span class="radial-segment" style="--angle:${angle}deg;--segment-width:${width}px;--segment-height:${height}px;--radial-radius:clamp(${radius * 0.56}px, ${24 + progress * 5}vmin, ${radius * 2.24}px)"></span>`;
+        }).join("");
+      }
+
+      const pressureSegmentCount = 26;
+      if (els.radialPressureSegments && els.radialPressureSegments.children.length !== pressureSegmentCount) {
+        const arcStart = -118;
+        const arcSweep = 236;
+        els.radialPressureSegments.innerHTML = Array.from({ length: pressureSegmentCount }, (_, index) =>
+          `<span class="radial-pressure-segment" style="--angle:${arcStart + (index * arcSweep / (pressureSegmentCount - 1))}deg"></span>`
+        ).join("");
+      }
+
+      const solidPressureSegmentCount = 84;
+      if (els.radialPressureSolid && els.radialPressureSolid.children.length !== solidPressureSegmentCount) {
+        const arcStart = -118;
+        const arcSweep = 236;
+        els.radialPressureSolid.innerHTML = Array.from({ length: solidPressureSegmentCount }, (_, index) =>
+          `<span class="radial-pressure-solid-segment" style="--angle:${arcStart + (index * arcSweep / (solidPressureSegmentCount - 1))}deg"></span>`
+        ).join("");
+      }
+
+      const spectrumCount = 34;
+      if (els.radialSpectrum && els.radialSpectrum.children.length !== spectrumCount) {
+        els.radialSpectrum.innerHTML = Array.from({ length: spectrumCount }, (_, index) =>
+          `<span class="radial-spectrum-bar" style="--angle:${index * (360 / spectrumCount)}deg;--spectrum-delay:${-(index % 9) * 0.13}s"></span>`
+        ).join("");
+      }
+
+      const pressureTriggerMax = 100;
+      const pressurePct = percent(state.pressure, pressureTriggerMax);
+      const pressureLevel = pressurePct >= 85 ? "danger" : pressurePct >= 65 ? "warning" : "calm";
+      const pressureColor = pressureLevel === "danger" ? "#ff2fd1" : pressureLevel === "warning" ? "#ffb84d" : "#1595ff";
+      const pressureGlow = pressureLevel === "danger" ? "rgba(255, 47, 209, 0.68)" : pressureLevel === "warning" ? "rgba(255, 184, 77, 0.58)" : "rgba(21, 149, 255, 0.58)";
+      const gradientMid = pressureLevel === "danger" ? "#ffb84d" : pressureLevel === "warning" ? "#ffb84d" : "#1595ff";
+      const gradientEnd = pressureLevel === "danger" ? "#ff2fd1" : pressureLevel === "warning" ? "#dd6f1e" : "#1535ff";
+      const intensityPct = percent(currentVoltage, activeCap);
+      const filledIntensitySegments = Math.round((intensityPct / 100) * intensitySegmentCount);
+      const filledPressureSegments = Math.round((pressurePct / 100) * pressureSegmentCount);
+      const filledSolidPressureSegments = Math.round((pressurePct / 100) * solidPressureSegmentCount);
+
+      Array.from(els.radialSegments.children).forEach((segment, index) => {
+        const active = index < filledIntensitySegments;
+        const segmentLevel = ((index + 1) / intensitySegmentCount) * 100;
+        segment.className = [
+          "radial-segment",
+          active ? "filled" : "",
+          active && segmentLevel >= 85 ? "danger" : "",
+          active && segmentLevel >= 65 && segmentLevel < 85 ? "warning" : ""
+        ].filter(Boolean).join(" ");
+      });
+
+      if (els.radialPressureSegments) {
+        Array.from(els.radialPressureSegments.children).forEach((segment, index) => {
+          const active = index < filledPressureSegments;
+          const segmentLevel = ((index + 1) / pressureSegmentCount) * 100;
+          segment.className = [
+            "radial-pressure-segment",
+            active ? "filled" : "",
+            active && segmentLevel >= 85 ? "danger" : "",
+            active && segmentLevel >= 65 && segmentLevel < 85 ? "warning" : ""
+          ].filter(Boolean).join(" ");
+        });
+      }
+
+      if (els.radialPressureSolid) {
+        Array.from(els.radialPressureSolid.children).forEach((segment, index) => {
+          const active = index < filledSolidPressureSegments;
+          const segmentLevel = ((index + 1) / solidPressureSegmentCount) * 100;
+          segment.className = [
+            "radial-pressure-solid-segment",
+            active ? "filled" : "",
+            active && segmentLevel >= 85 ? "danger" : "",
+            active && segmentLevel >= 65 && segmentLevel < 85 ? "warning" : ""
+          ].filter(Boolean).join(" ");
+        });
+      }
+
+      if (els.radialSpectrum) {
+        const eventActivity = clamp(
+          0.16 +
+          (state.eventValueBits || 0) / 1800 +
+          (state.chance || 0) / 260 +
+          (state.overloadActive ? 0.24 : 0) +
+          (state.overloadVenting ? 0.32 : 0) +
+          (activeCooldown ? 0.12 : 0),
+          0.16,
+          1
+        );
+        const timePhase = Date.now() / 360;
+        Array.from(els.radialSpectrum.children).forEach((bar, index) => {
+          const pulse = (Math.sin(timePhase + index * 0.62) + 1) / 2;
+          const jitter = (Math.sin(timePhase * 0.37 + index * 1.71) + 1) / 2;
+          const height = 14 + (eventActivity * 46) * (0.28 + pulse * 0.52 + jitter * 0.2);
+          const color = eventActivity > 0.76
+            ? pressureColor
+            : eventActivity > 0.48
+              ? pressureColor
+              : pressureColor;
+          bar.style.setProperty("--spectrum-height", `${height}px`);
+          bar.style.setProperty("--spectrum-color", color);
+          bar.style.setProperty("--spectrum-opacity", `${0.24 + eventActivity * 0.64}`);
+          bar.style.setProperty("--spectrum-speed", `${1.7 - eventActivity * 0.72}s`);
+        });
+      }
+
+      const pressureText = Math.round(pressurePct);
+      document.documentElement.style.setProperty("--radial-pressure-color", pressureColor);
+      document.documentElement.style.setProperty("--radial-pressure-glow", pressureGlow);
+      document.documentElement.style.setProperty("--pressure-gradient-start", "#25ffc8");
+      document.documentElement.style.setProperty("--pressure-gradient-mid", gradientMid);
+      document.documentElement.style.setProperty("--pressure-gradient-end", gradientEnd);
+
+      const eventType = (state.eventType || "").toLowerCase();
+      const isSubEvent = eventType.includes("sub");
+      const isLargeContribution = (state.eventValueBits || 0) >= 500 || isSubEvent;
+      const viewerName = state.currentViewerName || "Workshop";
+      const contributionVerb = isSubEvent
+        ? (eventType.includes("gift") ? "gifted subs" : "subscribed")
+        : `cheered ${Math.round(state.eventValueBits || 0)} bits`;
+      const contributionMessage = `${viewerName} ${contributionVerb}`;
+      const transientKey = `${eventType}:${state.eventValueBits}:${viewerName}:${state.currentViewerImageUrl}:${currentVoltage}:${storedVoltage}:${state.mode}`;
+
+      if ((overloadRequired || isLargeContribution) && radialLastAlertKey !== transientKey) {
+        radialLastAlertKey = transientKey;
+        radialMessageType = isLargeContribution ? "event" : "alert";
+        radialMessageText = isLargeContribution ? contributionMessage : "Overload Required";
+        radialMessageUntil = Date.now() + (isLargeContribution ? 4600 : 3600);
+        clearTimeout(radialMessageTimer);
+        radialMessageTimer = setTimeout(render, isLargeContribution ? 4650 : 3650);
+      } else if (!overloadRequired && !isLargeContribution) {
+        radialLastAlertKey = "";
+      }
+
+      let centerMode = Date.now() < radialMessageUntil ? radialMessageType : "";
+      let centerMessage = Date.now() < radialMessageUntil ? radialMessageText : "";
+      let tickerAlert = false;
+      if (state.overloadVenting) {
+        centerMode = "alert";
+        centerMessage = "Venting Active";
+        tickerAlert = true;
+      } else if (state.overloadActive) {
+        centerMode = "alert";
+        centerMessage = "Overload Active";
+        tickerAlert = true;
+      } else if (activeCooldown) {
+        centerMode = "alert";
+        centerMessage = "Freeze Lockout";
+        tickerAlert = true;
+      } else if (centerMode) {
+        tickerAlert = true;
+      }
+
+      const core = document.querySelector(".radial-core");
+      const showingRadialMessage = centerMode === "alert";
+      const showingEventImage = centerMode === "event" && !!state.currentViewerImageUrl;
+      core?.classList.toggle("alert-message", showingRadialMessage);
+      core?.classList.toggle("event-image-mode", showingEventImage);
+      document.body.classList.toggle("radial-ticker-alert", tickerAlert);
+      document.body.classList.toggle("radial-overload-wave", state.overloadActive || state.overloadVenting);
+      document.documentElement.style.setProperty("--radial-ticker-color", tickerAlert ? pressureColor : "rgba(126, 203, 255, 0.78)");
+      document.documentElement.style.setProperty("--radial-ticker-glow", tickerAlert ? pressureGlow : "rgba(21, 149, 255, 0.48)");
+
+      if (showingRadialMessage) {
+        const words = centerMessage.split(" ");
+        els.radialPressureValue.innerHTML = `<span class="radial-message-line">${words.slice(0, Math.ceil(words.length / 2)).join(" ")}</span><span class="radial-message-line">${words.slice(Math.ceil(words.length / 2)).join(" ")}</span>`;
+        els.radialPercent.textContent = "";
+        els.radialPressureLabel.textContent = "";
+        els.radialChargeLine.textContent = "";
+      } else if (centerMode === "event") {
+        if (showingEventImage) {
+          els.radialEventImage.src = state.currentViewerImageUrl;
+          els.radialEventImage.alt = viewerName;
+        } else {
+          els.radialEventImage.removeAttribute("src");
+          els.radialEventImage.alt = "";
+          els.radialPressureValue.textContent = pressureText;
+          els.radialPercent.textContent = "%";
+          els.radialPressureLabel.textContent = "Pressure";
+          els.radialChargeLine.textContent = `${Math.round(currentVoltage)}c | ${Math.round(storedVoltage)}s`;
+        }
+      } else {
+        els.radialEventImage.removeAttribute("src");
+        els.radialEventImage.alt = "";
+        els.radialPressureValue.textContent = pressureText;
+        els.radialPercent.textContent = "%";
+        els.radialPressureLabel.textContent = "Pressure";
+        els.radialChargeLine.textContent = `${Math.round(currentVoltage)}c | ${Math.round(storedVoltage)}s`;
+      }
+
+      if (els.radialTickerText) {
+        const tickerBase = centerMessage
+          ? `${centerMessage} // `
+          : "CONTAINMENT BUS NOMINAL // PRESSURE MONITORING ACTIVE // ";
+        els.radialTickerText.textContent = tickerBase.repeat(Math.max(3, Math.ceil(140 / tickerBase.length)));
+      }
+    }
+
     function render() {
       state.maxPressure = clamp(state.maxPressure || state.maxCharge || 100, 100, 150);
       state.pressure = clamp(state.pressure, 0, state.maxPressure);
@@ -2293,6 +3191,7 @@
       document.body.classList.toggle("alert-cooldown", warningAlert);
       document.body.classList.toggle("alert-warning", false);
       document.body.classList.toggle("ticker-continuous", activeCooldown);
+      renderRadial(status, activeCooldown);
 
       setBar(els.chargeBar, chargePct);
       els.chargeValue.textContent = `${Math.round(state.charge)} / ${Math.round(state.maxCharge)}`;
@@ -2457,6 +3356,12 @@
       document.body.hidden = true;
     }
 
+    function readBoolParam(name, fallback) {
+      const value = params.get(name);
+      if (value === null) return fallback;
+      return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+    }
+
     const displayMode = (params.get("mode") || displayConfig.defaultMode || "full").toLowerCase();
     const transparentParam = params.get("transparent");
     const transparent = transparentParam
@@ -2469,7 +3374,17 @@
 
     document.body.classList.add(`mode-${displayMode}`);
 
-    if (transparent || ["compact", "mini", "visual", "console", "gauge", "signals", "viewer", "ticker", "stage"].includes(displayMode)) {
+    if (displayMode === "radial") {
+      const radialPressureStyle = (params.get("pressureStyle") || displayConfig.radialPressureStyle || "segmented").toLowerCase();
+      const radialFrameEnabled = readBoolParam("dialFrame", displayConfig.radialFrameEnabled !== false);
+      const radialPillEnabled = readBoolParam("dialPill", displayConfig.radialPillEnabled !== false);
+
+      document.body.classList.toggle("radial-pressure-solid", radialPressureStyle === "solid");
+      document.body.classList.toggle("radial-no-frame", !radialFrameEnabled);
+      document.body.classList.toggle("radial-no-pill", !radialPillEnabled);
+    }
+
+    if (transparent || ["compact", "mini", "visual", "console", "radial", "gauge", "signals", "viewer", "ticker", "stage"].includes(displayMode)) {
       document.body.classList.add("transparent");
     }
 
@@ -2537,8 +3452,13 @@
             charge: clamp(pressureGauge, 0, 150),
             maxPressure: clamp(maxPressureGauge, 100, 150),
             maxCharge: clamp(maxPressureGauge, 100, 150),
-            intensity: clamp(status.lastIntensity || Math.ceil(pressureGauge / 10), 0, 15),
+            intensity: clamp(firstFinite(status.currentVoltage, status.activeVoltage, status.voltage, status.lastIntensity, Math.ceil(pressureGauge / 10)), 0, 15),
             maxIntensity: 15,
+            currentVoltage: clamp(firstFinite(status.currentVoltage, status.activeVoltage, status.voltage, status.lastIntensity), 0, 15),
+            storedVoltage: clamp(firstFinite(status.storedVoltage, status.storedCharge, status.pendingVoltage, status.backloggedVoltage), 0, 99),
+            normalVoltageCap: clamp(firstFinite(status.normalVoltageCap, 10), 1, 15),
+            overloadVoltageCap: clamp(firstFinite(status.overloadVoltageCap, 15), 10, 15),
+            overloadRequired: status.overloadRequired === true || status.overloadRequired === "true",
             hypeBoost: clamp(status.hypeLevel, 0, 10),
             chance: clamp(status.chancePercent, 0, 100),
             cooldownRemaining: clamp(status.cooldownRemaining, 0, 600),
@@ -2598,17 +3518,25 @@
         const overloadDemo = phase >= 44 && phase < 62;
         const ventingDemo = phase >= 62;
         const cooldownDemo = phase >= 18 && phase < 32;
+        const cappedDemo = phase >= 34 && phase < 44;
         const simulatedPressure = overloadDemo || ventingDemo
           ? clamp(105 + Math.sin(t / 3) * 28 + (ventingDemo ? -((phase - 62) * 4) : 12), 30, 150)
           : clamp(45 + Math.sin(t / 3) * 28 + Math.sin(t / 7) * 12, 0, 100);
+        const simulatedVoltage = overloadDemo ? clamp(10 + Math.floor((phase - 44) / 4), 10, 15) : cappedDemo ? 10 : clamp(Math.ceil(simulatedPressure / 14), 0, 10);
+        const simulatedStoredVoltage = phase > 28 && !overloadDemo ? clamp(Math.floor((phase - 24) / 3), 0, 9) : 0;
 
         updateStatus({
           pressure: simulatedPressure,
           charge: simulatedPressure,
           maxPressure: overloadDemo || ventingDemo ? 150 : 100,
           maxCharge: overloadDemo || ventingDemo ? 150 : 100,
-          intensity: clamp(Math.ceil(simulatedPressure / 10), 0, 15),
+          intensity: simulatedVoltage,
           maxIntensity: 15,
+          currentVoltage: simulatedVoltage,
+          storedVoltage: simulatedStoredVoltage,
+          normalVoltageCap: 10,
+          overloadVoltageCap: 15,
+          overloadRequired: cappedDemo,
           chance: clamp(24 + Math.sin(t / 5) * 26 + (phase > 10 ? 18 : 0), 0, 100),
           cooldownRemaining: cooldownDemo ? Math.max(0, 32 - phase) : 0,
           cooldownTotal: cooldownDemo ? 14 : 0,

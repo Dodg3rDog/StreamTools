@@ -12,7 +12,7 @@ http://<your-lan-ip>:3030/widgets/pishock-status/
 
 ## Workshop Testing
 
-Use the workshop server when testing changes locally. It defaults to `127.0.0.1:3054` and does not use the live web server address.
+Use the workshop server when testing changes locally. It defaults to `127.0.0.1:3055` and does not use the live web server address.
 
 ```bash
 cd server
@@ -22,31 +22,41 @@ npm run start:workshop
 Open the widget:
 
 ```text
-http://127.0.0.1:3054/widgets/pishock-status/
+http://127.0.0.1:3055/widgets/pishock-status/
 ```
 
 Useful test URLs:
 
 ```text
-Full:    http://127.0.0.1:3054/widgets/pishock-status/
-Compact: http://127.0.0.1:3054/widgets/pishock-status/?mode=compact
-Mini:    http://127.0.0.1:3054/widgets/pishock-status/?mode=mini
-Visual:  http://127.0.0.1:3054/widgets/pishock-status/?mode=visual&transparent=true
-Console: http://127.0.0.1:3054/widgets/pishock-status/?mode=console&transparent=true
-Gauge:   http://127.0.0.1:3054/widgets/pishock-status/?mode=gauge&transparent=true
-Signals: http://127.0.0.1:3054/widgets/pishock-status/?mode=signals&transparent=true
-Viewer:  http://127.0.0.1:3054/widgets/pishock-status/?mode=viewer&transparent=true
-Ticker:  http://127.0.0.1:3054/widgets/pishock-status/?mode=ticker&transparent=true
-Stage:   http://127.0.0.1:3054/widgets/pishock-status/?mode=stage&transparent=true
+Full:    http://127.0.0.1:3055/widgets/pishock-status/
+Compact: http://127.0.0.1:3055/widgets/pishock-status/?mode=compact
+Mini:    http://127.0.0.1:3055/widgets/pishock-status/?mode=mini
+Visual:  http://127.0.0.1:3055/widgets/pishock-status/?mode=visual&transparent=true
+Console: http://127.0.0.1:3055/widgets/pishock-status/?mode=console&transparent=true
+Radial:  http://127.0.0.1:3055/widgets/pishock-status/?mode=radial&transparent=true
+Gauge:   http://127.0.0.1:3055/widgets/pishock-status/?mode=gauge&transparent=true
+Signals: http://127.0.0.1:3055/widgets/pishock-status/?mode=signals&transparent=true
+Viewer:  http://127.0.0.1:3055/widgets/pishock-status/?mode=viewer&transparent=true
+Ticker:  http://127.0.0.1:3055/widgets/pishock-status/?mode=ticker&transparent=true
+Stage:   http://127.0.0.1:3055/widgets/pishock-status/?mode=stage&transparent=true
 ```
 
 Add `demo=true` to any URL to run animated local demo telemetry without using the relay API:
 
 ```text
-Visual demo:  http://127.0.0.1:3054/widgets/pishock-status/?mode=visual&transparent=true&demo=true
-Console demo: http://127.0.0.1:3054/widgets/pishock-status/?mode=console&transparent=true&demo=true
-Signals demo: http://127.0.0.1:3054/widgets/pishock-status/?mode=signals&transparent=true&demo=true
-Viewer demo:  http://127.0.0.1:3054/widgets/pishock-status/?mode=viewer&transparent=true&demo=true
+Visual demo:  http://127.0.0.1:3055/widgets/pishock-status/?mode=visual&transparent=true&demo=true
+Console demo: http://127.0.0.1:3055/widgets/pishock-status/?mode=console&transparent=true&demo=true
+Radial demo:  http://127.0.0.1:3055/widgets/pishock-status/?mode=radial&transparent=true&demo=true
+Signals demo: http://127.0.0.1:3055/widgets/pishock-status/?mode=signals&transparent=true&demo=true
+Viewer demo:  http://127.0.0.1:3055/widgets/pishock-status/?mode=viewer&transparent=true&demo=true
+```
+
+Radial mode options:
+
+```text
+Solid pressure:      ?mode=radial&pressureStyle=solid
+Segmented pressure:  ?mode=radial&pressureStyle=segmented
+Dial only:           ?mode=radial&dialFrame=false&dialPill=false
 ```
 
 To use a different workshop port:
@@ -76,6 +86,7 @@ Compact:        /widgets/pishock-status/?mode=compact
 Mini:           /widgets/pishock-status/?mode=mini
 Visual:         /widgets/pishock-status/?mode=visual
 Console:        /widgets/pishock-status/?mode=console
+Radial:         /widgets/pishock-status/?mode=radial
 Gauge only:     /widgets/pishock-status/?mode=gauge
 Signals only:   /widgets/pishock-status/?mode=signals
 Viewer only:    /widgets/pishock-status/?mode=viewer
@@ -85,7 +96,7 @@ Stage panel:    /widgets/pishock-status/?mode=stage
 
 Add `transparent=true` for transparent OBS backgrounds, `boot=false` to skip the boot animation, and `demo=true` to use animated local demo telemetry.
 
-`full` is the operator/mainframe dashboard with readable text. `console` is a computer-terminal register view. `visual`, `signals`, `gauge`, `viewer`, and `ticker` are intended for OBS scene composition where color, symbols, and section-specific views are easier to read on stream.
+`full` is the operator/mainframe dashboard with readable text. `console` is a computer-terminal register view. `radial` is a simplified neon instrument overlay with a weighted outer intensity ring, a smaller inner pressure ring, reactive spectral bars that match the pressure color, a magenta center pressure percentage, a `current | stored` charge line, rotating radial status text, temporary center alerts such as `OVERLOAD REQUIRED`, and contributor image takeovers for larger activity events. `visual`, `signals`, `gauge`, `viewer`, and `ticker` are intended for OBS scene composition where color, symbols, and section-specific views are easier to read on stream.
 
 ## Config Options
 
@@ -98,6 +109,9 @@ Add `transparent=true` for transparent OBS backgrounds, `boot=false` to skip the
 | display.defaultMode | full | Default layout mode |
 | display.transparentBackground | false | Uses a transparent background by default |
 | display.bootEnabled | true | Plays the boot animation in full mode |
+| display.radialPressureStyle | segmented | Uses `segmented` or `solid` pressure gauge in radial mode |
+| display.radialFrameEnabled | true | Shows the rectangular radial dial frame |
+| display.radialPillEnabled | true | Shows the AC-PSR radial label pill |
 | debug.logStatusPayloads | false | Logs raw status payloads |
 
 ## API Routes Used
@@ -115,7 +129,7 @@ Add `transparent=true` for transparent OBS backgrounds, `boot=false` to skip the
 Set these persisted Streamer.bot globals before testing:
 
 ```text
-st_apiBaseUrl = http://127.0.0.1:3054
+st_apiBaseUrl = http://127.0.0.1:3055
 st_bearerToken = same value as BEARER_TOKEN in StreamTools/.env
 ```
 

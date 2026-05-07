@@ -5,7 +5,7 @@
 // not collide with the live web server address.
 
 process.env.HOST = process.env.HOST || "127.0.0.1";
-process.env.PORT = process.env.PORT || "3054";
+process.env.PORT = process.env.PORT || "3055";
 
 console.log("[Workshop] Starting StreamTools workshop server");
 console.log(`[Workshop] PiShock widget: http://${process.env.HOST}:${process.env.PORT}/widgets/pishock-status/`);

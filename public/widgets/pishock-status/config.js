@@ -18,7 +18,10 @@ window.WIDGET_CONFIG = {
   display: {
     defaultMode: "full",
     transparentBackground: false,
-    bootEnabled: true
+    bootEnabled: true,
+    radialPressureStyle: "segmented",
+    radialFrameEnabled: true,
+    radialPillEnabled: true
   },
 
   debug: {
