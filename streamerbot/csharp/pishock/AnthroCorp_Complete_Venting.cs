@@ -8,6 +8,9 @@ public class CPHInline
     private const int NormalMaxPressure = 100;
     private const int OverloadSafePressure = 30;
     private const int FlushSafePressure = 0;
+    private const int NormalChargeCap = 10;
+    private const int OverloadChargeCap = 15;
+    private const int StoredChargeCap = 99;
 
     public bool Execute()
     {
@@ -18,9 +21,19 @@ public class CPHInline
         string eventMessage = isFlush
             ? "Manual flush complete. Pressure fully vented to 0%."
             : "All systems returned to normal operating parameters. Charging resumed.";
+        int currentCharge = GetInt("ps_currentCharge", GetInt("ps_chargePool", 0));
+        int storedCharge = GetInt("ps_storedCharge", 0);
+        int overflowCharge = Math.Max(0, currentCharge - NormalChargeCap);
+        currentCharge = Math.Min(currentCharge, NormalChargeCap);
+        storedCharge = Math.Min(StoredChargeCap, storedCharge + overflowCharge);
+        int refill = Math.Min(storedCharge, Math.Max(0, NormalChargeCap - currentCharge));
+        currentCharge += refill;
+        storedCharge -= refill;
 
         CPH.SetGlobalVar("ps_pressureGauge", pressure, true);
-        CPH.SetGlobalVar("ps_chargePool", pressure, true);
+        CPH.SetGlobalVar("ps_currentCharge", currentCharge, true);
+        CPH.SetGlobalVar("ps_storedCharge", storedCharge, true);
+        CPH.SetGlobalVar("ps_chargePool", currentCharge, true);
         CPH.SetGlobalVar("ps_maxPressureGauge", NormalMaxPressure, true);
         CPH.SetGlobalVar("ps_overloadArmed", false, true);
         CPH.SetGlobalVar("ps_overloadActive", false, true);
@@ -38,6 +51,10 @@ public class CPHInline
         CPH.SetArgument("relayMode", relayMode);
         CPH.SetArgument("pressureGauge", pressure);
         CPH.SetArgument("maxPressureGauge", NormalMaxPressure);
+        CPH.SetArgument("currentVoltage", currentCharge);
+        CPH.SetArgument("storedVoltage", storedCharge);
+        CPH.SetArgument("normalVoltageCap", NormalChargeCap);
+        CPH.SetArgument("overloadVoltageCap", OverloadChargeCap);
         CPH.SetArgument("overloadActive", false);
         CPH.SetArgument("overloadVenting", false);
 
@@ -66,6 +83,12 @@ public class CPHInline
             int value;
             return CPH.TryGetArg(name, out value) ? value : fallback;
         }
+        catch { return fallback; }
+    }
+
+    private int GetInt(string name, int fallback)
+    {
+        try { return CPH.GetGlobalVar<int>(name, true); }
         catch { return fallback; }
     }
 

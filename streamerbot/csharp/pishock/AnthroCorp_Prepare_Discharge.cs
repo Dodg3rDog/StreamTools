@@ -2,87 +2,90 @@ using System;
 
 public class CPHInline
 {
-    private static readonly Random Rng = new Random();
+    private const int ShockDurationSeconds = 1;
+    private const int NormalChargeCap = 10;
+    private const int OverloadChargeCap = 15;
+    private const int StoredChargeCap = 99;
 
     public bool Execute()
     {
-        int duration = 1;
-
-        int normalMaxIntensity = 20;
-        int overloadMaxIntensity = 25;
-
-        int lowChargeThreshold = 25;
-        int normalChargeCost = 5;
-        int overloadChargeCost = 10;
-
-        int pool = GetInt("ps_chargePool", 0);
-        int hypeLevel = GetInt("ps_hypeTrainLevel", 0);
-        bool overloadArmed = GetBool("ps_overloadArmed", false);
-        bool spendCharge = GetBoolArg("spendCharge", false) ||
-            GetBoolArg("consumeCharge", false) ||
-            GetBoolArg("secondaryShock", false);
-
-        int poolBefore = pool;
-        int baseIntensity = 0;
-        int randomSurge = 0;
-        int finalIntensity = 0;
-        int chargeSpent = 0;
-        bool overloadUsed = false;
-
-        // Low charge weak shock mode
-        if (pool < lowChargeThreshold)
+        bool overloadUsed = GetBool("ps_overloadActive", false) || GetBool("ps_overloadVenting", false);
+        int cap = overloadUsed ? OverloadChargeCap : NormalChargeCap;
+        int pressureBefore = GetIntArg("pressureGauge", GetInt("ps_pressureGauge", 0));
+        int currentBefore = GetInt("ps_currentCharge", GetInt("ps_chargePool", 0));
+        int storedBefore = GetInt("ps_storedCharge", 0);
+        if (currentBefore > cap)
         {
-            finalIntensity = Rng.Next(1, 4);
-            randomSurge = finalIntensity;
-        }
-        else
-        {
-            baseIntensity = Math.Max(5, pool / 5); // 25% = 5, 100% = 20
-
-            randomSurge = Rng.Next(0, 3);
-
-            int cap = spendCharge && overloadArmed ? overloadMaxIntensity : normalMaxIntensity;
-
-            finalIntensity = baseIntensity + hypeLevel + randomSurge;
-            finalIntensity = Math.Min(cap, finalIntensity);
-
-            if (spendCharge)
-            {
-                chargeSpent = overloadArmed ? overloadChargeCost : normalChargeCost;
-                pool = Math.Max(0, pool - chargeSpent);
-
-                overloadUsed = overloadArmed;
-
-                if (overloadArmed)
-                    CPH.SetGlobalVar("ps_overloadArmed", false, true);
-
-                CPH.SetGlobalVar("ps_chargePool", pool, true);
-            }
+            int overflow = currentBefore - cap;
+            currentBefore = cap;
+            storedBefore = Math.Min(StoredChargeCap, storedBefore + overflow);
         }
 
-        // Hand off to PiShock action
-        finalIntensity = Math.Max(1, finalIntensity);
+        int finalIntensity = Clamp(GetIntArg("intensity", currentBefore), 1, cap);
+        bool ventPressure = GetBoolArg("ventPressure", GetBoolArg("spendPressure", false));
+        bool consumeCharge = GetBoolArg("consumeCharge", GetBoolArg("spendCharge", false));
+        int pressureAfter = ventPressure
+            ? 0
+            : pressureBefore;
+        int currentAfter = currentBefore;
+        int storedAfter = storedBefore;
+        if (consumeCharge)
+        {
+            int promoted = Math.Min(storedBefore, cap);
+            currentAfter = promoted;
+            storedAfter = Math.Max(0, storedBefore - promoted);
+        }
+        string relayMode = overloadUsed ? "overload" : "discharge";
+
         CPH.SetArgument("intensity", finalIntensity);
-        CPH.SetArgument("duration", duration);
+        CPH.SetArgument("duration", ShockDurationSeconds);
         CPH.SetArgument("op", 0);
         CPH.SetArgument("mode", 0);
-        CPH.SetArgument("log", overloadUsed ? "OVERLOAD" : "STANDARD");
-        CPH.SetArgument("relayMode", overloadUsed ? "overload" : "discharge");
+        CPH.SetArgument("shocker", 0);
+        CPH.SetArgument("log", overloadUsed ? "OVERLOAD PRESSURE EVENT" : "PRESSURE EVENT");
+        CPH.SetArgument("relayMode", relayMode);
 
-        // Store result for announcement action
-        CPH.SetGlobalVar("ps_lastPoolBefore", poolBefore, true);
-        CPH.SetGlobalVar("ps_lastPoolAfter", pool, true);
-        CPH.SetGlobalVar("ps_lastBaseIntensity", baseIntensity, true);
-        CPH.SetGlobalVar("ps_lastHypeBonus", hypeLevel, true);
-        CPH.SetGlobalVar("ps_lastRandomSurge", randomSurge, true);
+        if (ventPressure)
+        {
+            CPH.SetGlobalVar("ps_pressureGauge", pressureAfter, true);
+        }
+
+        if (consumeCharge)
+        {
+            CPH.SetGlobalVar("ps_currentCharge", currentAfter, true);
+            CPH.SetGlobalVar("ps_storedCharge", storedAfter, true);
+            CPH.SetGlobalVar("ps_chargePool", currentAfter, true);
+        }
+
+        CPH.SetGlobalVar("ps_lastPressureBefore", pressureBefore, true);
+        CPH.SetGlobalVar("ps_lastPressureAfter", pressureAfter, true);
+        CPH.SetGlobalVar("ps_lastPressureGain", 0, true);
+        CPH.SetGlobalVar("ps_lastPressureVented", pressureBefore - pressureAfter, true);
+        CPH.SetGlobalVar("ps_lastPoolBefore", currentBefore, true);
+        CPH.SetGlobalVar("ps_lastPoolAfter", currentAfter, true);
         CPH.SetGlobalVar("ps_lastFinalIntensity", finalIntensity, true);
-        CPH.SetGlobalVar("ps_lastChargeSpent", chargeSpent, true);
+        CPH.SetGlobalVar("ps_lastChargeSpent", consumeCharge ? finalIntensity : 0, true);
         CPH.SetGlobalVar("ps_lastOverloadUsed", overloadUsed, true);
-        CPH.SetGlobalVar("ps_relayMode", overloadUsed ? "overload" : "discharge", true);
+        CPH.SetGlobalVar("ps_relayMode", relayMode, true);
 
-        CPH.LogInfo("[PiShock Debug] Prepared shock Intensity=" + finalIntensity + " Pool=" + poolBefore + "→" + pool + " SpendCharge=" + spendCharge);
+        CPH.LogInfo("[PiShock Pressure] Prepared manual discharge Intensity=" + finalIntensity + " Pressure=" + pressureBefore + "->" + pressureAfter + " Charge=" + currentBefore + "->" + currentAfter + " Stored=" + storedBefore + "->" + storedAfter + " VentPressure=" + ventPressure + " ConsumeCharge=" + consumeCharge);
 
         return true;
+    }
+
+    private int Clamp(int value, int min, int max)
+    {
+        return Math.Min(Math.Max(value, min), max);
+    }
+
+    private int GetIntArg(string name, int fallback)
+    {
+        try
+        {
+            int value;
+            return CPH.TryGetArg(name, out value) ? value : fallback;
+        }
+        catch { return fallback; }
     }
 
     private int GetInt(string name, int fallback)

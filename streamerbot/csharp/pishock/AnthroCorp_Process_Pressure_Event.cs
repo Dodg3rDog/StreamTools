@@ -1,4 +1,7 @@
 using System;
+using System.IO;
+using System.Net;
+using System.Text;
 
 public class CPHInline
 {
@@ -9,27 +12,24 @@ public class CPHInline
     // ---------------------------------------------------------------------
     private const int NormalMaxPressure = 100;
     private const int OverloadMaxPressure = 150;
-    private const int SafePressure = 30;
+    private const int NormalChargeCap = 10;
+    private const int OverloadChargeCap = 15;
+    private const int StoredChargeCap = 99;
     private const int BitsPerPressurePoint = 10;
     private const int MaximumPressureGain = 150;
-    private const int PressureVentPerShock = 10;
     private const int GiftSubEquivalentBits = 700;
-    private const int PityMissLimit = 5;
-    private const int HypeChancePerLevel = 5;
+    private const int HypePressureBonusPerLevel = 5;
     private const int CooldownMinSeconds = 10;
     private const int CooldownMaxSeconds = 30;
     private const int ViewerDisplayCooldownSeconds = 10;
     private const int ShockDurationSeconds = 1;
 
-    private static readonly ChanceTier[] ChanceTable = new ChanceTier[]
+    private static readonly ChargeTier[] ChargeTable = new ChargeTier[]
     {
-        new ChanceTier(1, 99, 0),
-        new ChanceTier(100, 299, 10),
-        new ChanceTier(300, 499, 15),
-        new ChanceTier(500, 699, 20),
-        new ChanceTier(700, 999, 25),
-        new ChanceTier(1000, 1499, 35),
-        new ChanceTier(1500, int.MaxValue, 50)
+        new ChargeTier(1, 99, 0),
+        new ChargeTier(100, 499, 0),
+        new ChargeTier(500, 999, 1),
+        new ChargeTier(1000, int.MaxValue, 2)
     };
 
     public bool Execute()
@@ -45,15 +45,45 @@ public class CPHInline
 
         bool overloadActive = GetBool("ps_overloadActive", false);
         bool overloadVenting = GetBool("ps_overloadVenting", false);
+        bool overloadArmed = GetBool("ps_overloadArmed", false);
         DateTime overloadUntil = GetDate("ps_overloadUntilUtc", DateTime.MinValue);
+        string overloadUntilUtc = GetString("ps_overloadUntilUtc", "");
         bool overloadTimerExpired = overloadActive &&
             overloadUntil != DateTime.MinValue &&
             now >= overloadUntil;
+        bool overloadExpiredIntoNormal = overloadTimerExpired;
+        if (overloadExpiredIntoNormal)
+        {
+            overloadActive = false;
+            overloadArmed = false;
+            overloadUntilUtc = "";
+        }
 
         int maxPressure = overloadActive ? OverloadMaxPressure : NormalMaxPressure;
-        int pressureBefore = GetInt("ps_pressureGauge", GetInt("ps_chargePool", 0));
+        int pressureBefore = GetInt("ps_pressureGauge", 0);
         int pressureGain = CalculatePressureGain(eventBits);
+        if (hypeLevel > 0 && pressureGain > 0)
+            pressureGain = Clamp(pressureGain + (hypeLevel * HypePressureBonusPerLevel), 0, MaximumPressureGain);
+
         int pressureAfterCharge = Clamp(pressureBefore + pressureGain, 0, maxPressure);
+        int chargeCap = overloadActive || overloadArmed ? OverloadChargeCap : NormalChargeCap;
+        int currentChargeBefore = GetInt("ps_currentCharge", GetInt("ps_chargePool", 0));
+        int storedChargeBefore = GetInt("ps_storedCharge", 0);
+        if (currentChargeBefore > chargeCap)
+        {
+            int overflowCharge = currentChargeBefore - chargeCap;
+            currentChargeBefore = chargeCap;
+            storedChargeBefore = Clamp(storedChargeBefore + overflowCharge, 0, StoredChargeCap);
+        }
+
+        int chargeGain = CalculateChargeGain(eventBits);
+        if (hypeLevel > 0 && chargeGain > 0)
+            chargeGain += Math.Min(2, hypeLevel / 5);
+
+        int chargeSpace = Math.Max(0, chargeCap - currentChargeBefore);
+        int currentChargeAfterGain = Clamp(currentChargeBefore + Math.Min(chargeGain, chargeSpace), 0, chargeCap);
+        int storedChargeAfterGain = Clamp(storedChargeBefore + Math.Max(0, chargeGain - chargeSpace), 0, StoredChargeCap);
+        bool overloadRequired = chargeGain > chargeSpace && !overloadActive && !overloadArmed;
 
         DateTime cooldownUntil = GetDate("ps_cooldownUntilUtc", DateTime.MinValue);
         bool inCooldown = now < cooldownUntil;
@@ -65,19 +95,21 @@ public class CPHInline
             cooldownRemaining = 0;
         }
 
-        int baseChance = GetBaseChance(eventBits);
-        int hypeBonus = Clamp(hypeLevel * HypeChancePerLevel, 0, 100);
-        int chancePercent = Clamp(baseChance + hypeBonus, 0, 100);
+        int chancePercent = 0;
 
         int missCount = GetInt("ps_missCount", 0);
-        bool eligibleForRoll = eventBits >= 100 && !inCooldown && !overloadActive && !overloadVenting;
-        bool pityGuaranteed = eligibleForRoll && missCount >= PityMissLimit;
-        int roll = eligibleForRoll ? Rng.Next(1, 101) : 0;
-        bool shouldDischarge = eligibleForRoll && (pityGuaranteed || roll <= chancePercent);
+        bool normalPressureThreshold = !overloadActive && pressureAfterCharge >= NormalMaxPressure;
+        bool overloadPressureThreshold = overloadActive && pressureAfterCharge >= OverloadMaxPressure;
+        bool pressureGuaranteed = !inCooldown && !overloadVenting && (normalPressureThreshold || overloadPressureThreshold);
+        int roll = 0;
+        bool pressureDischarge = pressureGuaranteed;
+        bool shouldDischarge = pressureDischarge && currentChargeAfterGain > 0;
         bool shouldStartOverloadVent = false;
 
         int finalIntensity = 0;
         int pressureAfterEvent = pressureAfterCharge;
+        int currentChargeAfterEvent = currentChargeAfterGain;
+        int storedChargeAfterEvent = storedChargeAfterGain;
         int cooldownSeconds = inCooldown ? GetInt("ps_cooldownSeconds", 0) : 0;
         string relayMode = "charge";
         string eventMessage = "Pressure event logged";
@@ -87,9 +119,34 @@ public class CPHInline
             relayMode = "venting";
             eventMessage = "Venting sequence already in progress";
         }
+        else if (inCooldown)
+        {
+            relayMode = "cooldown";
+            eventMessage = "Safety lockout active. Pressure banked";
+        }
+        else if (pressureDischarge)
+        {
+            finalIntensity = shouldDischarge ? Clamp(currentChargeAfterGain, 1, chargeCap) : 0;
+            pressureAfterEvent = 0;
+            int promotedCharge = Math.Min(storedChargeAfterGain, chargeCap);
+            currentChargeAfterEvent = promotedCharge;
+            storedChargeAfterEvent = Math.Max(0, storedChargeAfterGain - promotedCharge);
+            cooldownSeconds = Rng.Next(CooldownMinSeconds, CooldownMaxSeconds + 1);
+            cooldownUntil = now.AddSeconds(cooldownSeconds);
+            cooldownRemaining = cooldownSeconds;
+            missCount = 0;
+            relayMode = shouldDischarge
+                ? (overloadActive ? "overload-discharge" : "discharge")
+                : "discharge-empty";
+            eventMessage = !shouldDischarge
+                ? "Pressure threshold reached with no active current. Pressure vented without PiShock output"
+                : overloadActive
+                ? "Overload pressure threshold reached. Impulse event authorized"
+                : "Pressure threshold reached. Impulse event authorized";
+        }
         else if (overloadActive)
         {
-            shouldStartOverloadVent = overloadTimerExpired || pressureAfterCharge >= OverloadMaxPressure;
+            shouldStartOverloadVent = overloadTimerExpired;
             if (shouldStartOverloadVent)
             {
                 overloadVenting = true;
@@ -98,7 +155,7 @@ public class CPHInline
                 relayMode = "venting";
                 eventMessage = overloadTimerExpired
                     ? "Overload timer expired. Venting sequence requested"
-                    : "Maximum overload pressure reached. Venting sequence requested";
+                    : "Overload venting sequence requested";
             }
             else
             {
@@ -106,33 +163,30 @@ public class CPHInline
                 eventMessage = "Overload containment charging";
             }
         }
-        else if (inCooldown)
+        else if (overloadRequired)
         {
-            relayMode = "cooldown";
-            eventMessage = "Safety lockout active. Pressure banked";
-        }
-        else if (shouldDischarge)
-        {
-            finalIntensity = PressureToIntensity(pressureAfterCharge);
-            pressureAfterEvent = Math.Max(0, pressureAfterCharge - PressureVentPerShock);
-            cooldownSeconds = Rng.Next(CooldownMinSeconds, CooldownMaxSeconds + 1);
-            cooldownUntil = now.AddSeconds(cooldownSeconds);
-            cooldownRemaining = cooldownSeconds;
-            missCount = 0;
-            relayMode = "discharge";
-            eventMessage = pityGuaranteed ? "Pity threshold reached. Impulse event authorized" : "Impulse event authorized";
-        }
-        else if (eligibleForRoll)
-        {
-            missCount = Math.Min(PityMissLimit, missCount + 1);
-            relayMode = "charge";
-            eventMessage = "Random gate denied. Pressure retained";
+            relayMode = "overload-required";
+            eventMessage = "OVERLOAD REQUIRED. Extra current stored for later capacity.";
         }
 
         UpdateViewerDisplay(now, eventType, eventBits);
+        string currentViewerName = ResolveViewerName();
+        if (string.IsNullOrWhiteSpace(currentViewerName))
+            currentViewerName = GetString("ps_lastViewerName", "");
+
+        string currentViewerImageUrl = ResolveViewerImageUrl();
+        if (string.IsNullOrWhiteSpace(currentViewerImageUrl))
+            currentViewerImageUrl = GetString("ps_lastViewerImageUrl", "");
+
+        string cooldownUntilUtc = cooldownUntil == DateTime.MinValue ? "" : cooldownUntil.ToString("o");
+        int statusSequence = GetInt("ps_statusSequence", 0) + 1;
 
         CPH.SetGlobalVar("ps_pressureGauge", pressureAfterEvent, true);
-        CPH.SetGlobalVar("ps_chargePool", pressureAfterEvent, true);
+        CPH.SetGlobalVar("ps_chargePool", currentChargeAfterEvent, true);
+        CPH.SetGlobalVar("ps_currentCharge", currentChargeAfterEvent, true);
+        CPH.SetGlobalVar("ps_storedCharge", storedChargeAfterEvent, true);
+        CPH.SetGlobalVar("ps_normalChargeCap", NormalChargeCap, true);
+        CPH.SetGlobalVar("ps_overloadChargeCap", OverloadChargeCap, true);
         CPH.SetGlobalVar("ps_maxPressureGauge", maxPressure, true);
         CPH.SetGlobalVar("ps_missCount", missCount, true);
         CPH.SetGlobalVar("ps_lastChancePercent", chancePercent, true);
@@ -140,30 +194,58 @@ public class CPHInline
         CPH.SetGlobalVar("ps_lastPressureBefore", pressureBefore, true);
         CPH.SetGlobalVar("ps_lastPressureAfter", pressureAfterEvent, true);
         CPH.SetGlobalVar("ps_lastPressureGain", pressureGain, true);
+        CPH.SetGlobalVar("ps_lastPressureVented", pressureDischarge ? pressureAfterCharge : 0, true);
+        CPH.SetGlobalVar("ps_lastChargeGain", chargeGain, true);
+        CPH.SetGlobalVar("ps_lastBaseIntensity", currentChargeAfterGain, true);
+        CPH.SetGlobalVar("ps_lastHypeBonus", hypeLevel, true);
+        CPH.SetGlobalVar("ps_lastRandomSurge", 0, true);
         CPH.SetGlobalVar("ps_lastFinalIntensity", finalIntensity, true);
-        CPH.SetGlobalVar("ps_lastChargeSpent", shouldDischarge ? PressureVentPerShock : 0, true);
-        CPH.SetGlobalVar("ps_lastPoolBefore", pressureBefore, true);
-        CPH.SetGlobalVar("ps_lastPoolAfter", pressureAfterEvent, true);
-        CPH.SetGlobalVar("ps_lastOverloadUsed", false, true);
+        CPH.SetGlobalVar("ps_lastChargeSpent", shouldDischarge ? finalIntensity : 0, true);
+        CPH.SetGlobalVar("ps_lastPoolBefore", currentChargeBefore, true);
+        CPH.SetGlobalVar("ps_lastPoolAfter", currentChargeAfterEvent, true);
+        CPH.SetGlobalVar("ps_lastOverloadUsed", shouldDischarge && overloadActive, true);
         CPH.SetGlobalVar("ps_cooldownSeconds", cooldownSeconds, true);
         CPH.SetGlobalVar("ps_cooldownRemaining", cooldownRemaining, true);
-        CPH.SetGlobalVar("ps_cooldownUntilUtc", cooldownUntil == DateTime.MinValue ? "" : cooldownUntil.ToString("o"), true);
+        CPH.SetGlobalVar("ps_cooldownUntilUtc", cooldownUntilUtc, true);
         CPH.SetGlobalVar("ps_overloadVenting", overloadVenting, true);
         CPH.SetGlobalVar("ps_overloadVentRequested", shouldStartOverloadVent, true);
+        CPH.SetGlobalVar("ps_overloadArmed", overloadArmed, true);
+        CPH.SetGlobalVar("ps_overloadActive", overloadActive, true);
+        CPH.SetGlobalVar("ps_overloadUntilUtc", overloadUntilUtc, true);
         CPH.SetGlobalVar("ps_relayMode", relayMode, true);
         CPH.SetGlobalVar("ps_lastEventType", eventType, true);
         CPH.SetGlobalVar("ps_lastEventValueBits", eventBits, true);
         CPH.SetGlobalVar("ps_lastEventMessage", eventMessage, true);
+        CPH.SetGlobalVar("ps_statusSequence", statusSequence, true);
 
         CPH.SetArgument("shouldDischarge", shouldDischarge);
         CPH.SetArgument("shouldStartOverloadVent", shouldStartOverloadVent);
         CPH.SetArgument("relayMode", relayMode);
+        CPH.SetArgument("mode", relayMode);
+        CPH.SetArgument("chargePool", currentChargeAfterEvent);
+        CPH.SetArgument("currentVoltage", currentChargeAfterEvent);
+        CPH.SetArgument("storedVoltage", storedChargeAfterEvent);
+        CPH.SetArgument("normalVoltageCap", NormalChargeCap);
+        CPH.SetArgument("overloadVoltageCap", OverloadChargeCap);
         CPH.SetArgument("pressureGauge", pressureAfterEvent);
         CPH.SetArgument("maxPressureGauge", maxPressure);
+        CPH.SetArgument("hypeLevel", hypeLevel);
+        CPH.SetArgument("overloadArmed", overloadArmed);
+        CPH.SetArgument("overloadActive", overloadActive);
+        CPH.SetArgument("overloadVenting", overloadVenting);
+        CPH.SetArgument("lastIntensity", finalIntensity);
         CPH.SetArgument("chancePercent", chancePercent);
         CPH.SetArgument("missCount", missCount);
+        CPH.SetArgument("cooldownTotal", cooldownSeconds);
         CPH.SetArgument("cooldownRemaining", cooldownRemaining);
+        CPH.SetArgument("cooldownUntilUtc", cooldownUntilUtc);
+        CPH.SetArgument("overloadUntilUtc", overloadUntilUtc);
+        CPH.SetArgument("currentViewerName", currentViewerName);
+        CPH.SetArgument("currentViewerImageUrl", currentViewerImageUrl);
+        CPH.SetArgument("eventType", eventType);
+        CPH.SetArgument("eventValueBits", eventBits);
         CPH.SetArgument("eventMessage", eventMessage);
+        CPH.SetArgument("statusSequence", statusSequence);
 
         if (shouldDischarge)
         {
@@ -175,20 +257,144 @@ public class CPHInline
             CPH.SetArgument("log", "PRESSURE EVENT");
         }
 
+        PostStatusUpdate(
+            pressureAfterEvent,
+            maxPressure,
+            hypeLevel,
+            overloadArmed,
+            overloadActive,
+            overloadVenting,
+            currentChargeAfterEvent,
+            storedChargeAfterEvent,
+            NormalChargeCap,
+            OverloadChargeCap,
+            finalIntensity,
+            chancePercent,
+            missCount,
+            cooldownRemaining,
+            cooldownSeconds,
+            cooldownUntilUtc,
+            overloadUntilUtc,
+            currentViewerName,
+            currentViewerImageUrl,
+            eventMessage,
+            eventType,
+            eventBits,
+            relayMode,
+            statusSequence
+        );
+
         CPH.LogInfo(
             "[PiShock Pressure] Event=" + eventType +
             " Bits=" + eventBits +
             " Pressure=" + pressureBefore + "->" + pressureAfterEvent +
+            " Charge=" + currentChargeBefore + "->" + currentChargeAfterEvent +
+            " Stored=" + storedChargeBefore + "->" + storedChargeAfterEvent +
             " Chance=" + chancePercent +
             " Roll=" + roll +
             " Misses=" + missCount +
+            " PressureGuaranteed=" + pressureGuaranteed +
             " Discharge=" + shouldDischarge +
             " Cooldown=" + inCooldown +
             " CooldownRemaining=" + cooldownRemaining +
+            " OverloadExpiredIntoNormal=" + overloadExpiredIntoNormal +
             " RelayMode=" + relayMode
         );
 
         return true;
+    }
+
+    private void PostStatusUpdate(
+        int pressureGauge,
+        int maxPressureGauge,
+        int hypeLevel,
+        bool overloadArmed,
+        bool overloadActive,
+        bool overloadVenting,
+        int currentVoltage,
+        int storedVoltage,
+        int normalVoltageCap,
+        int overloadVoltageCap,
+        int lastIntensity,
+        int chancePercent,
+        int missCount,
+        int cooldownRemaining,
+        int cooldownTotal,
+        string cooldownUntilUtc,
+        string overloadUntilUtc,
+        string currentViewerName,
+        string currentViewerImageUrl,
+        string eventMessage,
+        string eventType,
+        int eventValueBits,
+        string mode,
+        int statusSequence)
+    {
+        string apiBaseUrl = GetString("st_apiBaseUrl", "http://127.0.0.1:3055");
+        string bearerToken = GetString("st_bearerToken", "");
+
+        if (string.IsNullOrWhiteSpace(bearerToken))
+        {
+            CPH.LogError("[PiShock Pressure] Missing Streamer.bot global: st_bearerToken. Skipping direct status POST.");
+            return;
+        }
+
+        string json =
+            "{"
+            + "\"chargePool\":" + currentVoltage + ","
+            + "\"pressureGauge\":" + pressureGauge + ","
+            + "\"maxPressureGauge\":" + maxPressureGauge + ","
+            + "\"hypeLevel\":" + hypeLevel + ","
+            + "\"overloadArmed\":" + overloadArmed.ToString().ToLower() + ","
+            + "\"overloadActive\":" + overloadActive.ToString().ToLower() + ","
+            + "\"overloadVenting\":" + overloadVenting.ToString().ToLower() + ","
+            + "\"currentVoltage\":" + currentVoltage + ","
+            + "\"storedVoltage\":" + storedVoltage + ","
+            + "\"normalVoltageCap\":" + normalVoltageCap + ","
+            + "\"overloadVoltageCap\":" + overloadVoltageCap + ","
+            + "\"lastIntensity\":" + lastIntensity + ","
+            + "\"chancePercent\":" + chancePercent + ","
+            + "\"missCount\":" + missCount + ","
+            + "\"cooldownRemaining\":" + cooldownRemaining + ","
+            + "\"cooldownTotal\":" + cooldownTotal + ","
+            + "\"cooldownUntilUtc\":\"" + EscapeJson(cooldownUntilUtc) + "\","
+            + "\"overloadRemaining\":0,"
+            + "\"overloadUntilUtc\":\"" + EscapeJson(overloadUntilUtc) + "\","
+            + "\"currentViewerName\":\"" + EscapeJson(currentViewerName) + "\","
+            + "\"currentViewerImageUrl\":\"" + EscapeJson(currentViewerImageUrl) + "\","
+            + "\"eventMessage\":\"" + EscapeJson(eventMessage) + "\","
+            + "\"eventType\":\"" + EscapeJson(eventType) + "\","
+            + "\"eventValueBits\":" + eventValueBits + ","
+            + "\"statusSequence\":" + statusSequence + ","
+            + "\"mode\":\"" + EscapeJson(mode) + "\""
+            + "}";
+
+        try
+        {
+            var request = (HttpWebRequest)WebRequest.Create(NormalizeBaseUrl(apiBaseUrl) + "/api/pishock/status");
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.Timeout = 3000;
+            request.ReadWriteTimeout = 3000;
+            request.Headers["Authorization"] = "Bearer " + bearerToken;
+
+            byte[] data = Encoding.UTF8.GetBytes(json);
+            request.ContentLength = data.Length;
+
+            using (Stream stream = request.GetRequestStream())
+            {
+                stream.Write(data, 0, data.Length);
+            }
+
+            using (var response = (HttpWebResponse)request.GetResponse())
+            {
+                CPH.LogInfo("[PiShock Pressure] Direct status POST sent: " + response.StatusCode + " Sequence=" + statusSequence);
+            }
+        }
+        catch (Exception ex)
+        {
+            CPH.LogError("[PiShock Pressure] Direct status POST failed: " + ex.ToString());
+        }
     }
 
     private int GetEventBits(string eventType)
@@ -219,27 +425,20 @@ public class CPHInline
         return Clamp(gain, 0, MaximumPressureGain);
     }
 
-    private int GetBaseChance(int eventBits)
+    private int CalculateChargeGain(int eventBits)
     {
-        for (int i = 0; i < ChanceTable.Length; i++)
+        for (int i = 0; i < ChargeTable.Length; i++)
         {
-            if (eventBits >= ChanceTable[i].MinBits && eventBits <= ChanceTable[i].MaxBits)
-                return ChanceTable[i].ChancePercent;
+            if (eventBits >= ChargeTable[i].MinBits && eventBits <= ChargeTable[i].MaxBits)
+                return ChargeTable[i].ChargeGain;
         }
 
         return 0;
     }
 
-    private int PressureToIntensity(int pressure)
-    {
-        return Clamp((int)Math.Ceiling(pressure / 10.0), 1, 15);
-    }
-
     private void UpdateViewerDisplay(DateTime now, string eventType, int eventBits)
     {
-        string viewerName = GetStringArg("viewerName", "");
-        if (string.IsNullOrWhiteSpace(viewerName))
-            viewerName = GetStringArg("displayName", GetStringArg("userName", ""));
+        string viewerName = ResolveViewerName();
 
         if (string.IsNullOrWhiteSpace(viewerName))
             return;
@@ -254,9 +453,7 @@ public class CPHInline
             return;
         }
 
-        string imageUrl = GetStringArg("viewerImageUrl", "");
-        if (string.IsNullOrWhiteSpace(imageUrl))
-            imageUrl = GetStringArg("profileImageUrl", GetStringArg("userProfileImageUrl", ""));
+        string imageUrl = ResolveViewerImageUrl();
 
         CPH.SetGlobalVar("ps_lastViewerName", viewerName, true);
         CPH.SetGlobalVar("ps_lastViewerImageUrl", imageUrl, true);
@@ -264,6 +461,24 @@ public class CPHInline
         CPH.SetGlobalVar("ps_lastViewerEventType", eventType, true);
         CPH.SetGlobalVar("ps_lastViewerEventValueBits", eventBits, true);
         CPH.SetGlobalVar(cooldownKey, now.ToString("o"), true);
+    }
+
+    private string ResolveViewerName()
+    {
+        string viewerName = GetStringArg("viewerName", "");
+        if (string.IsNullOrWhiteSpace(viewerName))
+            viewerName = GetStringArg("displayName", GetStringArg("userName", GetStringArg("user", "")));
+
+        return viewerName;
+    }
+
+    private string ResolveViewerImageUrl()
+    {
+        string imageUrl = GetStringArg("viewerImageUrl", "");
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            imageUrl = GetStringArg("profileImageUrl", GetStringArg("profileImageURL", GetStringArg("userProfileImageUrl", "")));
+
+        return imageUrl;
     }
 
     private int GetInt(string name, int fallback)
@@ -275,6 +490,16 @@ public class CPHInline
     private bool GetBool(string name, bool fallback)
     {
         try { return CPH.GetGlobalVar<bool>(name, true); }
+        catch { return fallback; }
+    }
+
+    private string GetString(string name, string fallback)
+    {
+        try
+        {
+            string value = CPH.GetGlobalVar<string>(name, true);
+            return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
         catch { return fallback; }
     }
 
@@ -354,17 +579,31 @@ public class CPHInline
         return string.IsNullOrWhiteSpace(output) ? "unknown" : output;
     }
 
-    private class ChanceTier
+    private string NormalizeBaseUrl(string url)
+    {
+        return (url ?? "").Trim().TrimEnd('/');
+    }
+
+    private string EscapeJson(string value)
+    {
+        return (value ?? "")
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
+    }
+
+    private class ChargeTier
     {
         public int MinBits { get; private set; }
         public int MaxBits { get; private set; }
-        public int ChancePercent { get; private set; }
+        public int ChargeGain { get; private set; }
 
-        public ChanceTier(int minBits, int maxBits, int chancePercent)
+        public ChargeTier(int minBits, int maxBits, int chargeGain)
         {
             MinBits = minBits;
             MaxBits = maxBits;
-            ChancePercent = chancePercent;
+            ChargeGain = chargeGain;
         }
     }
 }

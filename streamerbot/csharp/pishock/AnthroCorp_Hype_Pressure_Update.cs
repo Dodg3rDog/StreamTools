@@ -25,9 +25,7 @@ public class CPHInline
         CPH.SendMessage(
             "⚠️ ANTHRO-CORP CORE PRESSURE RISING: Hype Train Level " +
             level +
-            " detected. +" +
-            level +
-            " discharge intensity.",
+            " detected. Pressure and current routing amplified.",
             true
         );
 

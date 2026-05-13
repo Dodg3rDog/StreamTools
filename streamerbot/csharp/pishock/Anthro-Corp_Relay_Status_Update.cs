@@ -9,7 +9,7 @@ public class CPHInline
     {
         try
         {
-            string apiBaseUrl = GetString("st_apiBaseUrl", "http://127.0.0.1:3054");
+            string apiBaseUrl = GetString("st_apiBaseUrl", "http://127.0.0.1:3055");
             string bearerToken = GetString("st_bearerToken", "");
 
             if (string.IsNullOrWhiteSpace(bearerToken))
@@ -18,19 +18,23 @@ public class CPHInline
                 return false;
             }
 
-            int chargePool = GetInt("ps_chargePool", 0);
-            int pressureGauge = GetInt("ps_pressureGauge", chargePool);
-            int maxPressureGauge = GetInt("ps_maxPressureGauge", 100);
-            int hypeLevel = GetInt("ps_hypeTrainLevel", 0);
-            bool overloadArmed = GetBool("ps_overloadArmed", false);
-            bool overloadActive = GetBool("ps_overloadActive", false);
-            bool overloadVenting = GetBool("ps_overloadVenting", false);
-            int lastIntensity = GetInt("ps_lastFinalIntensity", 0);
-            int chancePercent = GetInt("ps_lastChancePercent", 0);
-            int missCount = GetInt("ps_missCount", 0);
-            int cooldownTotal = GetInt("ps_cooldownSeconds", 0);
-            string cooldownUntilUtc = GetString("ps_cooldownUntilUtc", "");
-            DateTime cooldownUntil = GetDate("ps_cooldownUntilUtc", DateTime.MinValue);
+            int chargePool = GetIntArgOrGlobal("chargePool", "ps_chargePool", 0);
+            int pressureGauge = GetIntArgOrGlobal("pressureGauge", "ps_pressureGauge", chargePool);
+            int maxPressureGauge = GetIntArgOrGlobal("maxPressureGauge", "ps_maxPressureGauge", 100);
+            int hypeLevel = GetIntArgOrGlobal("hypeLevel", "ps_hypeTrainLevel", 0);
+            bool overloadArmed = GetBoolArgOrGlobal("overloadArmed", "ps_overloadArmed", false);
+            bool overloadActive = GetBoolArgOrGlobal("overloadActive", "ps_overloadActive", false);
+            bool overloadVenting = GetBoolArgOrGlobal("overloadVenting", "ps_overloadVenting", false);
+            int currentVoltage = GetIntArgOrGlobal("currentVoltage", "ps_currentCharge", GetInt("ps_lastFinalIntensity", 0));
+            int storedVoltage = GetIntArgOrGlobal("storedVoltage", "ps_storedCharge", 0);
+            int normalVoltageCap = GetIntArgOrGlobal("normalVoltageCap", "ps_normalChargeCap", 10);
+            int overloadVoltageCap = GetIntArgOrGlobal("overloadVoltageCap", "ps_overloadChargeCap", 15);
+            int lastIntensity = GetIntArgOrGlobal("lastIntensity", "ps_lastFinalIntensity", 0);
+            int chancePercent = GetIntArgOrGlobal("chancePercent", "ps_lastChancePercent", 0);
+            int missCount = GetIntArgOrGlobal("missCount", "ps_missCount", 0);
+            int cooldownTotal = GetIntArgOrGlobal("cooldownTotal", "ps_cooldownSeconds", 0);
+            string cooldownUntilUtc = GetStringArgOrGlobal("cooldownUntilUtc", "ps_cooldownUntilUtc", "");
+            DateTime cooldownUntil = ParseDate(cooldownUntilUtc, DateTime.MinValue);
             int cooldownRemaining = 0;
             if (cooldownUntil != DateTime.MinValue && DateTime.UtcNow < cooldownUntil)
             {
@@ -45,16 +49,17 @@ public class CPHInline
                 CPH.SetGlobalVar("ps_cooldownSeconds", 0, true);
                 CPH.SetGlobalVar("ps_cooldownRemaining", 0, true);
             }
-            string overloadUntilUtc = GetString("ps_overloadUntilUtc", "");
-            DateTime overloadUntil = GetDate("ps_overloadUntilUtc", DateTime.MinValue);
+            string overloadUntilUtc = GetStringArgOrGlobal("overloadUntilUtc", "ps_overloadUntilUtc", "");
+            DateTime overloadUntil = ParseDate(overloadUntilUtc, DateTime.MinValue);
             int overloadRemaining = 0;
             if (overloadUntil != DateTime.MinValue && DateTime.UtcNow < overloadUntil)
                 overloadRemaining = (int)Math.Ceiling((overloadUntil - DateTime.UtcNow).TotalSeconds);
-            string currentViewerName = GetString("ps_lastViewerName", "");
-            string currentViewerImageUrl = GetString("ps_lastViewerImageUrl", "");
-            string eventMessage = GetString("ps_lastEventMessage", "");
-            string eventType = GetString("ps_lastEventType", "");
-            int eventValueBits = GetInt("ps_lastEventValueBits", 0);
+            string currentViewerName = GetStringArgOrGlobal("currentViewerName", "ps_lastViewerName", "");
+            string currentViewerImageUrl = GetStringArgOrGlobal("currentViewerImageUrl", "ps_lastViewerImageUrl", "");
+            string eventMessage = GetStringArgOrGlobal("eventMessage", "ps_lastEventMessage", "");
+            string eventType = GetStringArgOrGlobal("eventType", "ps_lastEventType", "");
+            int eventValueBits = GetIntArgOrGlobal("eventValueBits", "ps_lastEventValueBits", 0);
+            int statusSequence = GetIntArgOrGlobal("statusSequence", "ps_statusSequence", 0);
 
             string mode = GetArgString("relayMode", "");
 
@@ -72,6 +77,10 @@ public class CPHInline
                 + "\"overloadArmed\":" + overloadArmed.ToString().ToLower() + ","
                 + "\"overloadActive\":" + overloadActive.ToString().ToLower() + ","
                 + "\"overloadVenting\":" + overloadVenting.ToString().ToLower() + ","
+                + "\"currentVoltage\":" + currentVoltage + ","
+                + "\"storedVoltage\":" + storedVoltage + ","
+                + "\"normalVoltageCap\":" + normalVoltageCap + ","
+                + "\"overloadVoltageCap\":" + overloadVoltageCap + ","
                 + "\"lastIntensity\":" + lastIntensity + ","
                 + "\"chancePercent\":" + chancePercent + ","
                 + "\"missCount\":" + missCount + ","
@@ -85,10 +94,19 @@ public class CPHInline
                 + "\"eventMessage\":\"" + EscapeJson(eventMessage) + "\","
                 + "\"eventType\":\"" + EscapeJson(eventType) + "\","
                 + "\"eventValueBits\":" + eventValueBits + ","
+                + "\"statusSequence\":" + statusSequence + ","
                 + "\"mode\":\"" + EscapeJson(mode) + "\""
                 + "}";
 
-            CPH.LogInfo("[PiShock Relay] Sending status update. Mode=" + mode);
+            CPH.LogInfo(
+                "[PiShock Relay] Sending status update. Mode=" + mode +
+                " Pressure=" + pressureGauge +
+                " Current=" + currentVoltage +
+                " Stored=" + storedVoltage +
+                " Event=" + eventType +
+                " Bits=" + eventValueBits +
+                " Sequence=" + statusSequence
+            );
 
             var request = (HttpWebRequest)WebRequest.Create(NormalizeBaseUrl(apiBaseUrl) + "/api/pishock/status");
             request.Method = "POST";
@@ -163,6 +181,76 @@ public class CPHInline
                 return string.IsNullOrWhiteSpace(value) ? fallback : value;
 
             return fallback;
+        }
+        catch { return fallback; }
+    }
+
+    private int GetIntArgOrGlobal(string argName, string globalName, int fallback)
+    {
+        try
+        {
+            int value;
+            if (CPH.TryGetArg(argName, out value))
+                return value;
+
+            string text;
+            if (CPH.TryGetArg(argName, out text))
+            {
+                int parsed;
+                if (int.TryParse(text, out parsed))
+                    return parsed;
+
+                double parsedDouble;
+                if (double.TryParse(text, out parsedDouble))
+                    return (int)Math.Round(parsedDouble);
+            }
+        }
+        catch { }
+
+        return GetInt(globalName, fallback);
+    }
+
+    private bool GetBoolArgOrGlobal(string argName, string globalName, bool fallback)
+    {
+        try
+        {
+            bool value;
+            if (CPH.TryGetArg(argName, out value))
+                return value;
+
+            string text;
+            if (CPH.TryGetArg(argName, out text))
+            {
+                text = (text ?? "").Trim();
+                return text.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                    text.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                    text == "1";
+            }
+        }
+        catch { }
+
+        return GetBool(globalName, fallback);
+    }
+
+    private string GetStringArgOrGlobal(string argName, string globalName, string fallback)
+    {
+        try
+        {
+            string value;
+            if (CPH.TryGetArg(argName, out value))
+                return value ?? "";
+        }
+        catch { }
+
+        return GetString(globalName, fallback);
+    }
+
+    private DateTime ParseDate(string value, DateTime fallback)
+    {
+        try
+        {
+            DateTime parsed;
+            return DateTime.TryParse(value, out parsed) ? parsed.ToUniversalTime() : fallback;
         }
         catch { return fallback; }
     }
