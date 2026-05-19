@@ -27,8 +27,8 @@ public class CPHInline
             bool overloadVenting = GetBoolArgOrGlobal("overloadVenting", "ps_overloadVenting", false);
             int currentVoltage = GetIntArgOrGlobal("currentVoltage", "ps_currentCharge", GetInt("ps_lastFinalIntensity", 0));
             int storedVoltage = GetIntArgOrGlobal("storedVoltage", "ps_storedCharge", 0);
-            int normalVoltageCap = GetIntArgOrGlobal("normalVoltageCap", "ps_normalChargeCap", 10);
-            int overloadVoltageCap = GetIntArgOrGlobal("overloadVoltageCap", "ps_overloadChargeCap", 15);
+            int normalVoltageCap = GetIntArgOrGlobal("normalVoltageCap", "ps_normalChargeCap", 20);
+            int overloadVoltageCap = GetIntArgOrGlobal("overloadVoltageCap", "ps_overloadChargeCap", 30);
             int lastIntensity = GetIntArgOrGlobal("lastIntensity", "ps_lastFinalIntensity", 0);
             int chancePercent = GetIntArgOrGlobal("chancePercent", "ps_lastChancePercent", 0);
             int missCount = GetIntArgOrGlobal("missCount", "ps_missCount", 0);
@@ -54,12 +54,35 @@ public class CPHInline
             int overloadRemaining = 0;
             if (overloadUntil != DateTime.MinValue && DateTime.UtcNow < overloadUntil)
                 overloadRemaining = (int)Math.Ceiling((overloadUntil - DateTime.UtcNow).TotalSeconds);
+            int eventCountdownTotal = GetIntArgOrGlobal("eventCountdownTotal", "ps_eventCountdownTotal", 0);
+            string eventCountdownUntilUtc = GetStringArgOrGlobal("eventCountdownUntilUtc", "ps_eventCountdownUntilUtc", "");
+            DateTime eventCountdownUntil = ParseDate(eventCountdownUntilUtc, DateTime.MinValue);
+            int eventCountdownRemaining = GetIntArgOrGlobal("eventCountdownRemaining", "ps_eventCountdownRemaining", 0);
+            if (eventCountdownUntil != DateTime.MinValue && DateTime.UtcNow < eventCountdownUntil)
+            {
+                eventCountdownRemaining = (int)Math.Ceiling((eventCountdownUntil - DateTime.UtcNow).TotalSeconds);
+                CPH.SetGlobalVar("ps_eventCountdownRemaining", eventCountdownRemaining, true);
+            }
+            else if (eventCountdownUntil != DateTime.MinValue)
+            {
+                eventCountdownTotal = 0;
+                eventCountdownRemaining = 0;
+                eventCountdownUntilUtc = "";
+                CPH.SetGlobalVar("ps_eventCountdownUntilUtc", "", true);
+                CPH.SetGlobalVar("ps_eventCountdownTotal", 0, true);
+                CPH.SetGlobalVar("ps_eventCountdownRemaining", 0, true);
+            }
             string currentViewerName = GetStringArgOrGlobal("currentViewerName", "ps_lastViewerName", "");
             string currentViewerImageUrl = GetStringArgOrGlobal("currentViewerImageUrl", "ps_lastViewerImageUrl", "");
             string eventMessage = GetStringArgOrGlobal("eventMessage", "ps_lastEventMessage", "");
+            string tickerMessage = GetStringArgOrGlobal("tickerMessage", "ps_lastTickerMessage", "");
             string eventType = GetStringArgOrGlobal("eventType", "ps_lastEventType", "");
             int eventValueBits = GetIntArgOrGlobal("eventValueBits", "ps_lastEventValueBits", 0);
-            int statusSequence = GetIntArgOrGlobal("statusSequence", "ps_statusSequence", 0);
+            int statusSequence = Math.Max(
+                GetIntArgOrGlobal("statusSequence", "ps_statusSequence", 0),
+                GetNextStatusSequence()
+            );
+            CPH.SetGlobalVar("ps_statusSequence", statusSequence, true);
 
             string mode = GetArgString("relayMode", "");
 
@@ -89,9 +112,13 @@ public class CPHInline
                 + "\"cooldownUntilUtc\":\"" + EscapeJson(cooldownUntilUtc) + "\","
                 + "\"overloadRemaining\":" + overloadRemaining + ","
                 + "\"overloadUntilUtc\":\"" + EscapeJson(overloadUntilUtc) + "\","
+                + "\"eventCountdownRemaining\":" + eventCountdownRemaining + ","
+                + "\"eventCountdownTotal\":" + eventCountdownTotal + ","
+                + "\"eventCountdownUntilUtc\":\"" + EscapeJson(eventCountdownUntilUtc) + "\","
                 + "\"currentViewerName\":\"" + EscapeJson(currentViewerName) + "\","
                 + "\"currentViewerImageUrl\":\"" + EscapeJson(currentViewerImageUrl) + "\","
                 + "\"eventMessage\":\"" + EscapeJson(eventMessage) + "\","
+                + "\"tickerMessage\":\"" + EscapeJson(tickerMessage) + "\","
                 + "\"eventType\":\"" + EscapeJson(eventType) + "\","
                 + "\"eventValueBits\":" + eventValueBits + ","
                 + "\"statusSequence\":" + statusSequence + ","
@@ -149,6 +176,13 @@ public class CPHInline
     {
         try { return CPH.GetGlobalVar<bool>(name, true); }
         catch { return fallback; }
+    }
+
+    private int GetNextStatusSequence()
+    {
+        int nextGlobalSequence = GetInt("ps_statusSequence", 0) + 1;
+        int timeSequence = (int)Math.Floor((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds);
+        return Math.Max(nextGlobalSequence, timeSequence);
     }
 
     private string GetString(string name, string fallback)

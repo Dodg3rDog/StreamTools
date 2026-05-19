@@ -1,4 +1,7 @@
 using System;
+using System.IO;
+using System.Net;
+using System.Text;
 
 public class CPHInline
 {
@@ -8,8 +11,8 @@ public class CPHInline
     private const int NormalMaxPressure = 100;
     private const int OverloadSafePressure = 30;
     private const int FlushSafePressure = 0;
-    private const int NormalChargeCap = 10;
-    private const int OverloadChargeCap = 15;
+    private const int NormalChargeCap = 20;
+    private const int OverloadChargeCap = 30;
     private const int StoredChargeCap = 99;
 
     public bool Execute()
@@ -46,20 +49,152 @@ public class CPHInline
         CPH.SetGlobalVar("ps_lastEventType", eventType, true);
         CPH.SetGlobalVar("ps_lastEventValueBits", 0, true);
         CPH.SetGlobalVar("ps_lastEventMessage", eventMessage, true);
+        CPH.SetGlobalVar("ps_lastTickerMessage", "", true);
+        CPH.SetGlobalVar("ps_eventCountdownUntilUtc", "", true);
+        CPH.SetGlobalVar("ps_eventCountdownTotal", 0, true);
+        CPH.SetGlobalVar("ps_eventCountdownRemaining", 0, true);
+        CPH.SetGlobalVar("ps_pendingVentMode", "", true);
+        CPH.SetGlobalVar("ps_pendingVentTargetPressure", 0, true);
+        CPH.SetGlobalVar("ps_pendingVentUntilUtc", "", true);
+        int statusSequence = GetNextStatusSequence();
+        CPH.SetGlobalVar("ps_statusSequence", statusSequence, true);
         CPH.SetGlobalVar("ps_relayMode", relayMode, true);
 
         CPH.SetArgument("relayMode", relayMode);
         CPH.SetArgument("pressureGauge", pressure);
+        CPH.SetArgument("chargePool", currentCharge);
         CPH.SetArgument("maxPressureGauge", NormalMaxPressure);
         CPH.SetArgument("currentVoltage", currentCharge);
         CPH.SetArgument("storedVoltage", storedCharge);
         CPH.SetArgument("normalVoltageCap", NormalChargeCap);
         CPH.SetArgument("overloadVoltageCap", OverloadChargeCap);
+        CPH.SetArgument("overloadArmed", false);
         CPH.SetArgument("overloadActive", false);
         CPH.SetArgument("overloadVenting", false);
+        CPH.SetArgument("overloadUntilUtc", "");
+        CPH.SetArgument("eventType", eventType);
+        CPH.SetArgument("eventValueBits", 0);
+        CPH.SetArgument("eventMessage", eventMessage);
+        CPH.SetArgument("tickerMessage", "");
+        CPH.SetArgument("eventCountdownRemaining", 0);
+        CPH.SetArgument("eventCountdownTotal", 0);
+        CPH.SetArgument("eventCountdownUntilUtc", "");
+        CPH.SetArgument("statusSequence", statusSequence);
+
+        PostStatusUpdate(
+            pressure,
+            NormalMaxPressure,
+            GetInt("ps_hypeTrainLevel", 0),
+            false,
+            false,
+            false,
+            currentCharge,
+            storedCharge,
+            NormalChargeCap,
+            OverloadChargeCap,
+            GetInt("ps_lastFinalIntensity", 0),
+            GetInt("ps_lastChancePercent", 0),
+            GetInt("ps_missCount", 0),
+            eventMessage,
+            "",
+            eventType,
+            relayMode,
+            statusSequence
+        );
 
         CPH.LogInfo("[PiShock Vent] Complete. Mode=" + relayMode + " Pressure=" + pressure + "% Max=" + NormalMaxPressure + "%");
         return true;
+    }
+
+    private void PostStatusUpdate(
+        int pressureGauge,
+        int maxPressureGauge,
+        int hypeLevel,
+        bool overloadArmed,
+        bool overloadActive,
+        bool overloadVenting,
+        int currentVoltage,
+        int storedVoltage,
+        int normalVoltageCap,
+        int overloadVoltageCap,
+        int lastIntensity,
+        int chancePercent,
+        int missCount,
+        string eventMessage,
+        string tickerMessage,
+        string eventType,
+        string mode,
+        int statusSequence)
+    {
+        string apiBaseUrl = GetString("st_apiBaseUrl", "http://127.0.0.1:3055");
+        string bearerToken = GetString("st_bearerToken", "");
+
+        if (string.IsNullOrWhiteSpace(bearerToken))
+        {
+            CPH.LogError("[PiShock Vent] Missing Streamer.bot global: st_bearerToken. Skipping direct status POST.");
+            return;
+        }
+
+        string json =
+            "{"
+            + "\"chargePool\":" + currentVoltage + ","
+            + "\"pressureGauge\":" + pressureGauge + ","
+            + "\"maxPressureGauge\":" + maxPressureGauge + ","
+            + "\"hypeLevel\":" + hypeLevel + ","
+            + "\"overloadArmed\":" + overloadArmed.ToString().ToLower() + ","
+            + "\"overloadActive\":" + overloadActive.ToString().ToLower() + ","
+            + "\"overloadVenting\":" + overloadVenting.ToString().ToLower() + ","
+            + "\"currentVoltage\":" + currentVoltage + ","
+            + "\"storedVoltage\":" + storedVoltage + ","
+            + "\"normalVoltageCap\":" + normalVoltageCap + ","
+            + "\"overloadVoltageCap\":" + overloadVoltageCap + ","
+            + "\"lastIntensity\":" + lastIntensity + ","
+            + "\"chancePercent\":" + chancePercent + ","
+            + "\"missCount\":" + missCount + ","
+            + "\"cooldownRemaining\":0,"
+            + "\"cooldownTotal\":0,"
+            + "\"cooldownUntilUtc\":\"\","
+            + "\"overloadRemaining\":0,"
+            + "\"overloadUntilUtc\":\"\","
+            + "\"eventCountdownRemaining\":0,"
+            + "\"eventCountdownTotal\":0,"
+            + "\"eventCountdownUntilUtc\":\"\","
+            + "\"currentViewerName\":\"" + EscapeJson(GetString("ps_lastViewerName", "")) + "\","
+            + "\"currentViewerImageUrl\":\"" + EscapeJson(GetString("ps_lastViewerImageUrl", "")) + "\","
+            + "\"eventMessage\":\"" + EscapeJson(eventMessage) + "\","
+            + "\"tickerMessage\":\"" + EscapeJson(tickerMessage) + "\","
+            + "\"eventType\":\"" + EscapeJson(eventType) + "\","
+            + "\"eventValueBits\":0,"
+            + "\"statusSequence\":" + statusSequence + ","
+            + "\"mode\":\"" + EscapeJson(mode) + "\""
+            + "}";
+
+        try
+        {
+            var request = (HttpWebRequest)WebRequest.Create(NormalizeBaseUrl(apiBaseUrl) + "/api/pishock/status");
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.Timeout = 3000;
+            request.ReadWriteTimeout = 3000;
+            request.Headers["Authorization"] = "Bearer " + bearerToken;
+
+            byte[] data = Encoding.UTF8.GetBytes(json);
+            request.ContentLength = data.Length;
+
+            using (Stream stream = request.GetRequestStream())
+            {
+                stream.Write(data, 0, data.Length);
+            }
+
+            using (var response = (HttpWebResponse)request.GetResponse())
+            {
+                CPH.LogInfo("[PiShock Vent] Complete direct status POST sent: " + response.StatusCode + " Sequence=" + statusSequence);
+            }
+        }
+        catch (Exception ex)
+        {
+            CPH.LogError("[PiShock Vent] Complete direct status POST failed: " + ex.ToString());
+        }
     }
 
     private int GetVentTargetPressure()
@@ -72,8 +207,31 @@ public class CPHInline
         bool flush = GetBoolArg("flush", false) ||
             ventMode.Equals("flush", StringComparison.OrdinalIgnoreCase) ||
             ventMode.Equals("manual-flush", StringComparison.OrdinalIgnoreCase);
+        if (flush)
+            return FlushSafePressure;
 
-        return flush ? FlushSafePressure : OverloadSafePressure;
+        if (IsPendingManualFlush())
+        {
+            int pendingTarget = GetInt("ps_pendingVentTargetPressure", FlushSafePressure);
+            return Clamp(pendingTarget, FlushSafePressure, OverloadSafePressure);
+        }
+
+        return OverloadSafePressure;
+    }
+
+    private bool IsPendingManualFlush()
+    {
+        string pendingMode = GetString("ps_pendingVentMode", "");
+        if (!pendingMode.Equals("flush", StringComparison.OrdinalIgnoreCase) &&
+            !pendingMode.Equals("manual-flush", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        string pendingUntilUtc = GetString("ps_pendingVentUntilUtc", "");
+        DateTime pendingUntil;
+        if (DateTime.TryParse(pendingUntilUtc, out pendingUntil))
+            return DateTime.UtcNow <= pendingUntil.ToUniversalTime();
+
+        return false;
     }
 
     private int GetIntArg(string name, int fallback)
@@ -90,6 +248,23 @@ public class CPHInline
     {
         try { return CPH.GetGlobalVar<int>(name, true); }
         catch { return fallback; }
+    }
+
+    private string GetString(string name, string fallback)
+    {
+        try
+        {
+            string value = CPH.GetGlobalVar<string>(name, true);
+            return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
+        catch { return fallback; }
+    }
+
+    private int GetNextStatusSequence()
+    {
+        int nextGlobalSequence = GetInt("ps_statusSequence", 0) + 1;
+        int timeSequence = (int)Math.Floor((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds);
+        return Math.Max(nextGlobalSequence, timeSequence);
     }
 
     private string GetStringArg(string name, string fallback)
@@ -130,5 +305,19 @@ public class CPHInline
     private int Clamp(int value, int min, int max)
     {
         return Math.Min(Math.Max(value, min), max);
+    }
+
+    private string NormalizeBaseUrl(string url)
+    {
+        return (url ?? "").Trim().TrimEnd('/');
+    }
+
+    private string EscapeJson(string value)
+    {
+        return (value ?? "")
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
     }
 }
