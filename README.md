@@ -174,7 +174,7 @@ public/shared/config/streamtools.config.example.js
 public/shared/config/streamtools.config.js
 ```
 
-The default example follows the host and port that served the widget. If the workshop server is running on `127.0.0.1:3054`, widgets will use `127.0.0.1:3054`; if it is running on `localhost:3030`, widgets will use `localhost:3030`.
+The default example follows the host and port that served the widget. If the workshop server is running on `127.0.0.1:3055`, widgets will use `127.0.0.1:3055`; if it is running on `localhost:3030`, widgets will use `localhost:3030`.
 
 For the live web server, copy the live example once and leave the active file alone during normal repo updates:
 
@@ -942,14 +942,22 @@ Each Streamer.bot integration should document:
 Example:
 
 ```text
-Action Name: PiShock - Add Charge
-Trigger: Twitch Channel Point Redemption
+Action Name: AC PiShock - Pressure Event
+Trigger: Twitch Cheer / Sub / Gift Sub
 Global Variables Used:
-- ps_chargePool
-- ps_cooldownActive
+- ps_pressureGauge
+- ps_maxPressureGauge
+- ps_cooldownUntilUtc
+- ps_overloadActive
+
+Required Arguments:
+- eventType
+- bits
+- displayName
 
 Expected API Route:
 - GET /api/pishock/status
+- POST /api/pishock/status
 
 Related Widget:
 - /widgets/pishock-status/
@@ -973,28 +981,31 @@ public class CPHInline
         // ------------------------------------------------------------
         // 00) Control Values
         // ------------------------------------------------------------
-        int addCharge = 5;
+        int bitsPerPressurePoint = 10;
+        int eventBits = 100;
 
         // ------------------------------------------------------------
         // 01) Read Current State
         // ------------------------------------------------------------
-        int pool = GetInt("ps_chargePool", 0);
-        int oldPool = pool;
+        int pressure = GetInt("ps_pressureGauge", 0);
+        int oldPressure = pressure;
 
         // ------------------------------------------------------------
         // 02) Apply Logic
         // ------------------------------------------------------------
-        pool = Math.Min(100, pool + addCharge);
+        int pressureGain = eventBits / bitsPerPressurePoint;
+        pressure = Math.Min(100, pressure + pressureGain);
 
         // ------------------------------------------------------------
         // 03) Save State
         // ------------------------------------------------------------
-        CPH.SetGlobalVar("ps_chargePool", pool, true);
+        CPH.SetGlobalVar("ps_pressureGauge", pressure, true);
+        CPH.SetGlobalVar("ps_chargePool", pressure, true);
 
         // ------------------------------------------------------------
         // 04) Debug Logging
         // ------------------------------------------------------------
-        CPH.LogInfo("[PiShock Debug] Add Charge | OldPool=" + oldPool + " | Add=" + addCharge + " | NewPool=" + pool);
+        CPH.LogInfo("[PiShock Debug] Pressure Event | OldPressure=" + oldPressure + " | Bits=" + eventBits + " | NewPressure=" + pressure);
 
         return true;
     }

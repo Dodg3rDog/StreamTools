@@ -101,6 +101,11 @@
         rgba(4, 16, 9, var(--panel-alpha));
       box-shadow: var(--glow), inset 0 0 42px rgba(37, 217, 255, 0.08);
       overflow: hidden;
+      transition:
+        filter 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 520ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .boot-screen {
@@ -255,6 +260,7 @@
 
     .status-pill.warning { color: var(--yellow); }
     .status-pill.danger { color: var(--red); animation: dangerBlink 0.7s steps(2, end) infinite; }
+    .status-pill.safe { color: var(--green); }
     .status-pill.idle { color: var(--muted); }
 
     .main-grid {
@@ -708,6 +714,36 @@
     body.alert-danger .topbar::after,
     body.alert-danger .footer::after {
       animation: tickerStripeRight 0.9s linear infinite;
+    }
+
+    body.alert-safe .topbar,
+    body.alert-safe .footer {
+      background: rgba(5, 42, 22, 0.94);
+      border-color: rgba(83, 255, 154, 0.96);
+      color: #d9ffe7;
+      animation: bannerSafeFlash 1.05s steps(2, end) infinite;
+    }
+
+    body.alert-safe .topbar::before,
+    body.alert-safe .topbar::after,
+    body.alert-safe .footer::before,
+    body.alert-safe .footer::after {
+      opacity: 1;
+      background: repeating-linear-gradient(
+        90deg,
+        #53ff9a 0 22px,
+        #050505 22px 44px
+      );
+    }
+
+    body.alert-safe .topbar::before,
+    body.alert-safe .footer::before {
+      animation: tickerStripeLeft 1.35s linear infinite;
+    }
+
+    body.alert-safe .topbar::after,
+    body.alert-safe .footer::after {
+      animation: tickerStripeRight 1.35s linear infinite;
     }
 
     .ticker {
@@ -1831,12 +1867,15 @@
 
     .radial-startup-logo {
       position: absolute;
-      inset: 0;
+      left: 50%;
+      top: 50%;
+      width: var(--radial-dial-size);
+      height: var(--radial-dial-size);
       z-index: 8;
       display: grid;
       place-items: center;
       box-sizing: border-box;
-      padding: 0 clamp(8px, 2vw, 24px);
+      padding: 0;
       overflow: visible;
       color: #f6fbff;
       font-family: var(--font-terminal);
@@ -1845,10 +1884,11 @@
       line-height: 1.08;
       letter-spacing: 0;
       text-transform: uppercase;
-      background: radial-gradient(circle at center, rgba(2, 12, 28, 0.96), rgba(2, 6, 16, 0.92) 62%, transparent 100%);
+      background: transparent;
       text-shadow:
         0 0 18px rgba(21, 149, 255, 0.75),
         0 0 34px rgba(255, 47, 209, 0.38);
+      translate: -50% -50%;
       pointer-events: none;
       animation: radialStartupLogo 2.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
@@ -1857,7 +1897,7 @@
       margin: 0;
       display: block;
       width: max-content;
-      min-width: 106ch;
+      min-width: 0;
       max-width: none;
       font-family: var(--font-terminal);
       font-weight: 400;
@@ -1865,7 +1905,6 @@
       line-height: inherit;
       white-space: pre;
       text-align: left;
-      transform: translateX(-0.5ch);
     }
 
     .radial-dial {
@@ -1883,6 +1922,10 @@
       margin-top: 0;
       filter: drop-shadow(0 0 28px rgba(21, 149, 255, 0.28));
       animation: radialDialIntro 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      transition:
+        filter 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .radial-dial::before,
@@ -1912,6 +1955,10 @@
         0 0 32px rgba(37, 255, 200, 0.32),
         inset 0 0 44px rgba(37, 255, 200, 0.14);
       animation: radialScanner 12s linear infinite;
+      transition:
+        border-color 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .radial-segments {
@@ -1928,6 +1975,10 @@
       opacity: 0.5;
       z-index: 1;
       mix-blend-mode: screen;
+      transition:
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .radial-barcode-ring.outer {
@@ -1975,6 +2026,10 @@
       overflow: visible;
       animation: radialTickerSpin 28s linear infinite;
       pointer-events: none;
+      transition:
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .radial-ticker text {
@@ -1985,6 +2040,10 @@
       text-transform: uppercase;
       letter-spacing: 0;
       text-shadow: 0 0 8px var(--radial-ticker-glow, rgba(21, 149, 255, 0.48));
+      transition:
+        fill 420ms cubic-bezier(0.16, 1, 0.3, 1),
+        text-shadow 420ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 420ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     body.mode-radial.radial-ticker-alert .radial-ticker text {
@@ -2041,6 +2100,10 @@
         rotate(var(--angle))
         translateY(calc(clamp(92px, 18vmin, 202px) * -1));
       box-shadow: 0 0 10px rgba(21, 149, 255, 0.08);
+      transition:
+        background 260ms ease,
+        box-shadow 260ms ease,
+        opacity 420ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .radial-pressure-segment.filled {
@@ -2080,6 +2143,10 @@
         rotate(var(--angle))
         translateY(calc(clamp(92px, 18vmin, 202px) * -1));
       box-shadow: 0 0 10px rgba(21, 149, 255, 0.08);
+      transition:
+        background 260ms ease,
+        box-shadow 260ms ease,
+        opacity 420ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .radial-pressure-solid-segment.filled {
@@ -2130,6 +2197,7 @@
       width: 43%;
       aspect-ratio: 1;
       border-radius: 50%;
+      position: relative;
       display: grid;
       place-items: center;
       text-align: center;
@@ -2141,6 +2209,29 @@
         0 0 34px rgba(37, 255, 200, 0.28),
         inset 0 0 36px rgba(37, 255, 200, 0.14);
       z-index: 2;
+      transition:
+        border-color 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .radial-core.event-image-mode {
+      overflow: hidden;
+      position: relative;
+    }
+
+    .radial-core.event-image-mode > .radial-core-readout {
+      display: contents;
+    }
+
+    .radial-core-readout {
+      --radial-readout-y: clamp(4px, 0.75vmin, 8px);
+    }
+
+    .radial-core:not(.alert-message):not(.event-image-mode) > .radial-core-readout {
+      transform: translateY(var(--radial-readout-y));
     }
 
     .radial-core.alert-message {
@@ -2148,22 +2239,454 @@
     }
 
     body.mode-radial.radial-overload-wave .radial-core {
-      animation: radialPushCore 1.8s ease-in-out infinite;
+      border-color: rgba(255, 138, 61, 0.98);
+      box-shadow:
+        0 0 54px rgba(255, 59, 95, 0.42),
+        0 0 28px rgba(255, 184, 77, 0.32),
+        inset 0 0 44px rgba(255, 138, 61, 0.18);
+      animation: radialPushCore 1.15s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-dial {
+      filter:
+        drop-shadow(0 0 42px rgba(255, 59, 95, 0.38))
+        drop-shadow(0 0 22px rgba(255, 184, 77, 0.28));
+      animation: radialOverloadDialPulse 1.15s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-dial::after {
+      border-color: rgba(255, 138, 61, 0.88);
+      box-shadow:
+        0 0 46px rgba(255, 59, 95, 0.34),
+        inset 0 0 52px rgba(255, 184, 77, 0.14);
+      animation: radialScanner 4.8s linear infinite reverse;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-barcode-ring.outer {
+      opacity: 0.9;
+      filter: drop-shadow(0 0 14px rgba(255, 59, 95, 0.48));
+      animation: radialOverloadOuter 2.6s ease-in-out infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-barcode-ring.inner {
+      opacity: 0.92;
+      filter: drop-shadow(0 0 14px rgba(255, 184, 77, 0.44));
+      animation: radialOverloadInner 2.1s ease-in-out infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-ticker {
+      animation: radialTickerSpin 12s linear infinite;
+    }
+
+    body.mode-radial.radial-overload-wave .radial-ticker text {
+      fill: #ffb84d;
+      text-shadow:
+        0 0 16px rgba(255, 184, 77, 0.95),
+        0 0 34px rgba(255, 59, 95, 0.68);
+      animation: radialOverloadTickerFlash 0.58s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-rift-stabilizer .radial-core {
+      border-color: rgba(255, 209, 102, 0.98);
+      box-shadow:
+        0 0 40px rgba(255, 209, 102, 0.42),
+        inset 0 0 38px rgba(255, 209, 102, 0.18);
+      animation: radialMessageFlash 0.45s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-rift-stabilizer .radial-ticker {
+      animation: radialTickerSpin 28s linear infinite;
+    }
+
+    body.mode-radial.radial-rift-stabilizer .radial-ticker text {
+      fill: #ffd166;
+      text-shadow:
+        0 0 12px rgba(255, 209, 102, 0.92),
+        0 0 28px rgba(255, 138, 61, 0.58);
+      animation: radialTickerAlertFlash 0.48s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-power-down .radial-dial {
+      filter:
+        brightness(0.62)
+        saturate(0.72)
+        drop-shadow(0 0 18px rgba(255, 209, 102, 0.2));
+      animation: radialPowerDownSettle 2.6s cubic-bezier(0.18, 0.8, 0.22, 1) forwards;
+    }
+
+    body.mode-radial.radial-power-down .radial-dial::after {
+      border-color: rgba(255, 209, 102, 0.42);
+      box-shadow:
+        0 0 18px rgba(255, 209, 102, 0.18),
+        inset 0 0 28px rgba(255, 209, 102, 0.08);
+      animation: radialPowerDownScanner 2.6s cubic-bezier(0.12, 0.78, 0.22, 1) forwards;
+    }
+
+    body.mode-radial.radial-power-down .radial-barcode-ring.outer {
+      opacity: 0.62;
+      animation: radialPowerDownSpinClockwise 2.6s cubic-bezier(0.08, 0.76, 0.2, 1) forwards;
+    }
+
+    body.mode-radial.radial-power-down .radial-barcode-ring.inner {
+      opacity: 0.58;
+      animation: radialPowerDownSpinCounter 2.6s cubic-bezier(0.08, 0.76, 0.2, 1) forwards;
+    }
+
+    body.mode-radial.radial-power-down .radial-segments,
+    body.mode-radial.radial-power-down .radial-pressure-segments,
+    body.mode-radial.radial-power-down .radial-pressure-solid,
+    body.mode-radial.radial-power-down .radial-spectrum {
+      opacity: 0.72;
+      animation: radialPowerDownFlicker 2.6s steps(2, end) forwards;
+    }
+
+    body.mode-radial.radial-power-down .radial-ticker {
+      animation: radialTickerSpin 46s linear infinite;
+    }
+
+    body.mode-radial.radial-power-down .radial-ticker text {
+      fill: #c6a96a;
+      text-shadow:
+        0 0 8px rgba(255, 209, 102, 0.42),
+        0 0 18px rgba(255, 138, 61, 0.2);
+      animation: radialPowerDownTextFlicker 2.6s steps(2, end) forwards;
+    }
+
+    body.mode-radial.radial-power-down .radial-core {
+      border-color: rgba(255, 209, 102, 0.54);
+      box-shadow:
+        0 0 20px rgba(255, 209, 102, 0.18),
+        inset 0 0 26px rgba(255, 209, 102, 0.08);
+      animation: radialPowerDownCore 2.6s steps(2, end) forwards;
+    }
+
+    body.radial-power-down .dashboard {
+      filter: brightness(0.82) saturate(0.78);
+    }
+
+    body.mode-radial.radial-shock-alert .radial-dial {
+      filter:
+        drop-shadow(0 0 38px rgba(255, 59, 95, 0.48))
+        drop-shadow(0 0 22px rgba(246, 251, 255, 0.32));
+      animation: none;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-dial::after {
+      border-color: rgba(246, 251, 255, 0.95);
+      box-shadow:
+        0 0 44px rgba(246, 251, 255, 0.42),
+        inset 0 0 54px rgba(255, 59, 95, 0.22);
+      animation: radialShockScanner 0.34s linear infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-barcode-ring.outer {
+      opacity: 0.94;
+      animation: radialShockBurstOuter 0.74s ease-in-out infinite, radialShockLayerShake 0.16s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-barcode-ring.inner {
+      opacity: 0.96;
+      animation: radialShockBurstInner 0.58s ease-in-out infinite, radialShockLayerShake 0.14s steps(2, end) infinite reverse;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-segments {
+      animation: radialShockBurstOuter 0.42s steps(3, end) infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-pressure-segments,
+    body.mode-radial.radial-shock-alert .radial-pressure-solid {
+      animation: radialShockBurstInner 0.48s steps(3, end) infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-spectrum {
+      animation: radialShockBurstOuter 0.36s steps(3, end) infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-ticker {
+      animation: radialTickerSpin 5.8s linear infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-ticker text {
+      fill: #f6fbff;
+      text-shadow:
+        0 0 14px rgba(246, 251, 255, 0.94),
+        0 0 32px rgba(255, 59, 95, 0.72);
+      animation: radialShockTextFlash 0.22s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-shock-alert .radial-core {
+      border-color: rgba(246, 251, 255, 0.98);
+      box-shadow:
+        0 0 52px rgba(255, 59, 95, 0.48),
+        inset 0 0 44px rgba(246, 251, 255, 0.18);
+      animation: radialShockCore 0.28s steps(3, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-dial {
+      filter:
+        drop-shadow(0 0 46px rgba(255, 59, 95, 0.54))
+        drop-shadow(0 0 24px rgba(246, 251, 255, 0.3));
+      animation: radialOverloadDischargeKick 0.78s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-dial::after {
+      border-color: rgba(246, 251, 255, 0.92);
+      box-shadow:
+        0 0 48px rgba(255, 59, 95, 0.42),
+        inset 0 0 52px rgba(255, 184, 77, 0.18);
+      animation: radialShockScanner 0.42s linear infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-barcode-ring.outer {
+      opacity: 0.95;
+      animation: radialOverloadDischargeOuter 0.9s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-barcode-ring.inner {
+      opacity: 0.96;
+      animation: radialOverloadDischargeInner 0.78s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-segments,
+    body.mode-radial.radial-overload-discharge .radial-pressure-segments,
+    body.mode-radial.radial-overload-discharge .radial-pressure-solid,
+    body.mode-radial.radial-overload-discharge .radial-spectrum {
+      animation: radialOverloadDischargeShake 0.16s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-ticker {
+      animation: radialTickerSpin 5.2s linear infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-ticker text {
+      fill: #f6fbff;
+      text-shadow:
+        0 0 15px rgba(246, 251, 255, 0.96),
+        0 0 34px rgba(255, 59, 95, 0.74),
+        0 0 46px rgba(255, 184, 77, 0.48);
+      animation: radialShockTextFlash 0.24s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-discharge .radial-core {
+      border-color: rgba(246, 251, 255, 0.98);
+      box-shadow:
+        0 0 58px rgba(255, 59, 95, 0.5),
+        0 0 28px rgba(255, 184, 77, 0.32),
+        inset 0 0 46px rgba(246, 251, 255, 0.18);
+      animation: radialOverloadDischargeCore 0.44s steps(3, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-expiry .radial-core {
+      border-color: rgba(255, 209, 102, 0.88);
+      box-shadow:
+        0 0 42px rgba(255, 209, 102, 0.34),
+        inset 0 0 38px rgba(255, 138, 61, 0.14);
+      animation: radialMessageFlash 0.82s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-expiry .radial-dial::after {
+      border-color: rgba(255, 209, 102, 0.72);
+      animation: radialScanner 7.2s linear infinite reverse;
+    }
+
+    body.mode-radial.radial-overload-expiry .radial-ticker text {
+      fill: #ffd166;
+      text-shadow:
+        0 0 12px rgba(255, 209, 102, 0.88),
+        0 0 28px rgba(255, 138, 61, 0.5);
+    }
+
+    body.mode-radial.radial-overload-emergency .radial-core {
+      border-color: rgba(246, 251, 255, 0.98);
+      box-shadow:
+        0 0 58px rgba(255, 59, 95, 0.52),
+        0 0 28px rgba(255, 209, 102, 0.34),
+        inset 0 0 44px rgba(255, 59, 95, 0.18);
+      animation: radialShockCore 0.34s steps(3, end) infinite;
+    }
+
+    body.mode-radial.radial-overload-emergency .radial-dial::after {
+      border-color: rgba(246, 251, 255, 0.94);
+      animation: radialShockScanner 0.5s linear infinite;
+    }
+
+    body.mode-radial.radial-overload-emergency .radial-ticker text {
+      fill: #f6fbff;
+      text-shadow:
+        0 0 14px rgba(246, 251, 255, 0.92),
+        0 0 32px rgba(255, 59, 95, 0.72);
+      animation: radialShockTextFlash 0.28s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-safe-alert .radial-dial {
+      filter:
+        drop-shadow(0 0 34px rgba(83, 255, 154, 0.42))
+        drop-shadow(0 0 18px rgba(246, 251, 255, 0.22));
+    }
+
+    body.mode-radial.radial-safe-alert .radial-dial::after {
+      border-color: rgba(83, 255, 154, 0.95);
+      box-shadow:
+        0 0 38px rgba(83, 255, 154, 0.36),
+        inset 0 0 42px rgba(83, 255, 154, 0.16);
+      animation: radialScanner 0.95s linear infinite;
+    }
+
+    body.mode-radial.radial-safe-alert .radial-barcode-ring.outer {
+      opacity: 0.78;
+      filter: drop-shadow(0 0 12px rgba(83, 255, 154, 0.38));
+      animation: radialSpinOuter 12s linear infinite;
+    }
+
+    body.mode-radial.radial-safe-alert .radial-barcode-ring.inner {
+      opacity: 0.82;
+      filter: drop-shadow(0 0 12px rgba(37, 217, 255, 0.34));
+      animation: radialSpinInner 9s linear infinite reverse;
+    }
+
+    body.mode-radial.radial-safe-alert .radial-ticker {
+      animation: radialTickerSpin 18s linear infinite;
+    }
+
+    body.mode-radial.radial-safe-alert .radial-ticker text {
+      fill: #d9ffe7;
+      text-shadow:
+        0 0 14px rgba(83, 255, 154, 0.82),
+        0 0 28px rgba(37, 217, 255, 0.42);
+    }
+
+    body.mode-radial.radial-safe-alert .radial-core {
+      border-color: rgba(83, 255, 154, 0.98);
+      box-shadow:
+        0 0 46px rgba(83, 255, 154, 0.36),
+        inset 0 0 36px rgba(83, 255, 154, 0.16);
+      animation: radialMessageFlash 1.05s steps(2, end) infinite;
+    }
+
+    body.mode-radial.radial-safe-alert .radial-message-line {
+      color: #d9ffe7;
+      text-shadow:
+        0 0 14px rgba(83, 255, 154, 0.9),
+        0 0 30px rgba(37, 217, 255, 0.42);
+    }
+
+    body.mode-radial.radial-stabilize-flip .radial-core {
+      overflow: hidden;
+      animation: radialCoreStabilizePulse 1s cubic-bezier(0.18, 0.84, 0.22, 1) both;
+    }
+
+    body.mode-radial.radial-stabilize-flip .radial-core-readout {
+      animation: radialCenterReadoutZoomIn 1s cubic-bezier(0.18, 0.84, 0.22, 1) both;
+      transform-origin: 50% 50%;
+    }
+
+    body.mode-radial.radial-stabilize-flip .radial-event-image {
+      display: none !important;
+    }
+
+    .radial-flip-stack {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      perspective: 520px;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .radial-flip-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    body.mode-radial.radial-stabilize-flip .radial-flip-overlay {
+      display: grid;
+    }
+
+    .radial-flip-out {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      backface-visibility: hidden;
+      transform-origin: 50% 50%;
+      padding: 12%;
+    }
+
+    .radial-flip-out {
+      animation: radialCenterMessageShrinkOut 1s cubic-bezier(0.18, 0.84, 0.22, 1) both;
+    }
+
+    body.mode-radial.radial-drain-active .radial-dial {
+      filter:
+        drop-shadow(0 0 28px rgba(255, 209, 102, 0.32))
+        drop-shadow(0 0 18px rgba(255, 59, 95, 0.22));
+    }
+
+    body.mode-radial.radial-drain-active .radial-dial::after {
+      border-color: rgba(255, 209, 102, 0.82);
+      animation: radialScanner var(--drain-scanner-speed, 1.35s) linear infinite reverse;
+    }
+
+    body.mode-radial.radial-drain-active .radial-barcode-ring.outer {
+      opacity: 0.84;
+      filter: drop-shadow(0 0 12px rgba(255, 209, 102, 0.42));
+      animation: radialDrainSpinClockwise var(--drain-outer-speed, 0.84s) linear infinite;
+    }
+
+    body.mode-radial.radial-drain-active .radial-barcode-ring.inner {
+      opacity: 0.9;
+      filter: drop-shadow(0 0 12px rgba(255, 138, 61, 0.42));
+      animation: radialDrainSpinCounter var(--drain-inner-speed, 0.62s) linear infinite;
+    }
+
+    body.mode-radial.radial-drain-active .radial-pressure-segments,
+    body.mode-radial.radial-drain-active .radial-pressure-solid {
+      animation: none;
+    }
+
+    body.mode-radial.radial-drain-active .radial-spectrum {
+      animation: radialDrainSpinClockwise var(--drain-spectrum-speed, 0.74s) linear infinite;
+    }
+
+    body.mode-radial.radial-drain-active .radial-segments {
+      animation: radialDrainOuter var(--drain-segment-speed, 1.42s) ease-in-out infinite;
+    }
+
+    body.mode-radial.radial-drain-active .radial-ticker {
+      animation: radialTickerSpin var(--drain-ticker-speed, 8s) linear infinite;
+    }
+
+    body.mode-radial.radial-drain-active .radial-core {
+      border-color: rgba(255, 209, 102, 0.92);
+      box-shadow:
+        0 0 42px rgba(255, 209, 102, 0.34),
+        inset 0 0 34px rgba(255, 59, 95, 0.14);
+      animation: radialDrainCore var(--drain-core-speed, 0.9s) ease-in-out infinite;
     }
 
     body.mode-radial.radial-overload-wave .radial-pressure-segments,
     body.mode-radial.radial-overload-wave .radial-pressure-solid {
-      animation: radialPushInner 1.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 10px rgba(255, 59, 95, 0.36));
+      animation: radialPushInner 1.15s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
       animation-delay: 0.08s;
     }
 
     body.mode-radial.radial-overload-wave .radial-spectrum {
-      animation: radialSpectrumDrift 18s linear infinite, radialPushSpectrum 1.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 14px rgba(255, 184, 77, 0.32));
+      animation: radialSpectrumDrift 8s linear infinite, radialPushSpectrum 1.15s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
       animation-delay: 0s, 0.16s;
     }
 
     body.mode-radial.radial-overload-wave .radial-segments {
-      animation: radialPushOuter 1.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 12px rgba(255, 59, 95, 0.32));
+      animation: radialPushOuter 1.15s cubic-bezier(0.18, 0.84, 0.22, 1) infinite;
       animation-delay: 0.24s;
     }
 
@@ -2206,11 +2729,10 @@
 
     .radial-event-image {
       display: none;
-      width: clamp(106px, 17vmin, 190px);
-      height: clamp(106px, 17vmin, 190px);
-      border-radius: 50%;
+      width: calc(100% + 4px);
+      height: calc(100% + 4px);
+      border-radius: inherit;
       object-fit: cover;
-      border: 2px solid rgba(37, 255, 200, 0.82);
       box-shadow:
         0 0 22px rgba(37, 255, 200, 0.34),
         inset 0 0 18px rgba(0, 0, 0, 0.45);
@@ -2218,6 +2740,10 @@
 
     .radial-core.event-image-mode .radial-event-image {
       display: block;
+      position: absolute;
+      inset: -2px;
+      min-width: calc(100% + 4px);
+      min-height: calc(100% + 4px);
     }
 
     .radial-core.event-image-mode .radial-pressure,
@@ -2416,6 +2942,9 @@
     @keyframes bannerDangerFlash {
       50% { background: rgba(86, 5, 20, 0.98); box-shadow: inset 0 0 28px rgba(255, 59, 95, 0.28); }
     }
+    @keyframes bannerSafeFlash {
+      50% { background: rgba(7, 62, 32, 0.98); box-shadow: inset 0 0 28px rgba(83, 255, 154, 0.26); }
+    }
     @keyframes tickerStripeLeft {
       to { transform: translateX(-44px); }
     }
@@ -2466,25 +2995,235 @@
         fill: #f6fbff;
       }
     }
+    @keyframes radialShockShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(-2px, 1px) rotate(-0.8deg); }
+      50% { transform: translate(2px, -1px) rotate(0.9deg); }
+      75% { transform: translate(-1px, -2px) rotate(-0.5deg); }
+      100% { transform: translate(1px, 2px) rotate(0.6deg); }
+    }
+    @keyframes radialShockLayerShake {
+      0% { translate: 0 0; }
+      25% { translate: -2px 1px; }
+      50% { translate: 2px -1px; }
+      75% { translate: -1px -2px; }
+      100% { translate: 1px 2px; }
+    }
+    @keyframes radialShockScanner {
+      to { transform: rotate(360deg) scale(1.08); }
+    }
+    @keyframes radialShockBurstOuter {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+      32% { transform: rotate(18deg) scale(1.12); filter: brightness(1.85); }
+      66% { transform: rotate(-10deg) scale(1.055); filter: brightness(0.92); }
+    }
+    @keyframes radialShockBurstInner {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+      28% { transform: rotate(-22deg) scale(1.16); filter: brightness(2); }
+      62% { transform: rotate(12deg) scale(1.07); filter: brightness(0.86); }
+    }
+    @keyframes radialShockCore {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      35% { transform: scale(0.94); filter: brightness(2.1); }
+      68% { transform: scale(1.09); filter: brightness(0.92); }
+    }
+    @keyframes radialShockTextFlash {
+      50% {
+        fill: #ff3b5f;
+      }
+    }
+    @keyframes radialOverloadDischargeKick {
+      0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1) saturate(1); }
+      26% { transform: scale(1.055) rotate(-1.8deg); filter: brightness(1.72) saturate(1.34); }
+      58% { transform: scale(0.982) rotate(1.1deg); filter: brightness(0.9) saturate(1.08); }
+      78% { transform: scale(1.025) rotate(-0.6deg); filter: brightness(1.32) saturate(1.2); }
+    }
+    @keyframes radialOverloadDischargeOuter {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+      34% { transform: rotate(34deg) scale(1.16); filter: brightness(1.9); }
+      68% { transform: rotate(-14deg) scale(0.98); filter: brightness(0.88); }
+    }
+    @keyframes radialOverloadDischargeInner {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1.08); }
+      32% { transform: rotate(-42deg) scale(1.18); filter: brightness(2); }
+      66% { transform: rotate(18deg) scale(0.975); filter: brightness(0.88); }
+    }
+    @keyframes radialOverloadDischargeShake {
+      0%, 100% { transform: translate(0, 0) scale(1); filter: brightness(1); }
+      25% { transform: translate(2px, -2px) scale(1.028); filter: brightness(1.48); }
+      50% { transform: translate(-2px, 1px) scale(1.01); filter: brightness(1.16); }
+      75% { transform: translate(1px, 2px) scale(1.036); filter: brightness(1.62); }
+    }
+    @keyframes radialOverloadDischargeCore {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      30% { transform: scale(1.12); filter: brightness(1.85) saturate(1.28); }
+      60% { transform: scale(0.975); filter: brightness(0.88) saturate(1.02); }
+    }
+    @keyframes radialPowerDownSettle {
+      0% { transform: scale(1); filter: brightness(1) saturate(1); }
+      44% { transform: scale(0.992); filter: brightness(0.76) saturate(0.82); }
+      70% { transform: scale(0.986); filter: brightness(0.48) saturate(0.58); }
+      78% { transform: scale(0.99); filter: brightness(1.18) saturate(0.92); }
+      84% { transform: scale(0.986); filter: brightness(0.38) saturate(0.46); }
+      91% { transform: scale(0.988); filter: brightness(0.92) saturate(0.72); }
+      100% { transform: scale(0.986); filter: brightness(0.58) saturate(0.58); }
+    }
+    @keyframes radialPowerDownScanner {
+      0% { transform: rotate(0deg); opacity: 1; }
+      56% { transform: rotate(190deg); opacity: 0.74; }
+      76% { transform: rotate(226deg); opacity: 0.22; }
+      82% { transform: rotate(230deg); opacity: 1; }
+      88% { transform: rotate(234deg); opacity: 0.18; }
+      100% { transform: rotate(238deg); opacity: 0.48; }
+    }
+    @keyframes radialPowerDownSpinClockwise {
+      0% { transform: rotate(0deg); }
+      54% { transform: rotate(88deg); }
+      76% { transform: rotate(108deg); }
+      100% { transform: rotate(112deg); }
+    }
+    @keyframes radialPowerDownSpinCounter {
+      0% { transform: rotate(0deg); }
+      54% { transform: rotate(-74deg); }
+      76% { transform: rotate(-92deg); }
+      100% { transform: rotate(-96deg); }
+    }
+    @keyframes radialPowerDownFlicker {
+      0%, 48% { opacity: 0.82; filter: brightness(0.88); }
+      68% { opacity: 0.44; filter: brightness(0.56); }
+      74% { opacity: 0.08; filter: brightness(0.2); }
+      80% { opacity: 0.78; filter: brightness(1.18); }
+      86% { opacity: 0.16; filter: brightness(0.28); }
+      94% { opacity: 0.58; filter: brightness(0.74); }
+      100% { opacity: 0.52; filter: brightness(0.62); }
+    }
+    @keyframes radialPowerDownTextFlicker {
+      0%, 56% { opacity: 1; }
+      70% { opacity: 0.42; }
+      76% { opacity: 0.08; }
+      82% { opacity: 1; }
+      88% { opacity: 0.18; }
+      100% { opacity: 0.72; }
+    }
+    @keyframes radialPowerDownCore {
+      0%, 54% { opacity: 1; transform: scale(1); }
+      70% { opacity: 0.58; transform: scale(0.98); }
+      76% { opacity: 0.14; transform: scale(0.972); }
+      82% { opacity: 1; transform: scale(0.988); }
+      88% { opacity: 0.22; transform: scale(0.976); }
+      100% { opacity: 0.74; transform: scale(0.982); }
+    }
+    @keyframes radialCoreStabilizePulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      42% { transform: scale(0.982); filter: brightness(0.82); }
+      70% { transform: scale(1.012); filter: brightness(1.2); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+    @keyframes radialCenterMessageShrinkOut {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+      }
+      48% {
+        opacity: 1;
+        transform: scale(0.88);
+        filter: blur(0.4px);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.12);
+        filter: blur(5px);
+      }
+    }
+    @keyframes radialCenterReadoutZoomIn {
+      0% {
+        opacity: 0;
+        transform: translateY(var(--radial-readout-y, 0px)) scale(0.18);
+        filter: blur(5px);
+      }
+      44% {
+        opacity: 0;
+        transform: translateY(var(--radial-readout-y, 0px)) scale(0.18);
+        filter: blur(5px);
+      }
+      76% {
+        opacity: 1;
+        transform: translateY(var(--radial-readout-y, 0px)) scale(1.08);
+        filter: blur(0.4px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(var(--radial-readout-y, 0px)) scale(1);
+        filter: blur(0);
+      }
+    }
     @keyframes radialPushCore {
-      0%, 100% { transform: scale(1); }
-      32% { transform: scale(1.075); }
-      62% { transform: scale(0.99); }
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      28% { transform: scale(1.14); filter: brightness(1.65) saturate(1.25); }
+      58% { transform: scale(0.965); filter: brightness(0.92) saturate(1.05); }
+      76% { transform: scale(1.065); filter: brightness(1.28) saturate(1.18); }
     }
     @keyframes radialPushInner {
-      0%, 100% { transform: scale(1); }
-      38% { transform: scale(1.045); }
-      68% { transform: scale(0.995); }
+      0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+      34% { transform: scale(1.095) rotate(7deg); filter: brightness(1.55); }
+      66% { transform: scale(0.982) rotate(-4deg); filter: brightness(0.9); }
     }
     @keyframes radialPushSpectrum {
-      0%, 100% { transform: scale(1) rotate(0); }
-      44% { transform: scale(1.035) rotate(0); }
-      72% { transform: scale(0.997) rotate(0); }
+      0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+      38% { transform: scale(1.085) rotate(-9deg); filter: brightness(1.7); }
+      70% { transform: scale(0.985) rotate(5deg); filter: brightness(0.88); }
     }
     @keyframes radialPushOuter {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.025); }
-      78% { transform: scale(0.998); }
+      0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+      42% { transform: scale(1.07) rotate(-13deg); filter: brightness(1.5); }
+      72% { transform: scale(0.986) rotate(8deg); filter: brightness(0.92); }
+    }
+    @keyframes radialOverloadDialPulse {
+      0%, 100% { transform: scale(1); filter: brightness(1) saturate(1); }
+      32% { transform: scale(1.025); filter: brightness(1.35) saturate(1.28); }
+      64% { transform: scale(0.992); filter: brightness(0.88) saturate(1.08); }
+    }
+    @keyframes radialOverloadOuter {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+      36% { transform: rotate(24deg) scale(1.09); filter: brightness(1.75); }
+      70% { transform: rotate(-12deg) scale(0.985); filter: brightness(0.88); }
+    }
+    @keyframes radialOverloadInner {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1.08); }
+      34% { transform: rotate(-30deg) scale(1.105); filter: brightness(1.85); }
+      68% { transform: rotate(16deg) scale(0.98); filter: brightness(0.9); }
+    }
+    @keyframes radialOverloadTickerFlash {
+      50% {
+        fill: #ff3b5f;
+        text-shadow:
+          0 0 18px rgba(255, 59, 95, 0.96),
+          0 0 38px rgba(255, 184, 77, 0.7);
+      }
+    }
+    @keyframes radialDrainSpinClockwise {
+      0% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+      38% { transform: rotate(168deg) scale(1.018); filter: brightness(1.42); }
+      64% { transform: rotate(246deg) scale(0.992); filter: brightness(0.9); }
+      100% { transform: rotate(360deg) scale(1); filter: brightness(1.12); }
+    }
+    @keyframes radialDrainSpinCounter {
+      0% { transform: rotate(0deg) scale(1); filter: brightness(1.1); }
+      42% { transform: rotate(-196deg) scale(0.988); filter: brightness(1.5); }
+      70% { transform: rotate(-278deg) scale(1.022); filter: brightness(0.92); }
+      100% { transform: rotate(-360deg) scale(1); filter: brightness(1.15); }
+    }
+    @keyframes radialDrainOuter {
+      0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+      28% { transform: rotate(-36deg) scale(1.022); filter: brightness(1.45); }
+      58% { transform: rotate(-88deg) scale(0.99); filter: brightness(0.88); }
+      82% { transform: rotate(-126deg) scale(1.014); filter: brightness(1.28); }
+    }
+    @keyframes radialDrainCore {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      36% { transform: scale(0.966) rotate(-0.8deg); filter: brightness(1.28); }
+      62% { transform: scale(1.032) rotate(0.8deg); filter: brightness(0.94); }
     }
     @keyframes tickerIdle {
       0%, 82% { transform: translateX(0); }
@@ -2500,6 +3239,17 @@
   </style>
 </head>
 <body>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const earlyMode = (params.get("mode") || "").toLowerCase();
+      const nonBootModes = ["compact", "mini", "visual", "console", "radial", "gauge", "signals", "viewer", "ticker", "stage"];
+
+      if (nonBootModes.includes(earlyMode)) {
+        document.body.classList.add(`mode-${earlyMode}`, "no-boot", "transparent");
+      }
+    })();
+  </script>
   <main class="widget" id="widget">
     <section class="boot-screen" aria-label="Anthro-Corp boot screen">
       <div class="boot-content">
@@ -2602,12 +3352,7 @@
       </section>
 
       <section class="radial-screen" aria-label="Radial PiShock containment overlay">
-        <div class="radial-startup-logo" aria-hidden="true"><pre> █████╗ ███╗   ██╗████████╗██╗  ██╗██████╗  ██████╗        ██████╗ ██████╗ ██████╗ ██████╗
-██╔══██╗████╗  ██║╚══██╔══╝██║  ██║██╔══██╗██╔═══██╗      ██╔════╝██╔═══██╗██╔══██╗██╔══██╗
-███████║██╔██╗ ██║   ██║   ███████║██████╔╝██║   ██║█████╗██║     ██║   ██║██████╔╝██████╔╝
-██╔══██║██║╚██╗██║   ██║   ██╔══██║██╔══██╗██║   ██║╚════╝██║     ██║   ██║██╔══██╗██╔═══╝
-██║  ██║██║ ╚████║   ██║   ██║  ██║██║  ██║╚██████╔╝      ╚██████╗╚██████╔╝██║  ██║██║
-╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝        ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     </pre></div>
+        <div class="radial-startup-logo" aria-hidden="true"><pre id="radialStartupLogoText">ANTHRO-CORP</pre></div>
         <div class="radial-plaque">AC-PSR // Containment Voltage Bus</div>
         <div class="radial-dial">
           <svg class="radial-ticker" viewBox="0 0 200 200" aria-hidden="true">
@@ -2625,12 +3370,13 @@
           <div class="radial-pressure-solid" id="radialPressureSolid" aria-hidden="true"></div>
           <div class="radial-spectrum" id="radialSpectrum" aria-hidden="true"></div>
           <div class="radial-core">
-            <div>
+            <div class="radial-core-readout" id="radialCoreReadout">
           <div class="radial-pressure"><span id="radialPressureValue">0</span><span class="radial-percent" id="radialPercent">%</span></div>
           <div class="radial-caption" id="radialPressureLabel">Pressure</div>
           <div class="radial-charge-line" id="radialChargeLine">0c | 0s</div>
               <img class="radial-event-image" id="radialEventImage" alt="" />
             </div>
+            <div class="radial-flip-overlay" id="radialFlipOverlay" aria-hidden="true"></div>
           </div>
         </div>
       </section>
@@ -2730,7 +3476,73 @@
     const controls = widgetConfig.controls || {};
     const displayConfig = widgetConfig.display || {};
     const debugConfig = widgetConfig.debug || {};
+    const startupLogoArtUrl = "/shared/assets/ascii/anthro-corp-banner.txt";
+    const animationAudioSources = {
+      contribution: {
+        urls: [
+          "/widgets/pishock-status/audio/contribution/rift-contribution_01.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_02.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_03.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_04.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_05.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_06.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_07.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_08.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_09.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_10.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_11.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_12.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_13.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_14.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_15.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_16.mp3",
+          "/widgets/pishock-status/audio/contribution/rift-contribution_17.mp3",
+          "/widgets/pishock-status/audio/rift-contribution.mp3"
+        ],
+        random: true,
+        preventRepeat: true,
+        volume: 0.8
+      },
+      cooldownFreeze: { url: "/widgets/pishock-status/audio/rift-cooldown-freeze.mp3", loop: true, volume: 0.56, fadeIn: 650, fadeOut: 900 },
+      overloadActive: { url: "/widgets/pishock-status/audio/rift-overload-active.mp3", loop: true, volume: 0.62, fadeIn: 800, fadeOut: 1000 },
+      overloadDischarge: { url: "/widgets/pishock-status/audio/rift-overload-discharge.mp3", volume: 0.95 },
+      overloadExpiryRecovery: { url: "/widgets/pishock-status/audio/rift-overload-reroute-complete.mp3", volume: 0.9 },
+      overloadExpiryEmergency: { url: "/widgets/pishock-status/audio/rift-overload-emergency-discharge.mp3", volume: 0.98 },
+      riftCountdown: { url: "/widgets/pishock-status/audio/rift-system-vent-countdown.mp3", loop: true, volume: 0.64, fadeIn: 450, fadeOut: 500 },
+      ventPowerDown: { url: "/widgets/pishock-status/audio/rift-system-power-down.mp3", loop: true, volume: 0.72, fadeIn: 450, fadeOut: 650 },
+      shockWarning: { url: "/widgets/pishock-status/audio/rift-shock-warning.mp3", volume: 1 },
+      safeAverted: { url: "/widgets/pishock-status/audio/rift-discharge-averted.mp3", volume: 0.92 },
+      ventDrain: { url: "/widgets/pishock-status/audio/rift-venting-loop.mp3", loop: true, volume: 0.86, fadeIn: 900, fadeOut: 900 },
+      systemStabilized: { url: "/widgets/pishock-status/audio/rift-system-stabilized.mp3", volume: 0.82 }
+    };
     const defaultTickerText = "⚠️ ANTHRO-CORP NOTICE // PRESSURE BUS MONITORING ACTIVE // RELAY TERMINALS HOT // STATUS NOMINAL ⚠️";
+    const centerViewerMinimumBits = 500;
+    const ventDrainMessages = [
+      "Venting system pressure // containment lines opening",
+      "Pressure purge in progress // capacitor bus bleeding down",
+      "Stabilizer exhaust cycle active // relay vents engaged",
+      "System venting // pressure and current draining",
+      "Containment flush active // residual charge draining",
+      "Discharge rift stabilizing // pressure routed to ground"
+    ];
+    const overloadExpiryRecoveryMessages = [
+      "Pressure rerouting complete // storage capacitors back online // returning to standard operating levels",
+      "Red-zone route closed // capacitor storage restored // standard containment resuming",
+      "Overload window elapsed // pressure bus normalized // storage array online",
+      "Auxiliary pressure route sealed // standard operating levels restored"
+    ];
+    const overloadExpiryEmergencyMessages = [
+      "Error // system pressure at max capacity // initiating emergency discharge in",
+      "Critical pressure handoff failed // emergency discharge in",
+      "Standard pressure ceiling exceeded // emergency discharge in",
+      "Containment transfer fault // emergency discharge in"
+    ];
+    const overloadExpiryDrainMessages = [
+      "Emergency discharge successful // pressure bus draining",
+      "Emergency discharge confirmed // routing pressure to ground",
+      "Pressure ceiling cleared // discharge channel venting",
+      "Standard safety discharge active // containment pressure falling"
+    ];
 
     const state = {
       pressure: 0,
@@ -2738,11 +3550,11 @@
       maxPressure: 100,
       maxCharge: 100,
       intensity: 0,
-      maxIntensity: 15,
+      maxIntensity: 30,
       currentVoltage: 0,
       storedVoltage: 0,
-      normalVoltageCap: 10,
-      overloadVoltageCap: 15,
+      normalVoltageCap: 20,
+      overloadVoltageCap: 30,
       overloadRequired: false,
       chance: 0,
       cooldownRemaining: 0,
@@ -2751,12 +3563,17 @@
       overloadActive: false,
       overloadVenting: false,
       overloadRemaining: 0,
+      eventCountdownRemaining: 0,
+      eventCountdownTotal: 0,
       currentViewerName: "",
       currentViewerImageUrl: "",
       currentViewerRole: "",
       currentViewerBadge: "Active Employee",
       eventType: "",
       eventValueBits: 0,
+      statusUpdatedAt: "",
+      statusRevision: 0,
+      statusSequence: 0,
       eventMessage: "",
       tickerMessage: "",
       mode: "TEST SIGNAL",
@@ -2769,6 +3586,57 @@
     let radialMessageType = "";
     let radialMessageText = "";
     let radialMessageTimer = 0;
+    const contributionPressureHoldMs = 2000;
+    let contributionPressureHoldUntil = 0;
+    let contributionPressureHoldKey = "";
+    let contributionPressureHoldTimer = 0;
+    const tickerMessageLifetimeMs = 5000;
+    let tickerMessageUntil = 0;
+    let tickerMessageKey = "";
+    let tickerMessageText = "";
+    let tickerMessageTimer = 0;
+    const riftCountdownHandoffMs = 2200;
+    let riftCountdownHandoffUntil = 0;
+    let riftCountdownHandoffStartedAt = 0;
+    let riftCountdownHandoffTimer = 0;
+    const animationTransitionBufferMs = 1500;
+    const ventPowerDownDurationMs = 2600;
+    const ventOutcomeAlertDurationMs = 6000;
+    const overloadDischargeAlertDurationMs = 2800;
+    const overloadExpiryRecoveryDurationMs = 4500;
+    const overloadExpiryEmergencyLeadMs = 3000;
+    const overloadExpiryEmergencyCountdownMs = 3000;
+    let ventPowerDown = null;
+    let ventPowerDownFrame = 0;
+    let shockAlert = null;
+    let shockAlertFrame = 0;
+    let lastShockAlertKey = "";
+    let ventTransitionHold = null;
+    let ventTransitionHoldFrame = 0;
+    let overloadDischargeAlert = null;
+    let overloadDischargeAlertFrame = 0;
+    let lastOverloadDischargeAlertKey = "";
+    let overloadExpirySequence = null;
+    let overloadExpirySequenceFrame = 0;
+    let lastOverloadExpirySequenceKey = "";
+    const drainVisualDurationMs = 2800;
+    const drainVisualAfterglowMs = 500;
+    const ventSettledMessageDurationMs = 4500;
+    const stabilizeFlipDurationMs = 1000;
+    let drainVisual = null;
+    let drainVisualFrame = 0;
+    let lastDrainVisualKey = "";
+    let completedVentSequenceKey = "";
+    let completedVentSequenceUntil = 0;
+    let completedVentSequenceTimer = 0;
+    let completedVentSequenceFlipTimer = 0;
+    const animationAudioTracks = {};
+    const animationAudioFadeFrames = {};
+    const animationOneShotTracks = {};
+    const animationOneShotTimers = {};
+    const animationOneShotKeys = {};
+    const animationAudioLastUrls = {};
+    let primaryAnimationAudioKey = "";
 
     const els = {
       widget: document.getElementById("widget"),
@@ -2819,7 +3687,9 @@
       radialPercent: document.getElementById("radialPercent"),
       radialPressureLabel: document.getElementById("radialPressureLabel"),
       radialChargeLine: document.getElementById("radialChargeLine"),
+      radialFlipOverlay: document.getElementById("radialFlipOverlay"),
       radialEventImage: document.getElementById("radialEventImage"),
+      radialStartupLogoText: document.getElementById("radialStartupLogoText"),
       eventLog: document.getElementById("eventLog"),
       modeTag: document.getElementById("modeTag"),
       tickerText: document.getElementById("tickerText")
@@ -2840,6 +3710,949 @@
       }
 
       return 0;
+    }
+
+    function easeDrain(progress) {
+      const t = clamp(progress, 0, 1);
+      return t < 0.5
+        ? 2 * t * t
+        : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    function lerp(start, end, progress) {
+      return start + (end - start) * progress;
+    }
+
+    function isDrainVisualActive() {
+      return !!drainVisual && Date.now() < drainVisual.startedAt + drainVisual.duration;
+    }
+
+    function isVentPowerDownActive() {
+      return !!ventPowerDown && Date.now() < ventPowerDown.startedAt + ventPowerDown.duration;
+    }
+
+    function isVentTransitionHoldActive(kind = "") {
+      return !!ventTransitionHold &&
+        (!kind || ventTransitionHold.kind === kind) &&
+        Date.now() < ventTransitionHold.startedAt + ventTransitionHold.duration;
+    }
+
+    function isVentOutcomeAlertActive() {
+      return !!shockAlert && Date.now() < shockAlert.startedAt + shockAlert.duration;
+    }
+
+    function isShockAlertActive() {
+      return isVentOutcomeAlertActive() && shockAlert.type === "shock";
+    }
+
+    function isSafeAlertActive() {
+      return isVentOutcomeAlertActive() && shockAlert.type === "safe";
+    }
+
+    function isOverloadDischargeAlertActive() {
+      return !!overloadDischargeAlert && Date.now() < overloadDischargeAlert.startedAt + overloadDischargeAlert.duration;
+    }
+
+    function isOverloadExpirySequenceActive() {
+      return !!overloadExpirySequence && Date.now() < overloadExpirySequence.startedAt + overloadExpirySequence.duration;
+    }
+
+    function getAnimationAudioConfig(key) {
+      return animationAudioSources[key] || null;
+    }
+
+    function getAnimationAudioUrls(config) {
+      return Array.isArray(config?.urls) && config.urls.length > 0
+        ? config.urls
+        : [config?.url].filter(Boolean);
+    }
+
+    function pickAnimationAudioUrl(key, config, skippedUrls = new Set()) {
+      const urls = getAnimationAudioUrls(config).filter((url) => !skippedUrls.has(url));
+
+      if (!urls.length) return "";
+      if (urls.length === 1 || config.random !== true) return urls[0];
+
+      let index = Math.floor(Math.random() * urls.length);
+      if (config.preventRepeat === true && urls.length > 1 && animationAudioLastUrls[key] === urls[index]) {
+        index = (index + 1 + Math.floor(Math.random() * (urls.length - 1))) % urls.length;
+      }
+
+      animationAudioLastUrls[key] = urls[index];
+      return urls[index];
+    }
+
+    function getAnimationAudioTrack(key) {
+      const config = getAnimationAudioConfig(key);
+      if (!config) return null;
+
+      if (!animationAudioTracks[key]) {
+        const audio = new Audio(pickAnimationAudioUrl(key, config));
+        audio.loop = config.loop === true;
+        audio.volume = 0;
+        animationAudioTracks[key] = audio;
+      }
+
+      return animationAudioTracks[key];
+    }
+
+    function fadeAnimationAudio(key, targetVolume, duration = 700, stopAfterFade = false) {
+      const audio = animationAudioTracks[key];
+      if (!audio) return;
+
+      if (animationAudioFadeFrames[key]) {
+        cancelAnimationFrame(animationAudioFadeFrames[key]);
+        animationAudioFadeFrames[key] = 0;
+      }
+
+      const startVolume = audio.volume;
+      const startedAt = Date.now();
+
+      const step = () => {
+        const progress = clamp((Date.now() - startedAt) / Math.max(1, duration), 0, 1);
+        audio.volume = lerp(startVolume, targetVolume, progress);
+
+        if (progress < 1 && animationAudioTracks[key] === audio) {
+          animationAudioFadeFrames[key] = requestAnimationFrame(step);
+          return;
+        }
+
+        animationAudioFadeFrames[key] = 0;
+        if (stopAfterFade && animationAudioTracks[key] === audio) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch (error) {
+            if (debugConfig.logStatusPayloads === true) {
+              console.warn(`PiShock ${key} audio stop failed:`, error);
+            }
+          }
+
+          delete animationAudioTracks[key];
+        }
+      };
+
+      step();
+    }
+
+    function startAnimationLoopAudio(key) {
+      const config = getAnimationAudioConfig(key);
+      if (!config) return;
+
+      try {
+        const audio = getAnimationAudioTrack(key);
+        if (!audio) return;
+
+        const playback = audio.play();
+        if (playback && typeof playback.catch === "function") {
+          playback.catch((error) => {
+            if (debugConfig.logStatusPayloads === true) {
+              console.warn(`PiShock ${key} audio did not play:`, error);
+            }
+          });
+        }
+
+        fadeAnimationAudio(key, config.volume ?? 1, config.fadeIn ?? 700);
+      } catch (error) {
+        if (debugConfig.logStatusPayloads === true) {
+          console.warn(`PiShock ${key} audio failed:`, error);
+        }
+      }
+    }
+
+    function stopAnimationLoopAudio(key) {
+      const config = getAnimationAudioConfig(key) || {};
+      fadeAnimationAudio(key, 0, config.fadeOut ?? 700, true);
+    }
+
+    function setPrimaryAnimationAudio(key) {
+      if (primaryAnimationAudioKey === key) return;
+
+      if (primaryAnimationAudioKey) {
+        stopAnimationLoopAudio(primaryAnimationAudioKey);
+      }
+
+      primaryAnimationAudioKey = key || "";
+      if (primaryAnimationAudioKey) {
+        startAnimationLoopAudio(primaryAnimationAudioKey);
+      }
+    }
+
+    function stopPrimaryAnimationAudio() {
+      setPrimaryAnimationAudio("");
+    }
+
+    function stopAnimationOneShotAudio(key) {
+      clearTimeout(animationOneShotTimers[key]);
+      animationOneShotTimers[key] = 0;
+
+      const audio = animationOneShotTracks[key];
+      if (!audio) return;
+
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {
+        if (debugConfig.logStatusPayloads === true) {
+          console.warn(`PiShock ${key} one-shot stop failed:`, error);
+        }
+      }
+
+      delete animationOneShotTracks[key];
+    }
+
+    function playAnimationOneShotAudio(key, instanceKey = "", durationMs = 0) {
+      const config = getAnimationAudioConfig(key);
+      if (!config) return null;
+
+      if (instanceKey && animationOneShotKeys[key] === instanceKey) {
+        return animationOneShotTracks[key] || null;
+      }
+
+      animationOneShotKeys[key] = instanceKey || `${key}:${Date.now()}`;
+      stopAnimationOneShotAudio(key);
+
+      const skippedUrls = new Set();
+      const tryPlay = () => {
+        const sourceUrl = pickAnimationAudioUrl(key, config, skippedUrls);
+        if (!sourceUrl) return null;
+
+        try {
+          const audio = new Audio(sourceUrl);
+          let retried = false;
+          const tryFallback = (error) => {
+            if (retried || animationOneShotTracks[key] !== audio) return;
+            retried = true;
+            skippedUrls.add(sourceUrl);
+            clearTimeout(animationOneShotTimers[key]);
+            animationOneShotTimers[key] = 0;
+            delete animationOneShotTracks[key];
+
+            if (debugConfig.logStatusPayloads === true) {
+              console.warn(`PiShock ${key} one-shot audio skipped ${sourceUrl}:`, error);
+            }
+
+            tryPlay();
+          };
+
+          audio.volume = config.volume ?? 1;
+          animationOneShotTracks[key] = audio;
+          const playback = audio.play();
+
+          if (playback && typeof playback.catch === "function") {
+            playback.catch(tryFallback);
+          }
+
+          audio.addEventListener("error", tryFallback, { once: true });
+
+          if (durationMs > 0) {
+            animationOneShotTimers[key] = setTimeout(() => stopAnimationOneShotAudio(key), durationMs);
+          }
+
+          return audio;
+        } catch (error) {
+          skippedUrls.add(sourceUrl);
+          if (debugConfig.logStatusPayloads === true) {
+            console.warn(`PiShock ${key} one-shot audio failed:`, error);
+          }
+
+          return tryPlay();
+        }
+      };
+
+      return tryPlay();
+    }
+
+    function stopAllAnimationAudio() {
+      stopPrimaryAnimationAudio();
+      Object.keys(animationAudioTracks).forEach((key) => stopAnimationLoopAudio(key));
+      Object.keys(animationOneShotTracks).forEach((key) => stopAnimationOneShotAudio(key));
+    }
+
+    function playShockAlertAudio(durationMs = ventOutcomeAlertDurationMs) {
+      playAnimationOneShotAudio("shockWarning", getVentSequenceKey("vent-discharge"), durationMs);
+    }
+
+    function playSafeAlertAudio() {
+      playAnimationOneShotAudio("safeAverted", getVentSequenceKey("flush"), ventOutcomeAlertDurationMs);
+    }
+
+    function stopShockAlertAudio() {
+      stopAnimationOneShotAudio("shockWarning");
+    }
+
+    function startVentLoopAudio() {
+      setPrimaryAnimationAudio("ventDrain");
+    }
+
+    function stopVentLoopAudio() {
+      if (primaryAnimationAudioKey === "ventDrain") {
+        stopPrimaryAnimationAudio();
+        return;
+      }
+
+      stopAnimationLoopAudio("ventDrain");
+    }
+
+    function pickVentDrainMessage(seed) {
+      const index = Math.abs(Math.floor(seed || Date.now())) % ventDrainMessages.length;
+      return ventDrainMessages[index];
+    }
+
+    function pickOverloadExpiryMessage(list, seed) {
+      const index = Math.abs(Math.floor(seed || Date.now())) % list.length;
+      return list[index];
+    }
+
+    function getVentSequenceKey(modeKey = (state.mode || "").toLowerCase()) {
+      const sequence = Number(state.statusSequence) || 0;
+      const revision = Number(state.statusRevision) || 0;
+      const eventType = (state.eventType || "").toLowerCase();
+      const updatedAt = state.statusUpdatedAt || "";
+      return `${sequence}:${revision}:${updatedAt}:${modeKey}:${eventType}`;
+    }
+
+    function isCompletedVentSequence(modeKey = (state.mode || "").toLowerCase()) {
+      return completedVentSequenceKey === getVentSequenceKey(modeKey);
+    }
+
+    function markVentSequenceComplete(visual) {
+      if (!visual?.key) return;
+
+      completedVentSequenceKey = visual.key;
+      completedVentSequenceUntil = Date.now() + ventSettledMessageDurationMs;
+      playAnimationOneShotAudio("systemStabilized", visual.key, ventSettledMessageDurationMs);
+      clearTimeout(completedVentSequenceTimer);
+      clearTimeout(completedVentSequenceFlipTimer);
+      completedVentSequenceFlipTimer = setTimeout(render, Math.max(0, ventSettledMessageDurationMs - stabilizeFlipDurationMs));
+      completedVentSequenceTimer = setTimeout(render, ventSettledMessageDurationMs + 50);
+    }
+
+    function startVentOutcomeAlert(type, pendingDrain) {
+      shockAlert = {
+        type,
+        startedAt: Date.now(),
+        duration: ventOutcomeAlertDurationMs,
+        pendingDrain
+      };
+
+      if (type === "shock") {
+        playShockAlertAudio();
+      } else {
+        playSafeAlertAudio();
+      }
+
+      scheduleShockAlertRender();
+    }
+
+    function startDrainVisual(pendingDrain) {
+      if (!pendingDrain) return;
+
+      drainVisual = {
+        ...pendingDrain,
+        startedAt: Date.now()
+      };
+      startVentLoopAudio();
+      scheduleDrainVisualRender();
+    }
+
+    function startVentTransitionHold(hold) {
+      ventTransitionHold = {
+        startedAt: Date.now(),
+        duration: animationTransitionBufferMs,
+        ...hold
+      };
+      scheduleVentTransitionHoldRender();
+    }
+
+    function scheduleVentTransitionHoldRender() {
+      if (ventTransitionHoldFrame) return;
+
+      ventTransitionHoldFrame = requestAnimationFrame(() => {
+        ventTransitionHoldFrame = 0;
+
+        if (isVentTransitionHoldActive()) {
+          render();
+          scheduleVentTransitionHoldRender();
+          return;
+        }
+
+        if (ventTransitionHold) {
+          const hold = ventTransitionHold;
+          ventTransitionHold = null;
+
+          if (hold.pendingAlert) {
+            startVentOutcomeAlert(hold.pendingAlert.type, hold.pendingAlert.pendingDrain);
+          } else if (hold.pendingDrain) {
+            startDrainVisual(hold.pendingDrain);
+          }
+
+          render();
+          return;
+        }
+
+        render();
+      });
+    }
+
+    function scheduleVentPowerDownRender() {
+      if (ventPowerDownFrame) return;
+
+      ventPowerDownFrame = requestAnimationFrame(() => {
+        ventPowerDownFrame = 0;
+
+        if (isVentPowerDownActive()) {
+          render();
+          scheduleVentPowerDownRender();
+          return;
+        }
+
+        if (ventPowerDown) {
+          const pendingAlert = ventPowerDown.pendingAlert;
+          ventPowerDown = null;
+
+          if (pendingAlert) {
+            startVentTransitionHold({
+              kind: "after-power-down",
+              pendingAlert,
+              holdTelemetry: pendingAlert.pendingDrain?.from || null
+            });
+          }
+
+          render();
+          return;
+        }
+
+        render();
+      });
+    }
+
+    function scheduleShockAlertRender() {
+      if (shockAlertFrame) return;
+
+      shockAlertFrame = requestAnimationFrame(() => {
+        shockAlertFrame = 0;
+
+        if (isVentOutcomeAlertActive()) {
+          render();
+          scheduleShockAlertRender();
+          return;
+        }
+
+        if (shockAlert) {
+          const endingType = shockAlert.type;
+          const pendingDrain = shockAlert.pendingDrain;
+          shockAlert = null;
+          if (endingType === "shock") {
+            stopShockAlertAudio();
+          } else {
+            stopAnimationOneShotAudio("safeAverted");
+          }
+
+          if (pendingDrain) {
+            startVentTransitionHold({
+              kind: "after-outcome",
+              outcomeType: endingType,
+              pendingDrain,
+              holdTelemetry: pendingDrain.from
+            });
+          }
+
+          render();
+          return;
+        }
+
+        render();
+      });
+    }
+
+    function scheduleOverloadDischargeAlertRender() {
+      if (overloadDischargeAlertFrame) return;
+
+      overloadDischargeAlertFrame = requestAnimationFrame(() => {
+        overloadDischargeAlertFrame = 0;
+
+        if (isOverloadDischargeAlertActive()) {
+          render();
+          scheduleOverloadDischargeAlertRender();
+          return;
+        }
+
+        overloadDischargeAlert = null;
+        render();
+      });
+    }
+
+    function scheduleOverloadExpirySequenceRender() {
+      if (overloadExpirySequenceFrame) return;
+
+      overloadExpirySequenceFrame = requestAnimationFrame(() => {
+        overloadExpirySequenceFrame = 0;
+
+        if (isOverloadExpirySequenceActive()) {
+          render();
+          scheduleOverloadExpirySequenceRender();
+          return;
+        }
+
+        if (overloadExpirySequence) {
+          const pendingDrain = overloadExpirySequence.pendingDrain;
+          overloadExpirySequence = null;
+
+          if (pendingDrain) {
+            startVentTransitionHold({
+              kind: "after-overload-expiry",
+              pendingDrain,
+              holdTelemetry: pendingDrain.from
+            });
+          }
+        }
+
+        render();
+      });
+    }
+
+    function scheduleDrainVisualRender() {
+      if (drainVisualFrame) return;
+
+      drainVisualFrame = requestAnimationFrame(() => {
+        drainVisualFrame = 0;
+
+        if (isDrainVisualActive()) {
+          render();
+          scheduleDrainVisualRender();
+          return;
+        }
+
+        if (drainVisual) {
+          markVentSequenceComplete(drainVisual);
+          drainVisual = null;
+        }
+        stopVentLoopAudio();
+        render();
+      });
+    }
+
+    function getDrainVisualTelemetry() {
+      if (!drainVisual) return null;
+
+      const elapsed = Date.now() - drainVisual.startedAt;
+      const valueDuration = drainVisual.valueDuration || drainVisual.duration;
+      const rawProgress = elapsed / valueDuration;
+
+      if (elapsed >= drainVisual.duration) {
+        markVentSequenceComplete(drainVisual);
+        drainVisual = null;
+        return null;
+      }
+
+      const progress = easeDrain(Math.min(rawProgress, 1));
+      return {
+        pressure: lerp(drainVisual.from.pressure, drainVisual.to.pressure, progress),
+        charge: lerp(drainVisual.from.charge, drainVisual.to.charge, progress),
+        currentVoltage: lerp(drainVisual.from.currentVoltage, drainVisual.to.currentVoltage, progress),
+        intensity: lerp(drainVisual.from.intensity, drainVisual.to.intensity, progress)
+      };
+    }
+
+    function getShockHoldTelemetry() {
+      if (!isVentOutcomeAlertActive() || !shockAlert?.pendingDrain) return null;
+
+      return {
+        pressure: shockAlert.pendingDrain.from.pressure,
+        charge: shockAlert.pendingDrain.from.charge,
+        currentVoltage: shockAlert.pendingDrain.from.currentVoltage,
+        intensity: shockAlert.pendingDrain.from.intensity
+      };
+    }
+
+    function getVentPowerDownHoldTelemetry() {
+      if (!isVentPowerDownActive() || !ventPowerDown?.pendingAlert?.pendingDrain) return null;
+
+      return {
+        pressure: ventPowerDown.pendingAlert.pendingDrain.from.pressure,
+        charge: ventPowerDown.pendingAlert.pendingDrain.from.charge,
+        currentVoltage: ventPowerDown.pendingAlert.pendingDrain.from.currentVoltage,
+        intensity: ventPowerDown.pendingAlert.pendingDrain.from.intensity
+      };
+    }
+
+    function getVentTransitionHoldTelemetry() {
+      if (!isVentTransitionHoldActive() || !ventTransitionHold?.holdTelemetry) return null;
+
+      return {
+        pressure: ventTransitionHold.holdTelemetry.pressure,
+        charge: ventTransitionHold.holdTelemetry.charge,
+        currentVoltage: ventTransitionHold.holdTelemetry.currentVoltage,
+        intensity: ventTransitionHold.holdTelemetry.intensity
+      };
+    }
+
+    function getOverloadExpiryHoldTelemetry() {
+      if (!isOverloadExpirySequenceActive() || !overloadExpirySequence?.pendingDrain) return null;
+
+      return {
+        pressure: overloadExpirySequence.pendingDrain.from.pressure,
+        charge: overloadExpirySequence.pendingDrain.from.charge,
+        currentVoltage: overloadExpirySequence.pendingDrain.from.currentVoltage,
+        intensity: overloadExpirySequence.pendingDrain.from.intensity
+      };
+    }
+
+    function maybeStartDrainVisual(previousTelemetry) {
+      const modeKey = (state.mode || "").toLowerCase();
+      const isDrainResult = modeKey === "flush" || modeKey === "vent-discharge";
+      if (!isDrainResult) return;
+
+      const key = getVentSequenceKey(modeKey);
+      if (key === lastDrainVisualKey) return;
+      if (isCompletedVentSequence(modeKey)) return;
+
+      const targetPressure = clamp(state.pressure, 0, state.maxPressure || 150);
+      const targetCurrent = clamp(firstFinite(state.currentVoltage, state.intensity), 0, state.overloadVoltageCap || 30);
+      const targetIntensity = clamp(state.intensity, 0, state.maxIntensity || 30);
+      const startPressure = Math.max(previousTelemetry.pressure, targetPressure);
+      const startCurrent = Math.max(previousTelemetry.currentVoltage, targetCurrent);
+      const startIntensity = Math.max(previousTelemetry.intensity, targetIntensity);
+
+      lastDrainVisualKey = key;
+      const pendingDrain = {
+        key,
+        duration: drainVisualDurationMs + drainVisualAfterglowMs,
+        valueDuration: drainVisualDurationMs,
+        message: pickVentDrainMessage(state.statusSequence || state.statusRevision || Date.now()),
+        from: {
+          pressure: startPressure,
+          charge: Math.max(previousTelemetry.charge, targetPressure),
+          currentVoltage: startCurrent,
+          intensity: startIntensity
+        },
+        to: {
+          pressure: targetPressure,
+          charge: targetPressure,
+          currentVoltage: targetCurrent,
+          intensity: targetIntensity
+        }
+      };
+
+      if (modeKey === "vent-discharge" || modeKey === "flush") {
+        if (key === lastShockAlertKey) return;
+
+        lastShockAlertKey = key;
+        const handoffElapsed = riftCountdownHandoffStartedAt
+          ? Date.now() - riftCountdownHandoffStartedAt
+          : 0;
+        const powerDownDuration = Math.max(900, ventPowerDownDurationMs - Math.max(0, handoffElapsed));
+        riftCountdownHandoffUntil = 0;
+        riftCountdownHandoffStartedAt = 0;
+        clearTimeout(riftCountdownHandoffTimer);
+        riftCountdownHandoffTimer = 0;
+        const alertType = modeKey === "vent-discharge" ? "shock" : "safe";
+        ventPowerDown = {
+          startedAt: Date.now(),
+          duration: powerDownDuration,
+          pendingAlert: {
+            type: alertType,
+            pendingDrain
+          }
+        };
+        scheduleVentPowerDownRender();
+        return;
+      }
+
+      drainVisual = {
+        ...pendingDrain,
+        startedAt: Date.now()
+      };
+      scheduleDrainVisualRender();
+    }
+
+    function maybeStartOverloadDischargeAlert() {
+      const modeKey = (state.mode || "").toLowerCase();
+      if (modeKey !== "overload-discharge") return;
+
+      const key = [
+        state.statusSequence || 0,
+        state.statusRevision || 0,
+        modeKey,
+        Math.round(state.intensity || 0),
+        Math.round(state.pressure || 0),
+        Math.round(state.currentVoltage || 0)
+      ].join(":");
+
+      if (key === lastOverloadDischargeAlertKey) return;
+
+      lastOverloadDischargeAlertKey = key;
+      overloadDischargeAlert = {
+        startedAt: Date.now(),
+        duration: overloadDischargeAlertDurationMs
+      };
+      playAnimationOneShotAudio("overloadDischarge", key, overloadDischargeAlertDurationMs);
+      scheduleOverloadDischargeAlertRender();
+    }
+
+    function maybeStartOverloadExpirySequence(previousTelemetry) {
+      const modeKey = (state.mode || "").toLowerCase();
+      const isEmergency = modeKey === "overload-expired-discharge";
+      const isRecovery = modeKey === "overload-expired-recovery";
+      if (!isEmergency && !isRecovery) return;
+
+      const key = [
+        state.statusSequence || 0,
+        state.statusRevision || 0,
+        modeKey,
+        Math.round(state.pressure || 0),
+        Math.round(firstFinite(state.currentVoltage, state.intensity))
+      ].join(":");
+
+      if (key === lastOverloadExpirySequenceKey) return;
+
+      lastOverloadExpirySequenceKey = key;
+      clearRadialCenterTransient();
+      const seed = state.statusSequence || state.statusRevision || Date.now();
+      const targetPressure = clamp(state.pressure, 0, state.maxPressure || 100);
+      const targetCurrent = clamp(firstFinite(state.currentVoltage, state.intensity), 0, state.overloadVoltageCap || 30);
+      const targetIntensity = clamp(state.intensity, 0, state.maxIntensity || 30);
+      const startPressure = Math.max(previousTelemetry.pressure, targetPressure);
+      const startCurrent = Math.max(previousTelemetry.currentVoltage, targetCurrent);
+      const startIntensity = Math.max(previousTelemetry.intensity, targetIntensity);
+
+      overloadExpirySequence = {
+        key,
+        emergency: isEmergency,
+        startedAt: Date.now(),
+        duration: isEmergency
+          ? overloadExpiryEmergencyLeadMs + overloadExpiryEmergencyCountdownMs
+          : overloadExpiryRecoveryDurationMs,
+        recoveryMessage: pickOverloadExpiryMessage(overloadExpiryRecoveryMessages, seed),
+        emergencyMessage: pickOverloadExpiryMessage(overloadExpiryEmergencyMessages, seed + 7),
+        pendingDrain: isEmergency
+          ? {
+            key,
+            duration: drainVisualDurationMs + drainVisualAfterglowMs,
+            valueDuration: drainVisualDurationMs,
+            message: pickOverloadExpiryMessage(overloadExpiryDrainMessages, seed + 13),
+            from: {
+              pressure: startPressure,
+              charge: Math.max(previousTelemetry.charge, startPressure),
+              currentVoltage: startCurrent,
+              intensity: startIntensity
+            },
+            to: {
+              pressure: targetPressure,
+              charge: targetPressure,
+              currentVoltage: targetCurrent,
+              intensity: targetIntensity
+            }
+          }
+          : null
+      };
+
+      playAnimationOneShotAudio(
+        isEmergency ? "overloadExpiryEmergency" : "overloadExpiryRecovery",
+        key,
+        overloadExpirySequence.duration
+      );
+      scheduleOverloadExpirySequenceRender();
+    }
+
+    function clearRadialCenterTransient() {
+      radialLastAlertKey = "";
+      radialMessageUntil = 0;
+      radialMessageType = "";
+      radialMessageText = "";
+      clearTimeout(radialMessageTimer);
+      contributionPressureHoldUntil = 0;
+      contributionPressureHoldKey = "";
+      clearTimeout(contributionPressureHoldTimer);
+      document.body.classList.remove("radial-event-received");
+
+      if (els.radialFlipOverlay) {
+        els.radialFlipOverlay.innerHTML = "";
+        delete els.radialFlipOverlay.dataset.flipMessage;
+      }
+
+      if (els.radialEventImage) {
+        els.radialEventImage.removeAttribute("src");
+        els.radialEventImage.alt = "";
+      }
+    }
+
+    function getOverloadExpiryDisplay() {
+      if (!overloadExpirySequence) return null;
+
+      const elapsed = Date.now() - overloadExpirySequence.startedAt;
+      if (!overloadExpirySequence.emergency) {
+        return {
+          phase: "recovery",
+          message: "Reroute Complete",
+          ticker: overloadExpirySequence.recoveryMessage
+        };
+      }
+
+      if (elapsed < overloadExpiryEmergencyLeadMs) {
+        return {
+          phase: "recovery",
+          message: "Rerouting Complete",
+          ticker: overloadExpirySequence.recoveryMessage
+        };
+      }
+
+      const countdownElapsed = elapsed - overloadExpiryEmergencyLeadMs;
+      const remaining = Math.max(1, Math.ceil((overloadExpiryEmergencyCountdownMs - countdownElapsed) / 1000));
+      return {
+        phase: "emergency",
+        message: "Emergency Discharge In " + remaining,
+        ticker: overloadExpirySequence.emergencyMessage + " " + remaining
+      };
+    }
+
+    function truncateTickerMessage(text, maxChars = 82) {
+      const normalized = String(text || "").replace(/\s+/g, " ").trim();
+      if (normalized.length <= maxChars) return normalized;
+      return normalized.slice(0, Math.max(0, maxChars - 3)).trimEnd() + "...";
+    }
+
+    function buildRepeatedTickerText(text, targetChars = 112, maxChars = 138) {
+      const base = truncateTickerMessage(text, 82);
+      if (!base) return "";
+
+      const unit = base.endsWith("//") ? `${base} ` : `${base} // `;
+      let output = unit;
+      while (output.length + unit.length <= targetChars && output.length + unit.length <= maxChars) {
+        output += unit;
+      }
+
+      return output.trim();
+    }
+
+    function buildFixedTickerText(text, repeatCount) {
+      const base = String(text || "").replace(/\s+/g, " ").trim();
+      if (!base) return "";
+
+      const unit = base.endsWith("//") ? base : `${base} //`;
+      const parts = [];
+      for (let i = 0; i < repeatCount; i++) {
+        parts.push(unit);
+      }
+
+      return parts.join(" ");
+    }
+
+    function buildRadialMessageLines(message) {
+      const words = String(message || "").split(" ").filter(Boolean);
+      const splitAt = Math.ceil(words.length / 2);
+      return `<span class="radial-message-line">${words.slice(0, splitAt).join(" ")}</span><span class="radial-message-line">${words.slice(splitAt).join(" ")}</span>`;
+    }
+
+    function measureRadialTickerText(text) {
+      const svg = els.radialTickerText?.ownerSVGElement;
+      if (!svg) return String(text || "").length * 7;
+
+      const measureNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      measureNode.textContent = text;
+      measureNode.setAttribute("x", "0");
+      measureNode.setAttribute("y", "0");
+      measureNode.setAttribute("visibility", "hidden");
+      svg.appendChild(measureNode);
+
+      let length = String(text || "").length * 7;
+      try {
+        length = measureNode.getComputedTextLength();
+      } catch {}
+
+      measureNode.remove();
+      return length;
+    }
+
+    function getRadialTickerFitLimit() {
+      const path = document.getElementById("radialTickerPath");
+      try {
+        return path.getTotalLength() * 0.92;
+      } catch {
+        return 560;
+      }
+    }
+
+    function trimRadialTickerUnit(unit, fitLimit) {
+      const suffix = "... //";
+      let low = 0;
+      let high = Math.max(0, unit.length - suffix.length);
+      let best = suffix;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidate = unit.slice(0, mid).trimEnd() + suffix;
+        if (measureRadialTickerText(candidate) <= fitLimit) {
+          best = candidate;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      return best;
+    }
+
+    function buildFittedRadialTickerText(text, preferredRepeats = 4, options = {}) {
+      const base = String(text || "").replace(/\s+/g, " ").trim();
+      if (!base) return "";
+
+      const fitLimit = getRadialTickerFitLimit();
+      const unit = base.endsWith("//") ? base : `${base} //`;
+      const maxRepeats = Math.max(1, options.maxRepeats || preferredRepeats);
+      const fill = options.fill === true;
+      let best = "";
+
+      for (let count = 1; count <= maxRepeats; count++) {
+        const candidate = buildFixedTickerText(unit, count);
+        if (measureRadialTickerText(candidate) <= fitLimit) {
+          best = candidate;
+          if (!fill && count >= preferredRepeats) break;
+        } else if (!fill) {
+          break;
+        }
+      }
+
+      if (best) return best;
+      return trimRadialTickerUnit(unit, fitLimit);
+    }
+
+    function getActiveTickerMessage() {
+      return Date.now() < tickerMessageUntil ? tickerMessageText : "";
+    }
+
+    function clearTransientTickerMessage() {
+      tickerMessageUntil = 0;
+      tickerMessageKey = "";
+      tickerMessageText = "";
+      clearTimeout(tickerMessageTimer);
+    }
+
+    function armTransientTickerMessage(message, key) {
+      const normalized = String(message || "").replace(/\s+/g, " ").trim();
+      if (!normalized || key === tickerMessageKey) return;
+
+      tickerMessageKey = key;
+      tickerMessageText = normalized;
+      tickerMessageUntil = Date.now() + tickerMessageLifetimeMs;
+      clearTimeout(tickerMessageTimer);
+      tickerMessageTimer = setTimeout(render, tickerMessageLifetimeMs + 50);
+    }
+
+    async function loadStartupLogoArt() {
+      if (!els.radialStartupLogoText) return;
+
+      try {
+        const response = await fetch(startupLogoArtUrl, { cache: "force-cache" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        els.radialStartupLogoText.textContent = (await response.text()).trimEnd();
+      } catch (error) {
+        if (debugConfig.logStatusPayloads === true) {
+          console.warn("PiShock startup logo art failed to load:", error);
+        }
+      }
     }
 
     function classifyPressure(value, maxPressure = 100) {
@@ -2939,8 +4752,8 @@
     function renderRadial(status, activeCooldown) {
       if (!els.radialSegments) return;
 
-      const normalCap = clamp(state.normalVoltageCap || 10, 1, 15);
-      const overloadCap = clamp(state.overloadVoltageCap || 15, normalCap, 15);
+      const normalCap = clamp(state.normalVoltageCap || 20, 1, 30);
+      const overloadCap = clamp(state.overloadVoltageCap || 30, normalCap, 30);
       const activeCap = state.overloadActive ? overloadCap : normalCap;
       const currentVoltage = clamp(firstFinite(state.currentVoltage, state.intensity), 0, overloadCap);
       const storedVoltage = clamp(state.storedVoltage, 0, 99);
@@ -3073,33 +4886,129 @@
       document.documentElement.style.setProperty("--pressure-gradient-end", gradientEnd);
 
       const eventType = (state.eventType || "").toLowerCase();
+      const modeKey = (state.mode || "").toLowerCase();
+      const eventCountdownRemaining = Math.ceil(state.eventCountdownRemaining || 0);
+      const activeRiftHandoff = modeKey === "rift-stabilizer" &&
+        eventCountdownRemaining <= 0 &&
+        Date.now() < riftCountdownHandoffUntil;
+      const activeRiftCountdown = modeKey === "rift-stabilizer" && (eventCountdownRemaining > 0 || activeRiftHandoff);
+      const activePowerDown = isVentPowerDownActive() || activeRiftHandoff;
+      const activeShockAlert = isShockAlertActive();
+      const activeSafeAlert = isSafeAlertActive();
+      const activeOverloadDischargeAlert = isOverloadDischargeAlertActive();
+      const activeOverloadExpirySequence = isOverloadExpirySequenceActive();
+      const overloadExpiryDisplay = getOverloadExpiryDisplay();
+      const overloadExpiryRemainingMs = overloadExpirySequence
+        ? Math.max(0, overloadExpirySequence.startedAt + overloadExpirySequence.duration - Date.now())
+        : 0;
+      const overloadExpiryFlipActive = activeOverloadExpirySequence &&
+        overloadExpiryDisplay?.phase === "recovery" &&
+        overloadExpiryRemainingMs <= stabilizeFlipDurationMs;
+      const activeOutcomeAlert = activeShockAlert || activeSafeAlert;
+      const visualDrainActive = isDrainVisualActive();
+      const ventResultSettled = isCompletedVentSequence(modeKey);
+      const showingVentSettledMessage = ventResultSettled && Date.now() < completedVentSequenceUntil;
+      const stabilizeRemainingMs = Math.max(0, completedVentSequenceUntil - Date.now());
+      const stabilizeFlipActive = showingVentSettledMessage && stabilizeRemainingMs <= stabilizeFlipDurationMs;
+      const pressureFlipActive = stabilizeFlipActive || overloadExpiryFlipActive;
+      const drainActive = state.overloadVenting ||
+        modeKey === "venting" ||
+        visualDrainActive;
       const isSubEvent = eventType.includes("sub");
-      const isLargeContribution = (state.eventValueBits || 0) >= 500 || isSubEvent;
+      const isPooledContribution = eventType.includes("pool") || eventType.includes("ledger") || (state.currentViewerName || "").toLowerCase().includes("donation pool");
+      const isSystemSequenceEvent = eventType === "overload-expired-recovery" ||
+        eventType === "overload-expired-discharge" ||
+        eventType === "reset" ||
+        eventType === "vent";
+      const isLargeContribution = ((state.eventValueBits || 0) >= centerViewerMinimumBits || isSubEvent) && !isPooledContribution;
+      const hasPressureEvent = !!eventType && !isSystemSequenceEvent && (state.eventValueBits || 0) > 0;
+      const hasOverloadContributionEvent = state.overloadActive && hasPressureEvent && !isPooledContribution;
+      const hasCenterEvent = hasPressureEvent && (isLargeContribution || hasOverloadContributionEvent);
       const viewerName = state.currentViewerName || "Workshop";
       const contributionVerb = isSubEvent
         ? (eventType.includes("gift") ? "gifted subs" : "subscribed")
         : `cheered ${Math.round(state.eventValueBits || 0)} bits`;
       const contributionMessage = `${viewerName} ${contributionVerb}`;
-      const transientKey = `${eventType}:${state.eventValueBits}:${viewerName}:${state.currentViewerImageUrl}:${currentVoltage}:${storedVoltage}:${state.mode}`;
+      const tickerMessage = getActiveTickerMessage();
+      const transientKey = `${eventType}:${state.eventValueBits}:${viewerName}:${state.currentViewerImageUrl}:${state.pressure}:${currentVoltage}:${storedVoltage}:${state.mode}:${state.statusUpdatedAt}:${state.statusRevision}:${state.statusSequence}`;
 
-      if ((overloadRequired || isLargeContribution) && radialLastAlertKey !== transientKey) {
+      document.body.classList.toggle("radial-event-received", hasCenterEvent);
+
+      if ((overloadRequired || hasCenterEvent) && radialLastAlertKey !== transientKey) {
         radialLastAlertKey = transientKey;
-        radialMessageType = isLargeContribution ? "event" : "alert";
-        radialMessageText = isLargeContribution ? contributionMessage : "Overload Required";
-        radialMessageUntil = Date.now() + (isLargeContribution ? 4600 : 3600);
+        radialMessageType = hasCenterEvent ? "event" : "alert";
+        radialMessageText = hasCenterEvent ? contributionMessage : "Overload Required";
+        radialMessageUntil = Date.now() + (hasCenterEvent ? 4600 : 2800);
         clearTimeout(radialMessageTimer);
-        radialMessageTimer = setTimeout(render, isLargeContribution ? 4650 : 3650);
-      } else if (!overloadRequired && !isLargeContribution) {
+        radialMessageTimer = setTimeout(render, hasCenterEvent ? 4650 : 2850);
+
+        if (hasCenterEvent) {
+          contributionPressureHoldKey = transientKey;
+          contributionPressureHoldUntil = radialMessageUntil + contributionPressureHoldMs;
+          clearTimeout(contributionPressureHoldTimer);
+          contributionPressureHoldTimer = setTimeout(render, Math.max(0, contributionPressureHoldUntil - Date.now()) + 50);
+        }
+      } else if (!overloadRequired && !hasCenterEvent) {
         radialLastAlertKey = "";
       }
 
-      let centerMode = Date.now() < radialMessageUntil ? radialMessageType : "";
-      let centerMessage = Date.now() < radialMessageUntil ? radialMessageText : "";
+      const now = Date.now();
+      const activeContributionPressureHold = now >= radialMessageUntil &&
+        now < contributionPressureHoldUntil &&
+        contributionPressureHoldKey === radialLastAlertKey;
+      let centerMode = now < radialMessageUntil ? radialMessageType : "";
+      let centerMessage = now < radialMessageUntil ? radialMessageText : "";
       let tickerAlert = false;
-      if (state.overloadVenting) {
+      if (activePowerDown) {
+        centerMode = "alert";
+        centerMessage = "System Powering Down";
+        tickerAlert = true;
+      } else if (activeOverloadExpirySequence && overloadExpiryDisplay) {
+        centerMode = "alert";
+        centerMessage = overloadExpiryDisplay.message;
+        tickerAlert = true;
+      } else if (activeOverloadDischargeAlert) {
+        centerMode = "alert";
+        centerMessage = "Impulse Discharged";
+        tickerAlert = true;
+      } else if (activeShockAlert) {
+        centerMode = "alert";
+        centerMessage = "Warning Impulse Imminent";
+        tickerAlert = true;
+      } else if (activeSafeAlert) {
+        centerMode = "alert";
+        centerMessage = "Discharge Averted";
+        tickerAlert = true;
+      } else if (activeRiftHandoff) {
+        centerMode = "alert";
+        centerMessage = "System Powering Down";
+        tickerAlert = true;
+      } else if (activeRiftCountdown) {
+        centerMode = "alert";
+        centerMessage = "System Venting In " + eventCountdownRemaining;
+        tickerAlert = true;
+      } else if (visualDrainActive && modeKey === "overload-expired-discharge") {
+        centerMode = "alert";
+        centerMessage = "Discharge Successful";
+        tickerAlert = true;
+      } else if (visualDrainActive && (modeKey === "flush" || modeKey === "vent-discharge")) {
+        centerMode = "alert";
+        centerMessage = "Venting System";
+        tickerAlert = true;
+      } else if (showingVentSettledMessage) {
+        centerMode = "alert";
+        centerMessage = "System Stabilized";
+        tickerAlert = true;
+      } else if (state.overloadVenting) {
         centerMode = "alert";
         centerMessage = "Venting Active";
         tickerAlert = true;
+      } else if (centerMode) {
+        tickerAlert = true;
+      } else if (tickerMessage) {
+        tickerAlert = true;
+      } else if (activeContributionPressureHold) {
+        tickerAlert = state.overloadActive;
       } else if (state.overloadActive) {
         centerMode = "alert";
         centerMessage = "Overload Active";
@@ -3108,27 +5017,82 @@
         centerMode = "alert";
         centerMessage = "Freeze Lockout";
         tickerAlert = true;
-      } else if (centerMode) {
-        tickerAlert = true;
       }
 
       const core = document.querySelector(".radial-core");
       const showingRadialMessage = centerMode === "alert";
-      const showingEventImage = centerMode === "event" && !!state.currentViewerImageUrl;
+      const showingEventImage = !pressureFlipActive && centerMode === "event" && !!state.currentViewerImageUrl;
       core?.classList.toggle("alert-message", showingRadialMessage);
       core?.classList.toggle("event-image-mode", showingEventImage);
       document.body.classList.toggle("radial-ticker-alert", tickerAlert);
-      document.body.classList.toggle("radial-overload-wave", state.overloadActive || state.overloadVenting);
-      document.documentElement.style.setProperty("--radial-ticker-color", tickerAlert ? pressureColor : "rgba(126, 203, 255, 0.78)");
-      document.documentElement.style.setProperty("--radial-ticker-glow", tickerAlert ? pressureGlow : "rgba(21, 149, 255, 0.48)");
+      document.body.classList.toggle("radial-overload-wave", (state.overloadActive || state.overloadVenting) && !drainActive && !activeOverloadDischargeAlert);
+      document.body.classList.toggle("radial-overload-discharge", activeOverloadDischargeAlert);
+      document.body.classList.toggle("radial-overload-expiry", activeOverloadExpirySequence && overloadExpiryDisplay?.phase === "recovery");
+      document.body.classList.toggle("radial-overload-emergency", activeOverloadExpirySequence && overloadExpiryDisplay?.phase === "emergency");
+      document.body.classList.toggle("radial-rift-stabilizer", activeRiftCountdown);
+      document.body.classList.toggle("radial-power-down", activePowerDown);
+      document.body.classList.toggle("radial-shock-alert", activeShockAlert);
+      document.body.classList.toggle("radial-safe-alert", activeSafeAlert);
+      document.body.classList.toggle("radial-stabilize-flip", pressureFlipActive);
+      document.body.classList.toggle("radial-drain-active", drainActive);
+      document.documentElement.style.setProperty("--radial-ticker-color", activeSafeAlert ? "#53ff9a" : activeOverloadDischargeAlert ? "#f6fbff" : tickerAlert ? pressureColor : "rgba(126, 203, 255, 0.78)");
+      document.documentElement.style.setProperty("--radial-ticker-glow", activeSafeAlert ? "rgba(83, 255, 154, 0.72)" : activeOverloadDischargeAlert ? "rgba(255, 59, 95, 0.74)" : tickerAlert ? pressureGlow : "rgba(21, 149, 255, 0.48)");
 
-      if (showingRadialMessage) {
-        const words = centerMessage.split(" ");
-        els.radialPressureValue.innerHTML = `<span class="radial-message-line">${words.slice(0, Math.ceil(words.length / 2)).join(" ")}</span><span class="radial-message-line">${words.slice(Math.ceil(words.length / 2)).join(" ")}</span>`;
+      if (drainActive) {
+        const drainBeat = Math.floor(Date.now() / 850) + Math.round(state.statusSequence || 0);
+        const drainPressure = clamp(state.pressure / Math.max(1, state.maxPressure || 100), 0, 1);
+        const wobble = (Math.sin(drainBeat * 2.17) + 1) / 2;
+        const pressureEnergy = Math.pow(drainPressure, 0.72);
+        const drift = (wobble - 0.5) * pressureEnergy;
+        const speed = (fast, slow, wobbleSpan = 0.18) =>
+          `${Math.max(fast, slow - ((slow - fast) * pressureEnergy) + (drift * wobbleSpan)).toFixed(2)}s`;
+
+        document.documentElement.style.setProperty("--drain-outer-speed", speed(0.48, 2.2, 0.18));
+        document.documentElement.style.setProperty("--drain-inner-speed", speed(0.38, 2.6, 0.2));
+        document.documentElement.style.setProperty("--drain-pressure-speed", speed(0.72, 3.1, 0.14));
+        document.documentElement.style.setProperty("--drain-spectrum-speed", speed(0.44, 2.4, 0.16));
+        document.documentElement.style.setProperty("--drain-segment-speed", speed(0.78, 3.4, 0.22));
+        document.documentElement.style.setProperty("--drain-scanner-speed", speed(0.7, 3.7, 0.18));
+        document.documentElement.style.setProperty("--drain-core-speed", speed(0.64, 2.55, 0.12));
+        document.documentElement.style.setProperty("--drain-ticker-speed", speed(5.4, 18, 0.72));
+      }
+
+      if (pressureFlipActive) {
+        core?.classList.remove("event-image-mode");
+        els.radialEventImage.removeAttribute("src");
+        els.radialEventImage.alt = "";
+        els.radialPressureValue.textContent = pressureText;
+        els.radialPercent.textContent = "%";
+        els.radialPressureLabel.textContent = "Pressure";
+        els.radialChargeLine.textContent = `${Math.round(currentVoltage)}c | ${Math.round(storedVoltage)}s`;
+        if (els.radialFlipOverlay) {
+          const flipMessage = overloadExpiryFlipActive && overloadExpiryDisplay
+            ? overloadExpiryDisplay.message
+            : centerMessage;
+          if (els.radialFlipOverlay.dataset.flipMessage !== flipMessage) {
+            els.radialFlipOverlay.dataset.flipMessage = flipMessage;
+            els.radialFlipOverlay.innerHTML = `
+            <span class="radial-flip-stack">
+              <span class="radial-flip-out">${buildRadialMessageLines(flipMessage)}</span>
+            </span>`;
+          }
+        }
+      } else if (showingRadialMessage) {
+        if (els.radialFlipOverlay) {
+          els.radialFlipOverlay.innerHTML = "";
+          delete els.radialFlipOverlay.dataset.flipMessage;
+        }
+        els.radialEventImage.removeAttribute("src");
+        els.radialEventImage.alt = "";
+        els.radialPressureValue.innerHTML = buildRadialMessageLines(centerMessage);
         els.radialPercent.textContent = "";
         els.radialPressureLabel.textContent = "";
         els.radialChargeLine.textContent = "";
       } else if (centerMode === "event") {
+        if (els.radialFlipOverlay) {
+          els.radialFlipOverlay.innerHTML = "";
+          delete els.radialFlipOverlay.dataset.flipMessage;
+        }
         if (showingEventImage) {
           els.radialEventImage.src = state.currentViewerImageUrl;
           els.radialEventImage.alt = viewerName;
@@ -3141,6 +5105,10 @@
           els.radialChargeLine.textContent = `${Math.round(currentVoltage)}c | ${Math.round(storedVoltage)}s`;
         }
       } else {
+        if (els.radialFlipOverlay) {
+          els.radialFlipOverlay.innerHTML = "";
+          delete els.radialFlipOverlay.dataset.flipMessage;
+        }
         els.radialEventImage.removeAttribute("src");
         els.radialEventImage.alt = "";
         els.radialPressureValue.textContent = pressureText;
@@ -3150,10 +5118,30 @@
       }
 
       if (els.radialTickerText) {
-        const tickerBase = centerMessage
-          ? `${centerMessage} // `
-          : "CONTAINMENT BUS NOMINAL // PRESSURE MONITORING ACTIVE // ";
-        els.radialTickerText.textContent = tickerBase.repeat(Math.max(3, Math.ceil(140 / tickerBase.length)));
+        const tickerBase = activePowerDown
+          ? "SYSTEM POWERING DOWN // RELAY SPIN DECAY // STAND BY"
+          : activeOverloadExpirySequence && overloadExpiryDisplay
+          ? overloadExpiryDisplay.ticker
+          : activeOverloadDischargeAlert
+          ? `OVERLOAD IMPULSE DISCHARGED // INTENSITY ${Math.round(state.intensity || 0)} // RED-ZONE PROTOCOL CONTINUES`
+          : activeShockAlert
+          ? "WARNING // WARNING // IMPULSE IMMINENT // EMERGENCY DISCHARGE INITIATED"
+          : activeSafeAlert
+          ? "DISCHARGE AVERTED // ALL SYSTEMS RETURNING TO NORMAL"
+          : activeRiftCountdown
+          ? `⚠️ ${state.currentViewerName || "EMPLOYEE"} INITIATED SYSTEM VENT // SYSTEM VENTING IN ${eventCountdownRemaining} SEC // STAND CLEAR ⚠️`
+          : visualDrainActive && drainVisual?.message
+          ? drainVisual.message
+          : showingVentSettledMessage
+          ? "SYSTEM STABILIZED // PRESSURE BUS CLEAR // RETURNING TO NORMAL"
+          : centerMessage || tickerMessage || "CONTAINMENT BUS NOMINAL // PRESSURE MONITORING ACTIVE";
+        els.radialTickerText.textContent = activeOutcomeAlert || activeOverloadDischargeAlert
+          ? buildFittedRadialTickerText(tickerBase, 2)
+          : activeRiftCountdown
+          ? buildFittedRadialTickerText(tickerBase, 2)
+          : activeOverloadExpirySequence
+          ? buildFittedRadialTickerText(tickerBase, 2)
+          : buildFittedRadialTickerText(tickerBase, 4, { fill: true, maxRepeats: 8 });
       }
     }
 
@@ -3161,6 +5149,24 @@
       state.maxPressure = clamp(state.maxPressure || state.maxCharge || 100, 100, 150);
       state.pressure = clamp(state.pressure, 0, state.maxPressure);
       state.maxCharge = state.maxPressure;
+      const restoreTelemetry = {
+        pressure: state.pressure,
+        charge: state.charge,
+        currentVoltage: state.currentVoltage,
+        intensity: state.intensity
+      };
+      const visualTelemetry = getDrainVisualTelemetry() ||
+        getOverloadExpiryHoldTelemetry() ||
+        getVentPowerDownHoldTelemetry() ||
+        getShockHoldTelemetry() ||
+        getVentTransitionHoldTelemetry();
+      if (visualTelemetry) {
+        state.pressure = visualTelemetry.pressure;
+        state.charge = visualTelemetry.charge;
+        state.currentVoltage = visualTelemetry.currentVoltage;
+        state.intensity = visualTelemetry.intensity;
+      }
+
       const chargePct = percent(state.charge, state.maxCharge);
       const intensityPct = percent(state.intensity, state.maxIntensity);
       const cooldownPct = state.cooldownTotal > 0 ? percent(state.cooldownTotal - state.cooldownRemaining, state.cooldownTotal) : 100;
@@ -3169,8 +5175,40 @@
       const status = classifyPressure(state.pressure, state.maxPressure);
       const modeKey = (state.mode || "").toLowerCase();
       const activeCooldown = state.cooldownRemaining > 0 || modeKey === "cooldown";
-      const dangerAlert = state.overloadVenting || state.overloadActive || status.className === "danger";
-      const warningAlert = !dangerAlert && activeCooldown;
+      const activeRiftHandoff = modeKey === "rift-stabilizer" &&
+        Math.ceil(state.eventCountdownRemaining || 0) <= 0 &&
+        Date.now() < riftCountdownHandoffUntil;
+      const activeRiftCountdown = modeKey === "rift-stabilizer" && (state.eventCountdownRemaining > 0 || activeRiftHandoff);
+      const activePostPowerDownHold = isVentTransitionHoldActive("after-power-down");
+      const activePostOutcomeHold = isVentTransitionHoldActive("after-outcome");
+      const activePowerDown = isVentPowerDownActive() || activeRiftHandoff || activePostPowerDownHold;
+      const activeShockAlert = isShockAlertActive() || (activePostOutcomeHold && ventTransitionHold?.outcomeType === "shock");
+      const activeSafeAlert = isSafeAlertActive() || (activePostOutcomeHold && ventTransitionHold?.outcomeType === "safe");
+      const activeOverloadDischargeAlert = isOverloadDischargeAlertActive();
+      const activeOverloadExpirySequence = isOverloadExpirySequenceActive();
+      const overloadExpiryDisplay = getOverloadExpiryDisplay();
+      const ventResultSettled = isCompletedVentSequence(modeKey);
+      const showingVentSettledMessage = ventResultSettled && Date.now() < completedVentSequenceUntil;
+      const overloadExpiryEmergency = activeOverloadExpirySequence && overloadExpiryDisplay?.phase === "emergency";
+      const dangerAlert = !activeRiftCountdown && !activePowerDown && !activeSafeAlert && (overloadExpiryEmergency || activeOverloadDischargeAlert || activeShockAlert || state.overloadVenting || state.overloadActive || status.className === "danger");
+      const safeAlert = !dangerAlert && activeSafeAlert;
+      const cooldownAlert = !dangerAlert && !safeAlert && !activePowerDown && !activeRiftCountdown && activeCooldown;
+      const cautionAlert = !dangerAlert && !safeAlert && (activeRiftCountdown || activePowerDown || activeOverloadExpirySequence);
+      let primaryAudioKey = "";
+      if (isDrainVisualActive()) {
+        primaryAudioKey = "ventDrain";
+      } else if (activePowerDown) {
+        primaryAudioKey = "ventPowerDown";
+      } else if (activeShockAlert || activeSafeAlert || activeOverloadDischargeAlert || activeOverloadExpirySequence) {
+        primaryAudioKey = "";
+      } else if (activeRiftCountdown) {
+        primaryAudioKey = "riftCountdown";
+      } else if (state.overloadActive && !state.overloadVenting) {
+        primaryAudioKey = "overloadActive";
+      } else if (activeCooldown) {
+        primaryAudioKey = "cooldownFreeze";
+      }
+      setPrimaryAnimationAudio(primaryAudioKey);
 
       const sweepDegrees = 280;
       const startAngle = -220;
@@ -3186,11 +5224,52 @@
       els.pressureValue.textContent = Math.round(state.pressure);
       els.pressureLabel.textContent = state.label;
       els.statePill.textContent = status.text;
+      if (activePowerDown) {
+        els.statePill.textContent = "POWER";
+      } else if (activeOverloadExpirySequence) {
+        els.statePill.textContent = overloadExpiryEmergency ? "ERROR" : "REROUTE";
+      } else if (activeOverloadDischargeAlert) {
+        els.statePill.textContent = "IMPULSE";
+      } else if (activeRiftCountdown) {
+        els.statePill.textContent = "CAUTION";
+      } else if (activeShockAlert) {
+        els.statePill.textContent = "IMPULSE";
+      } else if (activeSafeAlert) {
+        els.statePill.textContent = "AVERTED";
+      } else if (activeRiftHandoff) {
+        els.statePill.textContent = "POWER";
+      } else if (showingVentSettledMessage) {
+        els.statePill.textContent = "STABLE";
+      } else if (modeKey === "vent-discharge" && !ventResultSettled) {
+        els.statePill.textContent = "DISCHARGE";
+      } else if (modeKey === "flush" && !ventResultSettled && (state.eventType || "").toLowerCase() === "vent") {
+        els.statePill.textContent = "VENTED";
+      }
       els.statePill.className = `status-pill ${status.className}`.trim();
+      if (activePowerDown) {
+        els.statePill.className = "status-pill warning";
+      } else if (activeOverloadExpirySequence) {
+        els.statePill.className = overloadExpiryEmergency ? "status-pill danger" : "status-pill warning";
+      } else if (activeOverloadDischargeAlert) {
+        els.statePill.className = "status-pill danger";
+      } else if (activeRiftCountdown) {
+        els.statePill.className = "status-pill warning";
+      } else if (activeShockAlert) {
+        els.statePill.className = "status-pill danger";
+      } else if (activeSafeAlert) {
+        els.statePill.className = "status-pill safe";
+      } else if (activeRiftHandoff) {
+        els.statePill.className = "status-pill warning";
+      } else if (showingVentSettledMessage) {
+        els.statePill.className = "status-pill safe";
+      } else if (modeKey === "vent-discharge" && !ventResultSettled) {
+        els.statePill.className = "status-pill danger";
+      }
       document.body.classList.toggle("alert-danger", dangerAlert);
-      document.body.classList.toggle("alert-cooldown", warningAlert);
-      document.body.classList.toggle("alert-warning", false);
-      document.body.classList.toggle("ticker-continuous", activeCooldown);
+      document.body.classList.toggle("alert-safe", safeAlert);
+      document.body.classList.toggle("alert-cooldown", cooldownAlert);
+      document.body.classList.toggle("alert-warning", cautionAlert);
+      document.body.classList.toggle("ticker-continuous", activeCooldown || activeRiftCountdown || activePowerDown || activeOverloadExpirySequence);
       renderRadial(status, activeCooldown);
 
       setBar(els.chargeBar, chargePct);
@@ -3228,11 +5307,34 @@
         els.viewerImage.removeAttribute("src");
       }
 
-      if (state.tickerMessage) {
-        els.tickerText.textContent = state.tickerMessage;
+      const tickerMessage = getActiveTickerMessage();
+      if (activePowerDown) {
+        els.tickerText.textContent = "⚠️ SYSTEM POWERING DOWN // RELAY SPIN DECAY // STAND BY ⚠️";
+      } else if (activeOverloadExpirySequence && overloadExpiryDisplay) {
+        els.tickerText.textContent = overloadExpiryEmergency
+          ? `🚨 ${overloadExpiryDisplay.ticker} 🚨`
+          : `⚠️ ${overloadExpiryDisplay.ticker} ⚠️`;
+      } else if (activeOverloadDischargeAlert) {
+        els.tickerText.textContent = `🚨 OVERLOAD IMPULSE DISCHARGED // INTENSITY ${Math.round(state.intensity || 0)} // RED-ZONE PROTOCOL CONTINUES 🚨`;
+      } else if (activeShockAlert) {
+        els.tickerText.textContent = "🚨 WARNING // WARNING // IMPULSE IMMINENT // EMERGENCY DISCHARGE INITIATED 🚨";
+      } else if (activeSafeAlert) {
+        els.tickerText.textContent = "DISCHARGE AVERTED // ALL SYSTEMS RETURNING TO NORMAL";
+      } else if (activeRiftHandoff) {
+        els.tickerText.textContent = "⚠️ SYSTEM POWERING DOWN // RELAY SPIN DECAY // STAND BY ⚠️";
+      } else if (activeRiftCountdown) {
+        els.tickerText.textContent = `⚠️ ${state.currentViewerName || "EMPLOYEE"} INITIATED SYSTEM VENT // SYSTEM VENTING IN ${Math.ceil(state.eventCountdownRemaining)} SEC // STAND CLEAR ⚠️`;
+      } else if (isDrainVisualActive() && modeKey === "overload-expired-discharge" && drainVisual?.message) {
+        els.tickerText.textContent = drainVisual.message;
+      } else if (isDrainVisualActive() && drainVisual?.message) {
+        els.tickerText.textContent = drainVisual.message;
+      } else if (tickerMessage) {
+        els.tickerText.textContent = truncateTickerMessage(tickerMessage, 160);
+      } else if (showingVentSettledMessage) {
+        els.tickerText.textContent = "SYSTEM STABILIZED // PRESSURE BUS CLEAR // RETURNING TO NORMAL";
       } else if (state.overloadVenting) {
         els.tickerText.textContent = "🚨 VENTING SEQUENCE ACTIVE // PRESSURE RELEASE IN PROGRESS // MAINTAIN CLEARANCE // 🚨";
-      } else if ((state.mode || "").toLowerCase() === "flush") {
+      } else if ((state.mode || "").toLowerCase() === "flush" && !ventResultSettled) {
         els.tickerText.textContent = "🚨 MANUAL FLUSH ACTIVE // FULL PRESSURE PURGE IN PROGRESS // MAINTAIN CLEARANCE // 🚨";
       } else if (state.overloadActive) {
         const overloadTimer = state.overloadRemaining > 0 ? ` // AUTO-VENT IN ${Math.ceil(state.overloadRemaining)} SEC` : "";
@@ -3246,6 +5348,13 @@
       els.modeTag.textContent = `MODE: ${state.mode}`;
 
       renderConsole(status, pressurePct);
+
+      if (visualTelemetry) {
+        state.pressure = restoreTelemetry.pressure;
+        state.charge = restoreTelemetry.charge;
+        state.currentVoltage = restoreTelemetry.currentVoltage;
+        state.intensity = restoreTelemetry.intensity;
+      }
     }
 
     function renderConsole(status, pressurePct) {
@@ -3328,7 +5437,122 @@
 
     function updateStatus(payload = {}) {
       const previousPressure = state.pressure;
+      const previousTelemetry = {
+        pressure: state.pressure,
+        charge: state.charge,
+        currentVoltage: firstFinite(state.currentVoltage, state.intensity),
+        intensity: state.intensity
+      };
+      const incomingTickerMessage = typeof payload.tickerMessage === "string"
+        ? payload.tickerMessage.trim()
+        : "";
+      const incomingTickerKey = [
+        incomingTickerMessage,
+        payload.statusRevision ?? state.statusRevision,
+        payload.statusSequence ?? state.statusSequence
+      ].join(":");
+
       Object.assign(state, payload);
+
+      const incomingEventType = (state.eventType || "").toLowerCase();
+      const isSystemSequenceEvent = incomingEventType === "overload-expired-recovery" ||
+        incomingEventType === "overload-expired-discharge" ||
+        incomingEventType === "reset" ||
+        incomingEventType === "vent" ||
+        incomingEventType === "rift-stabilizer" ||
+        incomingEventType === "overload";
+      if (!isSystemSequenceEvent && (state.eventValueBits || 0) > 0) {
+        const contributionAudioKey = [
+          incomingEventType,
+          state.eventValueBits,
+          state.currentViewerName,
+          state.statusRevision,
+          state.statusSequence,
+          state.statusUpdatedAt
+        ].join(":");
+        playAnimationOneShotAudio("contribution", contributionAudioKey, 3200);
+      }
+
+      const payloadModeKey = (state.mode || "").toLowerCase();
+      const payloadCountdownRemaining = Math.ceil(state.eventCountdownRemaining || 0);
+      if (payloadModeKey === "rift-stabilizer" && payloadCountdownRemaining > 0) {
+        riftCountdownHandoffStartedAt = Date.now() + payloadCountdownRemaining * 1000;
+        riftCountdownHandoffUntil = riftCountdownHandoffStartedAt + riftCountdownHandoffMs;
+        clearTimeout(riftCountdownHandoffTimer);
+        riftCountdownHandoffTimer = setTimeout(render, payloadCountdownRemaining * 1000);
+      } else if (payloadModeKey !== "rift-stabilizer" && payloadModeKey !== "flush" && payloadModeKey !== "vent-discharge") {
+        riftCountdownHandoffUntil = 0;
+        riftCountdownHandoffStartedAt = 0;
+        clearTimeout(riftCountdownHandoffTimer);
+        riftCountdownHandoffTimer = 0;
+      }
+
+      if (payload.eventType === "reset") {
+        radialLastAlertKey = "";
+        radialMessageUntil = 0;
+        radialMessageType = "";
+        radialMessageText = "";
+        clearTimeout(radialMessageTimer);
+        riftCountdownHandoffUntil = 0;
+        riftCountdownHandoffStartedAt = 0;
+        clearTimeout(riftCountdownHandoffTimer);
+        riftCountdownHandoffTimer = 0;
+        stopAllAnimationAudio();
+        contributionPressureHoldUntil = 0;
+        contributionPressureHoldKey = "";
+        clearTimeout(contributionPressureHoldTimer);
+        clearTransientTickerMessage();
+        ventPowerDown = null;
+        if (ventPowerDownFrame) {
+          cancelAnimationFrame(ventPowerDownFrame);
+          ventPowerDownFrame = 0;
+        }
+        shockAlert = null;
+        lastShockAlertKey = "";
+        if (shockAlertFrame) {
+          cancelAnimationFrame(shockAlertFrame);
+          shockAlertFrame = 0;
+        }
+        ventTransitionHold = null;
+        if (ventTransitionHoldFrame) {
+          cancelAnimationFrame(ventTransitionHoldFrame);
+          ventTransitionHoldFrame = 0;
+        }
+        overloadDischargeAlert = null;
+        lastOverloadDischargeAlertKey = "";
+        if (overloadDischargeAlertFrame) {
+          cancelAnimationFrame(overloadDischargeAlertFrame);
+          overloadDischargeAlertFrame = 0;
+        }
+        overloadExpirySequence = null;
+        lastOverloadExpirySequenceKey = "";
+        if (overloadExpirySequenceFrame) {
+          cancelAnimationFrame(overloadExpirySequenceFrame);
+          overloadExpirySequenceFrame = 0;
+        }
+        drainVisual = null;
+        lastDrainVisualKey = "";
+        completedVentSequenceKey = "";
+        completedVentSequenceUntil = 0;
+        clearTimeout(completedVentSequenceTimer);
+        completedVentSequenceTimer = 0;
+        clearTimeout(completedVentSequenceFlipTimer);
+        completedVentSequenceFlipTimer = 0;
+        if (drainVisualFrame) {
+          cancelAnimationFrame(drainVisualFrame);
+          drainVisualFrame = 0;
+        }
+        document.body.classList.remove("radial-event-received");
+        document.body.classList.remove("radial-power-down", "radial-shock-alert", "radial-safe-alert", "radial-overload-discharge", "radial-overload-expiry", "radial-overload-emergency", "radial-drain-active");
+      } else if (incomingTickerMessage) {
+        armTransientTickerMessage(incomingTickerMessage, incomingTickerKey);
+      } else if (Object.prototype.hasOwnProperty.call(payload, "tickerMessage")) {
+        clearTransientTickerMessage();
+      }
+
+      maybeStartOverloadDischargeAlert();
+      maybeStartOverloadExpirySequence(previousTelemetry);
+      maybeStartDrainVisual(previousTelemetry);
       render();
 
       if (payload.eventMessage) {
@@ -3375,6 +5599,8 @@
     document.body.classList.add(`mode-${displayMode}`);
 
     if (displayMode === "radial") {
+      loadStartupLogoArt();
+
       const radialPressureStyle = (params.get("pressureStyle") || displayConfig.radialPressureStyle || "segmented").toLowerCase();
       const radialFrameEnabled = readBoolParam("dialFrame", displayConfig.radialFrameEnabled !== false);
       const radialPillEnabled = readBoolParam("dialPill", displayConfig.radialPillEnabled !== false);
@@ -3446,18 +5672,30 @@
           const maxPressureGauge = Number.isFinite(Number(status.maxPressureGauge))
             ? Number(status.maxPressureGauge)
             : 100;
+          const rawMode = String(status.mode || "LIVE");
+          const rawModeKey = rawMode.toLowerCase();
+          const preserveActiveMode = [
+            "overload-discharge",
+            "discharge",
+            "overload-expired-discharge",
+            "overload-expired-recovery",
+            "venting",
+            "flush",
+            "vent-discharge",
+            "rift-stabilizer"
+          ].includes(rawModeKey);
 
           const mappedPayload = {
             pressure: clamp(pressureGauge, 0, 150),
             charge: clamp(pressureGauge, 0, 150),
             maxPressure: clamp(maxPressureGauge, 100, 150),
             maxCharge: clamp(maxPressureGauge, 100, 150),
-            intensity: clamp(firstFinite(status.currentVoltage, status.activeVoltage, status.voltage, status.lastIntensity, Math.ceil(pressureGauge / 10)), 0, 15),
-            maxIntensity: 15,
-            currentVoltage: clamp(firstFinite(status.currentVoltage, status.activeVoltage, status.voltage, status.lastIntensity), 0, 15),
+            intensity: clamp(firstFinite(status.currentVoltage, status.activeVoltage, status.voltage, status.lastIntensity, Math.ceil(pressureGauge / 10)), 0, 30),
+            maxIntensity: 30,
+            currentVoltage: clamp(firstFinite(status.currentVoltage, status.activeVoltage, status.voltage, status.lastIntensity), 0, 30),
             storedVoltage: clamp(firstFinite(status.storedVoltage, status.storedCharge, status.pendingVoltage, status.backloggedVoltage), 0, 99),
-            normalVoltageCap: clamp(firstFinite(status.normalVoltageCap, 10), 1, 15),
-            overloadVoltageCap: clamp(firstFinite(status.overloadVoltageCap, 15), 10, 15),
+            normalVoltageCap: clamp(firstFinite(status.normalVoltageCap, 20), 1, 30),
+            overloadVoltageCap: clamp(firstFinite(status.overloadVoltageCap, 30), 20, 30),
             overloadRequired: status.overloadRequired === true || status.overloadRequired === "true",
             hypeBoost: clamp(status.hypeLevel, 0, 10),
             chance: clamp(status.chancePercent, 0, 100),
@@ -3466,22 +5704,28 @@
             overloadActive: status.overloadActive === true,
             overloadVenting: status.overloadVenting === true,
             overloadRemaining: clamp(status.overloadRemaining, 0, 600),
+            eventCountdownRemaining: clamp(status.eventCountdownRemaining, 0, 600),
+            eventCountdownTotal: clamp(status.eventCountdownTotal, 0, 600),
             currentViewerName: status.currentViewerName || "",
             currentViewerImageUrl: status.currentViewerImageUrl || "",
             currentViewerRole: status.currentViewerRole || "",
             currentViewerBadge: status.currentViewerBadge || "Active Employee",
             eventMessage: status.eventMessage || "",
+            tickerMessage: status.tickerMessage || "",
             eventType: status.eventType || "",
             eventValueBits: clamp(status.eventValueBits, 0, 999999),
-            mode: status.overloadActive
+            statusUpdatedAt: status.updatedAt || "",
+            statusRevision: clamp(status.statusRevision, 0, Number.MAX_SAFE_INTEGER),
+            statusSequence: clamp(status.statusSequence, 0, Number.MAX_SAFE_INTEGER),
+            mode: status.overloadActive && !preserveActiveMode
               ? "OVERLOAD ARMED"
-              : (status.mode || "LIVE").toUpperCase()
+              : rawMode.toUpperCase()
           };
 
-          if (status.mode === "discharge" || status.mode === "overload" || status.mode === "venting") {
+          if (rawModeKey === "discharge" || rawModeKey === "overload" || rawModeKey === "venting" || rawModeKey === "overload-discharge" || rawModeKey === "overload-expired-discharge" || rawModeKey === "overload-expired-recovery") {
             mappedPayload.eventMessage =
               status.eventMessage || `Discharge confirmed at intensity ${status.lastIntensity}. Pressure ${pressureGauge}%.`;
-            mappedPayload.eventLevel = status.mode === "overload" || status.mode === "venting" ? "danger" : "warning";
+            mappedPayload.eventLevel = rawModeKey === "overload" || rawModeKey === "venting" || rawModeKey === "overload-discharge" || rawModeKey === "overload-expired-discharge" ? "danger" : "warning";
           }
 
           const signature = JSON.stringify(mappedPayload);
@@ -3531,11 +5775,11 @@
           maxPressure: overloadDemo || ventingDemo ? 150 : 100,
           maxCharge: overloadDemo || ventingDemo ? 150 : 100,
           intensity: simulatedVoltage,
-          maxIntensity: 15,
+          maxIntensity: 30,
           currentVoltage: simulatedVoltage,
           storedVoltage: simulatedStoredVoltage,
-          normalVoltageCap: 10,
-          overloadVoltageCap: 15,
+          normalVoltageCap: 20,
+          overloadVoltageCap: 30,
           overloadRequired: cappedDemo,
           chance: clamp(24 + Math.sin(t / 5) * 26 + (phase > 10 ? 18 : 0), 0, 100),
           cooldownRemaining: cooldownDemo ? Math.max(0, 32 - phase) : 0,
