@@ -120,6 +120,8 @@ Gift sub event arguments:
 | userName | %userName% |
 | profileImageUrl | %userProfileImageUrl% |
 
+For Twitch gift-bomb/community-gift triggers, Streamer.bot may expose the batch size as `%amount%` instead of `%giftSubCount%`. If so, set `giftSubCount = %amount%`. The pressure script also accepts common fallback count names including `amount`, `count`, `totalSubs`, and `quantity`.
+
 If Streamer.bot does not expose `%userProfileImageUrl%` for a trigger, omit `profileImageUrl`. The action still works; the widget will just keep or show the fallback viewer image.
 
 Accepted aliases for the profile image argument are:

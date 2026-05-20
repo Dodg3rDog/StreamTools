@@ -32,8 +32,8 @@ Viewer contribution events should add pressure and may add current.
 | 100 bits | +10% | +0 |
 | 500 bits | +50% | +1 |
 | 1000 bits | +100% | +2 |
-| Sub | +70% | +1 |
-| Gift sub | +70% each | +1 each |
+| Sub | +20% | +2 |
+| Gift sub | +20% each | +2 each |
 
 Small cheers should still help fill pressure, but should not make it too easy to farm current. The working balance target is roughly 1000 bits to fill the pressure gauge from empty.
 

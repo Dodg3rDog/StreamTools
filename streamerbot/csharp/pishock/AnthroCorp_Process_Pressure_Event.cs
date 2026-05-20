@@ -94,6 +94,7 @@ public class CPHInline
         DateTime now = DateTime.UtcNow;
 
         string eventType = GetStringArg("eventType", "cheer");
+        int subEventCount = IsSubEvent(eventType) ? GetSubEventCount() : 0;
         int eventBits = GetEventBits(eventType);
         int rawEventBits = eventBits;
         string viewerNameFromEvent = ResolveViewerName();
@@ -428,6 +429,7 @@ public class CPHInline
             "[PiShock Pressure] Event=" + eventType +
             " Bits=" + eventBits +
             " RawBits=" + rawEventBits +
+            " SubCount=" + subEventCount +
             " SmallCheerLedger=" + smallCheerLedgerBefore + "->" + smallCheerLedgerAfter +
             " SmallCheerLedgerReleased=" + smallCheerLedgerReleasedBits +
             " Pressure=" + pressureBefore + "->" + pressureAfterEvent +
@@ -694,7 +696,28 @@ public class CPHInline
 
     private int GetSubEventCount()
     {
-        return Math.Max(1, GetIntArg("giftSubCount", GetIntArg("subCount", 1)));
+        int count = GetFirstPositiveIntArg(
+            "giftSubCount",
+            "giftSubAmount",
+            "giftSubTotal",
+            "giftedSubCount",
+            "giftedSubs",
+            "subGiftCount",
+            "subGiftAmount",
+            "subGiftTotal",
+            "giftCount",
+            "giftAmount",
+            "gifts",
+            "totalGiftSubs",
+            "totalSubs",
+            "recipientCount",
+            "count",
+            "amount",
+            "subCount",
+            "quantity"
+        );
+
+        return Math.Max(1, count);
     }
 
     private void UpdateViewerDisplay(DateTime now, string eventType, int eventBits)
@@ -816,6 +839,39 @@ public class CPHInline
             return CPH.TryGetArg(name, out value) ? value : fallback;
         }
         catch { return fallback; }
+    }
+
+    private int GetFirstPositiveIntArg(params string[] names)
+    {
+        for (int i = 0; i < names.Length; i++)
+        {
+            int value = GetPositiveIntArg(names[i]);
+            if (value > 0)
+                return value;
+        }
+
+        return 0;
+    }
+
+    private int GetPositiveIntArg(string name)
+    {
+        try
+        {
+            int value;
+            if (CPH.TryGetArg(name, out value) && value > 0)
+                return value;
+
+            string text;
+            if (CPH.TryGetArg(name, out text))
+            {
+                int parsed;
+                if (int.TryParse((text ?? "").Trim(), out parsed) && parsed > 0)
+                    return parsed;
+            }
+        }
+        catch { }
+
+        return 0;
     }
 
     private string GetStringArg(string name, string fallback)

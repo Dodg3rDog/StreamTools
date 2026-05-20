@@ -179,6 +179,8 @@ userName = %userName%
 profileImageUrl = %userProfileImageUrl%
 ```
 
+For Twitch gift-bomb/community-gift triggers, Streamer.bot may expose the batch size as `%amount%` instead of `%giftSubCount%`. In that case, set `giftSubCount = %amount%`. The pressure script also falls back through common count names such as `amount`, `count`, `totalSubs`, and `quantity`.
+
 If the trigger does not expose `%userProfileImageUrl%`, omit `profileImageUrl`.
 
 ```text
