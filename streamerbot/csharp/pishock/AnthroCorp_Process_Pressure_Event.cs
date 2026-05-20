@@ -119,6 +119,13 @@ public class CPHInline
         bool overloadActive = GetBool("ps_overloadActive", false);
         bool overloadVenting = GetBool("ps_overloadVenting", false);
         bool overloadArmed = GetBool("ps_overloadArmed", false);
+        if (overloadVenting)
+        {
+            overloadVenting = false;
+            CPH.SetGlobalVar("ps_overloadVenting", false, true);
+            CPH.SetGlobalVar("ps_overloadVentRequested", false, true);
+            CPH.LogInfo("[PiShock Pressure] Cleared stale legacy overload venting flag. Current overload expiry is API-derived.");
+        }
         DateTime overloadUntil = GetDate("ps_overloadUntilUtc", DateTime.MinValue);
         string overloadUntilUtc = GetString("ps_overloadUntilUtc", "");
         bool overloadTimerExpired = overloadActive &&
@@ -231,22 +238,8 @@ public class CPHInline
         }
         else if (overloadActive)
         {
-            shouldStartOverloadVent = overloadTimerExpired;
-            if (shouldStartOverloadVent)
-            {
-                overloadVenting = true;
-                cooldownUntil = DateTime.MinValue;
-                cooldownRemaining = 0;
-                relayMode = "venting";
-                eventMessage = overloadTimerExpired
-                    ? "Overload timer expired. Venting sequence requested"
-                    : "Overload venting sequence requested";
-            }
-            else
-            {
-                relayMode = "overload";
-                eventMessage = "Overload containment charging";
-            }
+            relayMode = "overload";
+            eventMessage = "Overload containment charging";
         }
         else if (overloadRequired)
         {
@@ -708,7 +701,11 @@ public class CPHInline
             "giftCount",
             "giftAmount",
             "gifts",
+            "subBombCount",
+            "total",
+            "totalGifts",
             "totalGiftSubs",
+            "totalSubsGifted",
             "totalSubs",
             "recipientCount",
             "count",

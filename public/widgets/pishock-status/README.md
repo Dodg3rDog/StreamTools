@@ -181,13 +181,13 @@ profileImageUrl = %userProfileImageUrl%
 
 For Twitch gift-bomb/community-gift triggers, Streamer.bot may expose the batch size as `%amount%` instead of `%giftSubCount%`. In that case, set `giftSubCount = %amount%`. The pressure script also falls back through common count names such as `amount`, `count`, `totalSubs`, and `quantity`.
 
+The controller migration path can replace the setup arguments above with `Execute C# Method (AnthroCorp_PiShock_Controller, ProcessContributionEvent)`. Import `streamerbot/csharp/pishock/AnthroCorp_PiShock_Controller.cs` as an Execute C# Code action named `AnthroCorp_PiShock_Controller`. Streamer.bot's official Gift Bomb variable is `%gifts%`; the controller also recognizes Gift Subscription's `%subBombCount%`, StreamElements-style `%amount%`, and other common aliases before calling the pressure script inline.
+
 If the trigger does not expose `%userProfileImageUrl%`, omit `profileImageUrl`.
 
 ```text
 1. Execute Code (AnthroCorp_Process_Pressure_Event.cs)
-2. If %shouldStartOverloadVentFlag% Equals 1:
-   - Run the overload vent sequence immediately
-3. Else if %shouldDischargeFlag% Equals 1:
+2. If %shouldDischargeFlag% Equals 1:
    - Execute Code (AnthroCorp_Apply_PiShock_Vibrate_Args.cs)
    - Execute Method (PiShock V2, OperatePiShock)
    - Delay 0.5 to 1 second
@@ -245,28 +245,10 @@ For the beta Overload redeem, run:
 
 ```text
 1. AnthroCorp_Arm_Overload
-2. Delay 30 seconds during current testing
-3. Start the overload vent sequence
+2. Stop.
 ```
 
-The overload vent sequence is deterministic, not chance-based. It vents one safe pressure step at a time. Each prep/apply/debug item should be `Execute Code` inline so the next PiShock method sees the arguments that were just set:
-
-```text
-1. Execute Code (AnthroCorp_Prepare_Vent_Step.cs)
-2. If %shouldVentDischargeFlag% Equals 1:
-   - Execute Code (AnthroCorp_Apply_PiShock_Vibrate_Args.cs)
-   - Execute Code (AnthroCorp_Debug_PiShock_Args.cs) during beta testing
-   - Execute Method (PiShock V2, OperatePiShock)
-   - Delay 0.5 to 1 second
-   - Execute Code (AnthroCorp_Apply_PiShock_Shock_Args.cs)
-   - Execute Code (AnthroCorp_Debug_PiShock_Args.cs) during beta testing
-   - Execute Method (PiShock V2, OperatePiShock)
-   - Delay 1 second
-   - Repeat from step 1 while %shouldContinueVenting% Equals true
-3. Execute Code (AnthroCorp_Complete_Venting.cs)
-```
-
-If Streamer.bot cannot loop the step cleanly, duplicate the vent step block up to 12 times for beta testing. Each step stops preparing shocks once pressure reaches the 30% safe target.
+`AnthroCorp_Arm_Overload` posts the armed state directly. The StreamTools API derives the expiry/recovery state from `overloadUntilUtc` while the widget polls `/api/pishock/status`. If pressure is still at or above 100% when overload expires, the API derives the overload-expired emergency discharge visual/drain path. Do not run `AnthroCorp_Prepare_Vent_Step` for the overload redeem in the current widget flow.
 
 PiShock status POSTs are written to:
 
@@ -276,14 +258,14 @@ server/data/pishock/status-events.ndjson
 
 `server/data/` is ignored by git, so the workbench server can keep runtime logs without committing stream data.
 
-Manual flush uses the same step action, but passes a zero-pressure target:
+Manual flush uses the regular flush branch with a zero-pressure target:
 
 ```text
 1. AnthroCorp_Rift_Stabilizer_Countdown
    - Announces the vent countdown
    - Persists ps_pendingVentMode = manual-flush
    - Persists ps_pendingVentTargetPressure = 0
-2. Execute Code (AnthroCorp_Prepare_Vent_Step.cs)
+2. After the countdown delay, run AnthroCorp_PiShock_Controller.RunManualFlushResult
 3. If %shouldVentDischargeFlag% Equals 1:
    - Execute Code (AnthroCorp_Apply_PiShock_Vibrate_Args.cs)
    - Execute Code (AnthroCorp_Debug_PiShock_Args.cs) during beta testing
@@ -292,12 +274,9 @@ Manual flush uses the same step action, but passes a zero-pressure target:
    - Execute Code (AnthroCorp_Apply_PiShock_Shock_Args.cs)
    - Execute Code (AnthroCorp_Debug_PiShock_Args.cs) during beta testing
    - Execute Method (PiShock V2, OperatePiShock)
-   - Delay 1 second
-   - Repeat from step 2 while %shouldContinueVenting% Equals true
-4. Execute Code (AnthroCorp_Complete_Venting.cs)
 ```
 
-The prepare and complete scripts still accept explicit `ventMode = flush` or `ventTargetPressure = 0`, but the countdown now writes an expiring pending flush marker so the sequence still completes as a manual flush if Streamer.bot does not carry those arguments through every action. `AnthroCorp_Complete_Venting` and `AnthroCorp_Setup_Reset` clear the pending marker.
+Manual flush is a one-shot result in the current widget flow. `AnthroCorp_Prepare_Vent_Step` enters its regular flush branch when `ventMode = manual-flush`, `ventTargetPressure = 0`, or the pending flush marker exists. The controller helper `RunManualFlushResult` sets those arguments, executes the prepare script, and clears the pending marker. If wiring without the controller, call `AnthroCorp_Prepare_Vent_Step` with `ventMode = manual-flush` and `ventTargetPressure = 0`, then clear the pending marker.
 
 All status-changing Streamer.bot scripts now use a time-aware `statusSequence` value before posting directly to the API. This prevents manual flushes, pressure events, and charge updates from being ignored as stale after the API derives an overload-expiry recovery/discharge state.
 
@@ -306,7 +285,5 @@ The API-derived overload-expiry state advances the current sequence by one rathe
 The widget preserves full `statusSequence` values and also uses `statusRevision`/`updatedAt` in vent visual keys. This prevents repeated manual flush or vent-discharge events from being treated as an already-played animation.
 
 Manual flush and vent-discharge visuals include a 1.5 second transition buffer after the power-down beat before the shock/safe outcome appears, and another 1.5 second buffer after the outcome before the drain animation starts. During those buffers, the widget holds the pre-vent telemetry so the display does not briefly flash back to live pressure.
-
-Overload venting should omit those flush arguments, so it defaults to the 30% safe-pressure recovery target. If the widget first shows 140% when overload venting begins, that usually means the 150% trigger was reached and the first vent step has already reduced pressure by 10% before the direct status update posted.
 
 When the overload timer expires, the API/widget show the reroute-complete recovery sequence and return to the normal 100% pressure cap. If pressure is still at or above 100% when overload expires, the overload-expired emergency discharge visual/drain path is used instead.

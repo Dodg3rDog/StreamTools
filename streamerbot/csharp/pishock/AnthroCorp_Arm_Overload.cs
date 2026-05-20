@@ -34,9 +34,10 @@ public class CPHInline
 
         if (overloadVenting)
         {
-            SetRelay("overload-denied", "Overload denied. Venting sequence already in progress.");
-            CPH.LogInfo("[PiShock Overload] Denied. Venting already in progress.");
-            return true;
+            overloadVenting = false;
+            CPH.SetGlobalVar("ps_overloadVenting", false, true);
+            CPH.SetGlobalVar("ps_overloadVentRequested", false, true);
+            CPH.LogInfo("[PiShock Overload] Cleared stale legacy overload venting flag before arming.");
         }
 
         if (overloadActive)

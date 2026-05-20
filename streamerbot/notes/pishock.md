@@ -43,12 +43,12 @@ Required public actions:
 
 ```text
 AnthroCorp_Setup_Reset
+AnthroCorp_PiShock_Controller
 AnthroCorp_Process_Pressure_Event
 AnthroCorp_Debug_PiShock_Args
 AnthroCorp_Announce_Discharge
 AnthroCorp_Arm_Overload
 AnthroCorp_Prepare_Vent_Step
-AnthroCorp_Complete_Venting
 AnthroCorp_Hype_Pressure_Update
 AnthroCorp_Hype_Pressure_Decay
 AnthroCorp_Hype_Train_End
@@ -60,6 +60,7 @@ Optional manual/test helpers:
 ```text
 AnthroCorp_Add_Charge
 AnthroCorp_Prepare_Discharge
+AnthroCorp_Complete_Venting
 ```
 
 `PiShock V2` remains a private local Streamer.bot action and should be the only action that talks directly to PiShock.
@@ -77,14 +78,23 @@ Smoke test after importing:
 Cheer, sub, and gift-sub pressure event:
 
 ```text
-1. AnthroCorp_Process_Pressure_Event
-2. If shouldStartOverloadVent == true:
-   - Start the overload vent sequence
-3. Else if shouldDischarge == true:
-   - AnthroCorp_Debug_PiShock_Args during beta testing
-   - PiShock V2
+1. Execute Code (AnthroCorp_Process_Pressure_Event.cs)
+2. If %shouldDischargeFlag% Equals 1:
+   - Execute Code (AnthroCorp_Apply_PiShock_Vibrate_Args.cs)
+   - Execute Method (PiShock V2, OperatePiShock)
+   - Delay 500ms
+   - Execute Code (AnthroCorp_Apply_PiShock_Shock_Args.cs)
+   - Execute Method (PiShock V2, OperatePiShock)
    - AnthroCorp_Announce_Discharge
 ```
+
+Controller migration option:
+
+```text
+Execute C# Method: AnthroCorp_PiShock_Controller.ProcessContributionEvent
+```
+
+Set the Execute C# Code sub-action name to `AnthroCorp_PiShock_Controller` so Streamer.bot can discover the public methods. The controller normalizes Twitch trigger arguments first, then calls the existing pressure script inline.
 
 `AnthroCorp_Process_Pressure_Event` posts the fresh status directly to the StreamTools API. Do not run `Anthro-Corp_Relay_Status_Update` after normal cheer/sub/gift-sub pressure events, or stale Streamer.bot globals can make the widget appear one event behind.
 
@@ -120,7 +130,7 @@ Gift sub event arguments:
 | userName | %userName% |
 | profileImageUrl | %userProfileImageUrl% |
 
-For Twitch gift-bomb/community-gift triggers, Streamer.bot may expose the batch size as `%amount%` instead of `%giftSubCount%`. If so, set `giftSubCount = %amount%`. The pressure script also accepts common fallback count names including `amount`, `count`, `totalSubs`, and `quantity`.
+For Twitch gift-bomb/community-gift triggers, Streamer.bot's official Gift Bomb variable is `%gifts%`. StreamElements-style payloads may expose the batch size as `%amount%`. If so, set `giftSubCount = %gifts%` or `giftSubCount = %amount%`. The pressure script and controller also accept common fallback count names including `gifts`, `subBombCount`, `totalGifts`, `amount`, `count`, `totalSubs`, and `quantity`.
 
 If Streamer.bot does not expose `%userProfileImageUrl%` for a trigger, omit `profileImageUrl`. The action still works; the widget will just keep or show the fallback viewer image.
 
@@ -136,27 +146,14 @@ Overload redeem:
 
 ```text
 1. AnthroCorp_Arm_Overload
-2. Delay 30 seconds during current testing
-3. Start the overload vent sequence
-```
-
-Overload vent sequence:
-
-```text
-1. AnthroCorp_Prepare_Vent_Step
-2. If shouldVentDischarge == true:
-   - AnthroCorp_Debug_PiShock_Args during beta testing
-   - PiShock V2
-   - Delay 1 second
-   - Repeat from step 1 while shouldContinueVenting == true
-3. AnthroCorp_Complete_Venting
+2. Stop. Do not run AnthroCorp_Prepare_Vent_Step or AnthroCorp_Complete_Venting for the overload redeem.
 ```
 
 Current status-changing PiShock actions post their widget payloads directly to the StreamTools API. Keep `Anthro-Corp_Relay_Status_Update` as a fallback/manual bridge only; it is no longer needed in normal pressure, overload, vent, flush, reset, hype, or manual charge/discharge wiring.
 
 Status-changing actions should use the shared time-aware `GetNextStatusSequence()` pattern before posting to the API. The API can derive overload-expiry states on its own and advances the sequence for those derived states, so scripts should not rely on an old cached sequence value.
 
-Manual flush uses the same vent sequence. The preferred setup starts with `AnthroCorp_Rift_Stabilizer_Countdown`, which announces the countdown and persists the flush intent:
+Manual flush is a one-shot result in the current widget flow. The preferred setup starts with `AnthroCorp_Rift_Stabilizer_Countdown`, which announces the countdown and persists the flush intent:
 
 ```text
 ps_pendingVentMode = manual-flush
@@ -164,7 +161,7 @@ ps_pendingVentTargetPressure = 0
 ps_pendingVentUntilUtc = countdown end + 10 minutes
 ```
 
-`AnthroCorp_Prepare_Vent_Step` and `AnthroCorp_Complete_Venting` still accept explicit `ventMode = flush` or `ventTargetPressure = 0`, but they also read the pending flush globals when Streamer.bot does not carry action arguments through the delayed chain. `AnthroCorp_Complete_Venting` and `AnthroCorp_Setup_Reset` clear the pending globals.
+After the countdown delay, call `AnthroCorp_PiShock_Controller.RunManualFlushResult`. It sets `ventMode = manual-flush`, sets `ventTargetPressure = 0`, executes the regular flush branch, and clears the pending flush globals. If wiring without the controller, call `AnthroCorp_Prepare_Vent_Step` with those same two arguments and then clear the pending globals.
 
 ## PiShock State Globals
 
@@ -234,7 +231,7 @@ stored charge holds overflow when current charge is already capped
 
 Normal pressure caps at 100%. The Overload redeem allows the pressure gauge to enter the red zone up to 150%.
 
-Normal current charge caps at 10. Overload current charge caps at 15. Stored charge can accumulate overflow for later promotion.
+Normal current charge caps at 20. Overload current charge caps at 30. Stored charge can accumulate overflow for later promotion.
 
 Gift subs and subs count as 700 bits for chance and pressure calculations.
 
@@ -259,20 +256,17 @@ Current charge gain table:
 
 ```text
 1-99 bits      = +0 current charge
-100-299 bits   = +1 current charge
-300-499 bits   = +2 current charge
-500-699 bits   = +3 current charge
-700-999 bits   = +5 current charge
-1000-1499 bits = +7 current charge
-1500+ bits     = +10 current charge
+100-699 bits   = +0 current charge
+700-3499 bits  = +2 current charge
+3500+ bits     = +4 current charge
 ```
 
 Examples:
 
 ```text
-500-bit cheer = +50 pressure, +3 current charge
-single sub    = +70 pressure, +5 current charge
-two subs      = 100 pressure cap, 10 current charge cap
+500-bit cheer = +50 pressure, +0 current charge
+single sub    = +70 pressure, +2 current charge
+two subs      = 100 pressure cap, +4 current charge
 ```
 
 If current charge is full, additional charge is placed into stored charge. When a normal discharge fires, the current charge is consumed as the shock intensity, then stored charge is promoted into current charge up to the current cap.
@@ -280,13 +274,13 @@ If current charge is full, additional charge is placed into stored charge. When 
 Example:
 
 ```text
-current charge 10, stored charge 0, pressure 90
-single sub adds +70 pressure and +5 charge
+current charge 20, stored charge 0, pressure 90
+single sub adds +70 pressure and +2 charge
 pressure caps at 100 and triggers discharge if not in cooldown
-shock intensity = 10
-stored charge receives +5 overflow
-after discharge, stored +5 promotes into current charge
-result: current charge 5, stored charge 0, pressure 90 after the 10% vent
+shock intensity = 20
+stored charge receives +2 overflow
+after discharge, stored +2 promotes into current charge
+result: current charge 2, stored charge 0, pressure 0
 ```
 
 ## Bit-Weighted Chance
@@ -355,7 +349,7 @@ The Overload redeem allows pressure to exceed 100%, up to 150%. When overload st
 ```text
 ps_overloadActive = true
 ps_maxPressureGauge = 150
-ps_overloadChargeCap = 15
+ps_overloadChargeCap = 30
 ps_overloadUntilUtc = now + 30 seconds during current testing
 relay mode = overload-armed
 ```
@@ -364,8 +358,6 @@ Streamer.bot action:
 
 ```text
 AnthroCorp_Arm_Overload
-Delay 30 seconds during current testing
-Start overload vent sequence
 ```
 
 Widget behavior:
@@ -379,49 +371,17 @@ show that normal discharges are locked out
 
 During overload lockout, no normal shock should discharge. Cheers/subs still add pressure up to 150%.
 
-When pressure reaches 150%, begin overload venting. Venting is deterministic, not chance-based: it sends one shock per 10% pressure step until pressure reaches the safe pressure target of 30%.
+When the overload timer expires, the API/widget derive a reroute-complete sequence and return to the normal pressure cap. During current testing the timer is 30 seconds. If pressure is at or above 100% when overload expires, the API triggers the overload-expired emergency discharge visual/drain path.
 
-When the overload timer expires, the API/widget show a reroute-complete sequence and return to the normal pressure cap. During current testing the timer is 30 seconds. If pressure is at or above 100% when overload expires, the system triggers the overload-expired emergency discharge visual/drain path.
-
-Every pressure event action should check `shouldStartOverloadVent` immediately after `AnthroCorp_Process_Pressure_Event`. If it is true, start the overload vent sequence instead of waiting for the 5-minute delayed action.
-
-Example from 150%:
+After API-derived recovery:
 
 ```text
-shock intensity 15
-wait 1 second
-shock intensity 14
-wait 1 second
-shock intensity 13
-...
-shock intensity 3
-```
-
-After venting completes:
-
-```text
-ps_pressureGauge = 30
+pressureGauge = min(current pressure, 100)
 ps_maxPressureGauge = 100
-ps_overloadActive = false
-ps_overloadVenting = false
-relay mode = recovery
+overloadActive = false
+overloadVenting = false
+mode = overload-expired-recovery
 ```
-
-Venting is prepared one step at a time so the private PiShock action remains the only action that sends impulses:
-
-```text
-AnthroCorp_Prepare_Vent_Step
-If shouldVentDischarge == true:
-  AnthroCorp_Debug_PiShock_Args during beta testing
-  PiShock V2 private action
-  wait 1 second
-  repeat while shouldContinueVenting == true
-AnthroCorp_Complete_Venting
-```
-
-If Streamer.bot looping is awkward during beta testing, duplicate the vent step block up to 12 times. The step action stops preparing shocks once the pressure reaches 30%.
-
-If the widget first shows 140% when overload venting begins, that usually means the 150% trigger was reached and the first 10% vent step already posted its direct status update.
 
 Suggested recovery ticker copy:
 
@@ -439,7 +399,7 @@ Flush target:
 0% full pressure purge
 ```
 
-Manual flush uses the same step action as overload venting. The countdown action marks the pending flush globally:
+Manual flush uses the regular flush branch in `AnthroCorp_Prepare_Vent_Step`. The countdown action marks the pending flush globally:
 
 ```text
 AnthroCorp_Rift_Stabilizer_Countdown
@@ -448,14 +408,14 @@ AnthroCorp_Rift_Stabilizer_Countdown
   sets ps_pendingVentUntilUtc = countdown end + 10 minutes
 ```
 
-`AnthroCorp_Prepare_Vent_Step` and `AnthroCorp_Complete_Venting` use those pending globals if `ventMode`/`ventTargetPressure` args are missing. Explicit args still work:
+`AnthroCorp_Prepare_Vent_Step` uses those pending globals if `ventMode`/`ventTargetPressure` args are missing. Explicit args still work:
 
 ```text
 ventMode = flush
 ventTargetPressure = 0
 ```
 
-`AnthroCorp_Complete_Venting` clears the pending globals after it posts the final 0% state.
+The controller helper `RunManualFlushResult` sets `ventMode = manual-flush`, sets `ventTargetPressure = 0`, executes the prepare script, and clears the pending globals. Use that helper for the current one-shot flush wiring.
 
 ## Viewer Attribution
 
