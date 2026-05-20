@@ -14,17 +14,10 @@ public class CPHInline
 
     private const string PressureEventAction = "AnthroCorp_Process_Pressure_Event";
     private const string ResetAction = "AnthroCorp_Setup_Reset";
-    private const string CompleteVentingAction = "AnthroCorp_Complete_Venting";
     private const string PrepareVentStepAction = "AnthroCorp_Prepare_Vent_Step";
-    private const string PrepareDischargeAction = "AnthroCorp_Prepare_Discharge";
     private const string HypeUpdateAction = "AnthroCorp_Hype_Pressure_Update";
     private const string HypeEndAction = "AnthroCorp_Hype_Train_End";
     private const string RiftCountdownAction = "AnthroCorp_Rift_Stabilizer_Countdown";
-    private const string ApplyVibrateAction = "AnthroCorp_Apply_PiShock_Vibrate_Args";
-    private const string ApplyShockAction = "AnthroCorp_Apply_PiShock_Shock_Args";
-    private const string DebugArgsAction = "AnthroCorp_Debug_PiShock_Args";
-    private const string AnnounceDischargeAction = "AnthroCorp_Announce_Discharge";
-    private const string RelayStatusAction = "Anthro-Corp_Relay_Status_Update";
     private const int OverloadMaxPressure = 150;
     private const int OverloadDurationSeconds = 30;
     private const int NormalChargeCap = 20;
@@ -203,35 +196,152 @@ public class CPHInline
 
     public bool PrepareManualDischarge()
     {
-        return ExecuteAnthroMethod(PrepareDischargeAction, "Execute");
+        CPH.LogError("[AnthroCorp Controller] PrepareManualDischarge is a legacy/test helper and is not part of the current master-script wiring.");
+        return false;
     }
 
     public bool ApplyPiShockVibrateArgs()
     {
-        return ExecuteAnthroMethod(ApplyVibrateAction, "Execute");
+        int intensity = GetIntArg("vibrateIntensity", GetIntGlobal("ps_pendingVibrateIntensity", GetIntArg("intensity", 1)));
+        int duration = GetIntArg("vibrateDuration", GetIntGlobal("ps_pendingVibrateDuration", 1));
+        int op = GetIntArg("vibrateOp", GetIntGlobal("ps_pendingVibrateOp", 1));
+        int mode = GetIntArg("vibrateMode", GetIntGlobal("ps_pendingVibrateMode", 0));
+        int shocker = GetIntArg("vibrateShocker", GetIntGlobal("ps_pendingVibrateShocker", 0));
+
+        CPH.SetArgument("intensity", intensity);
+        CPH.SetArgument("duration", duration);
+        CPH.SetArgument("op", op);
+        CPH.SetArgument("mode", mode);
+        CPH.SetArgument("shocker", shocker);
+        CPH.SetArgument("log", "PRE-SHOCK VIBRATE");
+        CPH.SetGlobalVar("ps_nextPiShockPreset", "vibrate", true);
+
+        CPH.LogInfo("[AnthroCorp Controller] Applied vibrate handoff. intensity=" + intensity + " duration=" + duration + " op=" + op + " mode=" + mode + " shocker=" + shocker);
+        return true;
     }
 
     public bool ApplyPiShockShockArgs()
     {
-        return ExecuteAnthroMethod(ApplyShockAction, "Execute");
+        int intensity = GetIntArg("shockIntensity", GetIntGlobal("ps_pendingShockIntensity", GetIntArg("intensity", 1)));
+        int duration = GetIntArg("shockDuration", GetIntGlobal("ps_pendingShockDuration", GetIntArg("duration", 1)));
+        int op = GetIntArg("shockOp", GetIntGlobal("ps_pendingShockOp", 0));
+        int mode = GetIntArg("shockMode", GetIntGlobal("ps_pendingShockMode", 0));
+        int shocker = GetIntArg("shockShocker", GetIntGlobal("ps_pendingShockShocker", 0));
+        string log = GetStringArg("shockLog", GetStringGlobal("ps_pendingShockLog", GetStringArg("log", "PRESSURE EVENT")));
+
+        CPH.SetArgument("intensity", intensity);
+        CPH.SetArgument("duration", duration);
+        CPH.SetArgument("op", op);
+        CPH.SetArgument("mode", mode);
+        CPH.SetArgument("shocker", shocker);
+        CPH.SetArgument("log", log);
+        CPH.SetGlobalVar("ps_nextPiShockPreset", "shock", true);
+
+        CPH.LogInfo("[AnthroCorp Controller] Applied shock handoff. intensity=" + intensity + " duration=" + duration + " op=" + op + " mode=" + mode + " shocker=" + shocker + " log=" + log);
+        return true;
     }
 
     public bool DebugPiShockArgs()
     {
-        return ExecuteAnthroMethod(DebugArgsAction, "Execute");
+        string preset = GetStringGlobal("ps_nextPiShockPreset", "");
+        bool vibratePreset = preset.Equals("vibrate", StringComparison.OrdinalIgnoreCase);
+        bool shockPreset = preset.Equals("shock", StringComparison.OrdinalIgnoreCase);
+        int intensity = GetIntArg("intensity", vibratePreset
+            ? GetIntGlobal("ps_pendingVibrateIntensity", -1)
+            : shockPreset ? GetIntGlobal("ps_pendingShockIntensity", -1) : -1);
+        int duration = GetIntArg("duration", vibratePreset
+            ? GetIntGlobal("ps_pendingVibrateDuration", -1)
+            : shockPreset ? GetIntGlobal("ps_pendingShockDuration", -1) : -1);
+        int op = GetIntArg("op", vibratePreset
+            ? GetIntGlobal("ps_pendingVibrateOp", -1)
+            : shockPreset ? GetIntGlobal("ps_pendingShockOp", -1) : -1);
+        int mode = GetIntArg("mode", vibratePreset
+            ? GetIntGlobal("ps_pendingVibrateMode", -1)
+            : shockPreset ? GetIntGlobal("ps_pendingShockMode", -1) : -1);
+        int shocker = GetIntArg("shocker", vibratePreset
+            ? GetIntGlobal("ps_pendingVibrateShocker", -1)
+            : shockPreset ? GetIntGlobal("ps_pendingShockShocker", -1) : -1);
+
+        CPH.LogInfo(
+            "[AnthroCorp Controller Args] preset=" + preset +
+            " intensity=" + intensity +
+            " duration=" + duration +
+            " op=" + op +
+            " mode=" + mode +
+            " shocker=" + shocker
+        );
+
+        if (intensity < 1)
+            CPH.LogError("[AnthroCorp Controller Args] Missing or invalid intensity. PiShock V2 will not send a valid shock.");
+
+        if (duration < 1)
+            CPH.LogError("[AnthroCorp Controller Args] Missing or invalid duration. PiShock V2 will not send a valid shock.");
+
+        if (op < 0)
+            CPH.LogError("[AnthroCorp Controller Args] Missing op. Expected 0 for shock or 1 for vibrate.");
+
+        if (mode < 0)
+            CPH.LogError("[AnthroCorp Controller Args] Missing mode. Expected 0 for single/default shocker.");
+
+        return true;
     }
 
     public bool AnnounceDischarge()
     {
-        return ExecuteAnthroMethod(AnnounceDischargeAction, "Execute");
+        int pressureBefore = GetIntGlobal("ps_lastPressureBefore", GetIntGlobal("ps_lastPoolBefore", 0));
+        int pressureAfter = GetIntGlobal("ps_lastPressureAfter", GetIntGlobal("ps_lastPoolAfter", 0));
+        int pressureGain = GetIntGlobal("ps_lastPressureGain", 0);
+        int chargeGain = GetIntGlobal("ps_lastChargeGain", 0);
+        int finalIntensity = GetIntGlobal("ps_lastFinalIntensity", 0);
+        int pressureVented = GetIntGlobal("ps_lastPressureVented", Math.Max(0, pressureBefore - pressureAfter));
+        int chargeBefore = GetIntGlobal("ps_lastPoolBefore", 0);
+        int chargeAfter = GetIntGlobal("ps_lastPoolAfter", 0);
+        int storedCharge = GetIntGlobal("ps_storedCharge", 0);
+        int chancePercent = GetIntGlobal("ps_lastChancePercent", 0);
+        int roll = GetIntGlobal("ps_lastRoll", 0);
+        int cooldownSeconds = GetIntGlobal("ps_cooldownSeconds", 0);
+        string relayMode = GetStringGlobal("ps_relayMode", "discharge");
+        string eventType = GetStringGlobal("ps_lastEventType", "event");
+        int eventValueBits = GetIntGlobal("ps_lastEventValueBits", 0);
+        bool overloadUsed = GetBoolGlobal("ps_lastOverloadUsed", false);
+
+        string displayMode = overloadUsed || relayMode == "venting"
+            ? "OVERLOAD VENT DISCHARGE"
+            : "CONTAINMENT DISCHARGE";
+
+        string msg =
+            displayMode + " CONFIRMED | " +
+            "Event: " + eventType + " (" + eventValueBits + " bits) | " +
+            "Pressure: " + pressureBefore + "% -> " + pressureAfter + "%";
+
+        if (pressureGain > 0)
+            msg += " (+" + pressureGain + "% gained)";
+
+        msg +=
+            " | Output: intensity " + finalIntensity +
+            " | Charge: " + chargeBefore + "c -> " + chargeAfter + "c";
+
+        if (chargeGain > 0 || storedCharge > 0)
+            msg += " (+" + chargeGain + "c, stored " + storedCharge + "s)";
+
+        msg += " | Vented: " + pressureVented + "%";
+
+        if (chancePercent > 0 || roll > 0)
+            msg += " | Chance: " + chancePercent + "% Roll: " + roll;
+
+        if (cooldownSeconds > 0)
+            msg += " | Cooldown: " + cooldownSeconds + "s";
+
+        msg += ".";
+
+        CPH.LogInfo("[Anthro-Corp] " + msg);
+        return true;
     }
 
     public bool RefreshWidgetStatus()
     {
-        if (ExecuteAnthroMethod(RelayStatusAction, "Execute"))
-            return true;
-
-        return ExecuteAnthroMethod("AnthroCorp_Relay_Status_Update", "Execute");
+        CPH.LogError("[AnthroCorp Controller] RefreshWidgetStatus no longer calls relay status bridge scripts. Current status-changing controller methods post directly.");
+        return false;
     }
 
     private void ClearOverloadState()
@@ -571,6 +681,27 @@ public class CPHInline
         catch { }
 
         return 0;
+    }
+
+    private int GetIntArg(string name, int fallback)
+    {
+        try
+        {
+            int value;
+            if (CPH.TryGetArg(name, out value))
+                return value;
+
+            string text;
+            if (CPH.TryGetArg(name, out text))
+            {
+                int parsed;
+                if (int.TryParse((text ?? "").Trim(), out parsed))
+                    return parsed;
+            }
+
+            return fallback;
+        }
+        catch { return fallback; }
     }
 
     private string GetStringArg(string name, string fallback)
