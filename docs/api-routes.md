@@ -24,7 +24,7 @@ Incoming status updates older than the current `statusSequence` are ignored as s
 
 ## Discord
 
-When `ENABLE_DISCORD_BOT=true`, the main StreamTools server also starts the Discord client. You do not need to run `discord-redeem-bot` in a separate terminal.
+When `ENABLE_DISCORD_BOT=true`, the main StreamTools server also starts the Discord client. Run the StreamTools server as the single Discord bridge process.
 
 Customize the consolidated redeem board in:
 
