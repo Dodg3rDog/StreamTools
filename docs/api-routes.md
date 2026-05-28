@@ -22,6 +22,58 @@ The status route also derives live timer state for cooldowns, event countdowns, 
 
 Incoming status updates older than the current `statusSequence` are ignored as stale. Streamer.bot scripts should post with a monotonic, time-aware sequence. When this route derives an overload-expiry state, it advances the current sequence by one so later Streamer.bot updates do not have to catch up to a wall-clock timestamp jump.
 
+## Discord
+
+When `ENABLE_DISCORD_BOT=true`, the main StreamTools server also starts the Discord client. You do not need to run `discord-redeem-bot` in a separate terminal.
+
+Customize the consolidated redeem board in:
+
+```text
+server/services/discordRedeems.js
+```
+
+```text
+POST /api/discord/redeem
+POST /api/discord/message
+```
+
+Accepts Discord redeem button events and optional Discord message/command events from the local Discord redeem bot.
+
+If `STREAMTOOLS_BOT_SECRET` is set in the StreamTools server `.env`, requests must include the matching header:
+
+```text
+X-StreamTools-Bot-Secret: <secret>
+```
+
+The route logs the received event and responds with:
+
+```json
+{
+  "ok": true,
+  "received": true,
+  "streamerBot": {
+    "ok": true
+  }
+}
+```
+
+If `STREAMERBOT_HTTP_URL` is set, the Discord routes also call Streamer.bot's HTTP `DoAction` endpoint.
+
+Default Streamer.bot bridge action names:
+
+```text
+Discord Trigger Bridge
+```
+
+Override them with:
+
+```env
+STREAMERBOT_DISCORD_REDEEM_ACTION_NAME=Discord Trigger Bridge
+STREAMERBOT_DISCORD_MESSAGE_ACTION_NAME=Discord Trigger Bridge
+```
+
+The bridge action raises Streamer.bot custom code triggers registered by `streamerbot/csharp/discord/Discord_Trigger_Bridge.cs`.
+
 ## Timers
 
 ```text
