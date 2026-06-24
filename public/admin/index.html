@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamTools Admin</title>
+  <link rel="stylesheet" href="/shared/css/reset.css" />
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+  <main class="admin-shell">
+    <aside class="admin-nav" aria-label="Admin sections">
+      <div class="brand-block">
+        <span class="brand-kicker">StreamTools</span>
+        <h1>Admin</h1>
+      </div>
+
+      <nav class="section-list">
+        <button class="section-button active" type="button" data-section="discord">Discord Redeems</button>
+        <button class="section-button" type="button" data-section="points">Points</button>
+        <button class="section-button" type="button" data-section="pishock" disabled>PiShock</button>
+        <button class="section-button" type="button" data-section="widgets" disabled>Widgets</button>
+        <button class="section-button" type="button" data-section="streamerbot" disabled>Streamer.bot</button>
+      </nav>
+    </aside>
+
+    <section class="workspace" aria-live="polite">
+      <header class="workspace-header">
+        <div>
+          <span class="eyebrow">Preferences</span>
+          <h2>Discord Redeems</h2>
+        </div>
+        <div class="token-control">
+          <label for="tokenInput">Bearer token</label>
+          <input id="tokenInput" type="password" autocomplete="off" placeholder="Required for saving" />
+        </div>
+      </header>
+
+      <section class="status-row" id="statusRow" role="status"></section>
+
+      <section class="admin-section active" data-admin-section="discord">
+      <section class="editor-grid">
+        <form class="editor-panel" id="redeemForm">
+          <input type="hidden" id="redeemId" />
+
+          <div class="field-row">
+            <label for="redeemName">Redeem Name</label>
+            <input id="redeemName" name="label" type="text" placeholder="Hydrate" required />
+          </div>
+
+          <div class="field-row">
+            <label for="redeemEmoji">Emoji</label>
+            <input id="redeemEmoji" name="emoji" type="text" placeholder="🥤 or <:name:id>" />
+          </div>
+
+          <div class="field-row">
+            <label for="redeemStyle">Color</label>
+            <select id="redeemStyle" name="style">
+              <option value="primary">Blue</option>
+              <option value="secondary">Gray</option>
+              <option value="success">Green</option>
+              <option value="danger">Red</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="redeemPointCost">Point Cost</label>
+            <input id="redeemPointCost" name="pointCost" type="number" min="0" step="1" value="0" />
+          </div>
+
+          <div class="check-row">
+            <label>
+              <input id="redeemVisible" name="visible" type="checkbox" checked />
+              Visible
+            </label>
+            <label>
+              <input id="redeemDisabled" name="disabled" type="checkbox" />
+              Disabled
+            </label>
+          </div>
+
+          <fieldset class="input-panel">
+            <legend>User Input</legend>
+
+            <label class="inline-check">
+              <input id="redeemRequiresInput" name="requiresInput" type="checkbox" />
+              Request info from user
+            </label>
+
+            <div class="field-row">
+              <label for="redeemInputTitle">Modal Title</label>
+              <input id="redeemInputTitle" name="inputTitle" type="text" maxlength="45" placeholder="Hydrate" />
+            </div>
+
+            <div class="field-row">
+              <label for="redeemInputLabel">Prompt</label>
+              <input id="redeemInputLabel" name="inputLabel" type="text" maxlength="45" placeholder="What should the stream know?" />
+            </div>
+
+            <div class="field-row">
+              <label for="redeemInputPlaceholder">Placeholder</label>
+              <input id="redeemInputPlaceholder" name="inputPlaceholder" type="text" maxlength="100" placeholder="Optional helper text" />
+            </div>
+
+            <div class="field-row">
+              <label for="redeemInputStyle">Answer Type</label>
+              <select id="redeemInputStyle" name="inputStyle">
+                <option value="short">Short</option>
+                <option value="paragraph">Paragraph</option>
+              </select>
+            </div>
+
+            <label class="inline-check">
+              <input id="redeemInputRequired" name="inputRequired" type="checkbox" checked />
+              Required
+            </label>
+
+          </fieldset>
+
+          <div class="order-control" aria-label="Redeem order">
+            <button type="button" id="moveRedeemEarlierButton" title="Move earlier">←</button>
+            <span id="redeemOrderText">Select a redeem</span>
+            <button type="button" id="moveRedeemLaterButton" title="Move later">→</button>
+          </div>
+
+          <div class="form-actions">
+            <button class="primary-action" type="submit">Save</button>
+            <button type="button" id="newRedeemButton">New</button>
+            <button class="danger-action" type="button" id="deleteRedeemButton">Delete</button>
+          </div>
+        </form>
+
+        <section class="redeem-list-panel">
+          <div class="panel-heading">
+            <h3>Redeem Board</h3>
+            <button type="button" id="refreshButton">Refresh</button>
+          </div>
+          <div class="redeem-list" id="redeemList"></div>
+        </section>
+      </section>
+      </section>
+
+      <section class="admin-section" data-admin-section="points">
+        <section class="points-grid">
+          <form class="editor-panel" id="pointSettingsForm">
+            <div class="panel-heading">
+              <h3>Point Settings</h3>
+              <button type="button" id="refreshPointSettingsButton">Refresh</button>
+            </div>
+
+            <div class="field-row">
+              <label for="pointVarName">Persistent Variable</label>
+              <input id="pointVarName" name="pointVarName" type="text" value="stream_points" />
+            </div>
+
+            <div class="field-row">
+              <label for="pointName">Display Name</label>
+              <input id="pointName" name="pointName" type="text" value="point" />
+            </div>
+
+            <div class="form-actions">
+              <button class="primary-action" type="submit">Save Settings</button>
+            </div>
+          </form>
+
+          <form class="editor-panel" id="pointUserForm">
+            <div class="panel-heading">
+              <h3>User Balance</h3>
+              <button type="button" id="refreshPointUserButton">Refresh</button>
+            </div>
+
+            <div class="field-row">
+              <label for="pointUserKey">User Key</label>
+              <input id="pointUserKey" name="pointUserKey" type="text" placeholder="discord:123456789012345678 or Twitch login" />
+            </div>
+
+            <div class="field-row">
+              <label for="pointUserBalance">Balance</label>
+              <input id="pointUserBalance" name="points" type="number" min="0" step="1" value="0" />
+            </div>
+
+            <div class="field-row">
+              <label for="pointUserDelta">Add Amount</label>
+              <input id="pointUserDelta" name="amount" type="number" step="1" value="0" />
+            </div>
+
+            <div class="form-actions">
+              <button class="primary-action" type="submit">Set Balance</button>
+              <button type="button" id="addPointUserButton">Add</button>
+            </div>
+          </form>
+
+          <section class="redeem-list-panel">
+            <div class="panel-heading">
+              <h3>Message Tokens</h3>
+            </div>
+            <div class="token-preview">
+              <p><code>%pointsBalance%</code> current balance</p>
+              <p><code>%pointName%</code> point display name</p>
+              <p><code>%pointsResponseMessage%</code> default denial text</p>
+              <p><code>%stream_points%</code> balance alias when the persistent variable is <code>stream_points</code></p>
+            </div>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="./admin.js"></script>
+</body>
+</html>

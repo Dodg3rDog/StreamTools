@@ -4251,6 +4251,7 @@
         pressure: lerp(drainVisual.from.pressure, drainVisual.to.pressure, progress),
         charge: lerp(drainVisual.from.charge, drainVisual.to.charge, progress),
         currentVoltage: lerp(drainVisual.from.currentVoltage, drainVisual.to.currentVoltage, progress),
+        storedVoltage: lerp(firstFinite(drainVisual.from.storedVoltage), firstFinite(drainVisual.to.storedVoltage), progress),
         intensity: lerp(drainVisual.from.intensity, drainVisual.to.intensity, progress)
       };
     }
@@ -4262,6 +4263,7 @@
         pressure: shockAlert.pendingDrain.from.pressure,
         charge: shockAlert.pendingDrain.from.charge,
         currentVoltage: shockAlert.pendingDrain.from.currentVoltage,
+        storedVoltage: firstFinite(shockAlert.pendingDrain.from.storedVoltage),
         intensity: shockAlert.pendingDrain.from.intensity
       };
     }
@@ -4273,6 +4275,7 @@
         pressure: ventPowerDown.pendingAlert.pendingDrain.from.pressure,
         charge: ventPowerDown.pendingAlert.pendingDrain.from.charge,
         currentVoltage: ventPowerDown.pendingAlert.pendingDrain.from.currentVoltage,
+        storedVoltage: firstFinite(ventPowerDown.pendingAlert.pendingDrain.from.storedVoltage),
         intensity: ventPowerDown.pendingAlert.pendingDrain.from.intensity
       };
     }
@@ -4284,6 +4287,7 @@
         pressure: ventTransitionHold.holdTelemetry.pressure,
         charge: ventTransitionHold.holdTelemetry.charge,
         currentVoltage: ventTransitionHold.holdTelemetry.currentVoltage,
+        storedVoltage: firstFinite(ventTransitionHold.holdTelemetry.storedVoltage),
         intensity: ventTransitionHold.holdTelemetry.intensity
       };
     }
@@ -4295,6 +4299,7 @@
         pressure: overloadExpirySequence.pendingDrain.from.pressure,
         charge: overloadExpirySequence.pendingDrain.from.charge,
         currentVoltage: overloadExpirySequence.pendingDrain.from.currentVoltage,
+        storedVoltage: firstFinite(overloadExpirySequence.pendingDrain.from.storedVoltage),
         intensity: overloadExpirySequence.pendingDrain.from.intensity
       };
     }
@@ -4310,9 +4315,11 @@
 
       const targetPressure = clamp(state.pressure, 0, state.maxPressure || 150);
       const targetCurrent = clamp(firstFinite(state.currentVoltage, state.intensity), 0, state.overloadVoltageCap || 30);
+      const targetStored = clamp(state.storedVoltage, 0, 99);
       const targetIntensity = clamp(state.intensity, 0, state.maxIntensity || 30);
       const startPressure = Math.max(previousTelemetry.pressure, targetPressure);
       const startCurrent = Math.max(previousTelemetry.currentVoltage, targetCurrent);
+      const startStored = Math.max(previousTelemetry.storedVoltage, targetStored);
       const startIntensity = Math.max(previousTelemetry.intensity, targetIntensity);
 
       lastDrainVisualKey = key;
@@ -4325,12 +4332,14 @@
           pressure: startPressure,
           charge: Math.max(previousTelemetry.charge, targetPressure),
           currentVoltage: startCurrent,
+          storedVoltage: startStored,
           intensity: startIntensity
         },
         to: {
           pressure: targetPressure,
           charge: targetPressure,
           currentVoltage: targetCurrent,
+          storedVoltage: targetStored,
           intensity: targetIntensity
         }
       };
@@ -4412,9 +4421,11 @@
       const seed = state.statusSequence || state.statusRevision || Date.now();
       const targetPressure = clamp(state.pressure, 0, state.maxPressure || 100);
       const targetCurrent = clamp(firstFinite(state.currentVoltage, state.intensity), 0, state.overloadVoltageCap || 30);
+      const targetStored = clamp(state.storedVoltage, 0, 99);
       const targetIntensity = clamp(state.intensity, 0, state.maxIntensity || 30);
       const startPressure = Math.max(previousTelemetry.pressure, targetPressure);
       const startCurrent = Math.max(previousTelemetry.currentVoltage, targetCurrent);
+      const startStored = Math.max(previousTelemetry.storedVoltage, targetStored);
       const startIntensity = Math.max(previousTelemetry.intensity, targetIntensity);
 
       overloadExpirySequence = {
@@ -4436,12 +4447,14 @@
               pressure: startPressure,
               charge: Math.max(previousTelemetry.charge, startPressure),
               currentVoltage: startCurrent,
+              storedVoltage: startStored,
               intensity: startIntensity
             },
             to: {
               pressure: targetPressure,
               charge: targetPressure,
               currentVoltage: targetCurrent,
+              storedVoltage: targetStored,
               intensity: targetIntensity
             }
           }
@@ -5153,6 +5166,7 @@
         pressure: state.pressure,
         charge: state.charge,
         currentVoltage: state.currentVoltage,
+        storedVoltage: state.storedVoltage,
         intensity: state.intensity
       };
       const visualTelemetry = getDrainVisualTelemetry() ||
@@ -5164,6 +5178,7 @@
         state.pressure = visualTelemetry.pressure;
         state.charge = visualTelemetry.charge;
         state.currentVoltage = visualTelemetry.currentVoltage;
+        state.storedVoltage = visualTelemetry.storedVoltage;
         state.intensity = visualTelemetry.intensity;
       }
 
@@ -5353,6 +5368,7 @@
         state.pressure = restoreTelemetry.pressure;
         state.charge = restoreTelemetry.charge;
         state.currentVoltage = restoreTelemetry.currentVoltage;
+        state.storedVoltage = restoreTelemetry.storedVoltage;
         state.intensity = restoreTelemetry.intensity;
       }
     }
@@ -5441,6 +5457,7 @@
         pressure: state.pressure,
         charge: state.charge,
         currentVoltage: firstFinite(state.currentVoltage, state.intensity),
+        storedVoltage: state.storedVoltage,
         intensity: state.intensity
       };
       const incomingTickerMessage = typeof payload.tickerMessage === "string"
