@@ -1,14 +1,18 @@
 const {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
   ModalBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   TextInputBuilder,
   TextInputStyle
 } = require("discord.js");
+const fs = require("fs");
 const { getCommissionConfig } = require("./config");
 const {
   appendSyncLog,
@@ -35,14 +39,60 @@ const {
   moveCardToList,
   reconcileCardLabels
 } = require("./trello");
-const { publishCommissionPricing } = require("./pricing");
+const {
+  createCharacterPermissionPdfBuffer,
+  createCommissionRequestPdfBuffer,
+  createThirdPartyCharacterPermissionPdfBuffer,
+  getCommissionRequestPdfFileName,
+  getCharacterPermissionPdfFileName,
+  getThirdPartyCharacterPermissionPdfFileName,
+  getCommissionDocumentOpenCustomId,
+  handleCommissionDocumentInteraction,
+  publishCommissionDocument,
+  publishCommissionDocuments
+} = require("./documents");
 
 const ids = {
   request: "commission:request",
   intakeStart: "commission:intake:start",
+  intakeTermsSignatureModal: "commission:intake:terms_signature_modal",
+  intakeReviewTerms: "commission:intake:review_terms",
+  intakeTermsNavPrefix: "commission:intake:terms:",
+  intakeTermsSectionSelect: "commission:intake:terms_section",
+  preferredNameOpen: "commission:preferred_name_open",
+  preferredNameModal: "commission:preferred_name_modal",
+  characterCountPrefix: "commission:character_count:",
+  characterCountMore: "commission:character_count_more",
+  characterCountModal: "commission:character_count_modal",
+  ownedCharacterCountPrefix: "commission:owned_character_count:",
+  ownedCharacterCountMore: "commission:owned_character_count_more",
+  ownedCharacterCountOpen: "commission:owned_character_count_open",
+  ownedCharacterCountModal: "commission:owned_character_count_modal",
+  ownedCharacterNamesOpen: "commission:owned_character_names_open",
+  ownedCharacterNamesModal: "commission:owned_character_names_modal",
+  thirdPartyCharactersOpen: "commission:third_party_characters_open",
+  thirdPartyCharactersModal: "commission:third_party_characters_modal",
+  thirdPartyNameOwnerModal: "commission:third_party_name_owner_modal",
+  thirdPartyOwnerReusePrefix: "commission:third_party_owner_reuse:",
+  thirdPartyOwnerQuantityPrefix: "commission:third_party_owner_quantity:",
+  thirdPartyAdditionalNamesModal: "commission:third_party_additional_names_modal",
+  thirdPartyContactPlatformPrefix: "commission:third_party_contact_platform:",
+  thirdPartyContactHandleModal: "commission:third_party_contact_handle_modal",
+  availabilityTimeModal: "commission:availability_time_modal",
+  detailsOpen: "commission:details_open",
+  reviewSubmit: "commission:review_submit",
+  reviewEdit: "commission:review_edit",
   typePrefix: "commission:type:",
   levelPrefix: "commission:level:",
   ratingPrefix: "commission:rating:",
+  characterOwnershipPrefix: "commission:character_ownership:",
+  characterPermissionForm: "commission:character_permission_form",
+  characterPermissionBlankPdf: "commission:character_permission_blank_pdf",
+  characterPermissionContinue: "commission:character_permission_continue",
+  characterPermissionModal: "commission:character_permission_modal",
+  characterPermissionSign: "commission:character_permission_sign",
+  characterPermissionEdit: "commission:character_permission_edit",
+  characterPermissionSignatureModal: "commission:character_permission_signature_modal",
   privacyPrefix: "commission:privacy:",
   availabilityDayPrefix: "commission:availability_day:",
   availabilityContinue: "commission:availability_continue",
@@ -50,12 +100,28 @@ const ids = {
   detailsModal: "commission:details:modal",
   fieldPreferredHandle: "preferredHandle",
   fieldOtherValue: "otherValue",
+  fieldCharacterCount: "characterCount",
+  fieldOwnedCharacterCount: "ownedCharacterCount",
+  fieldOwnedCharacterNames: "ownedCharacterNames",
+  fieldThirdPartyCharacters: "thirdPartyCharacters",
+  fieldThirdPartyCharacterName: "thirdPartyCharacterName",
+  fieldThirdPartyOwnerName: "thirdPartyOwnerName",
+  fieldThirdPartyAdditionalNames: "thirdPartyAdditionalNames",
+  fieldThirdPartyContactHandle: "thirdPartyContactHandle",
+  fieldCharacterOwnerName: "characterOwnerName",
+  fieldCharacterName: "characterName",
+  fieldCharacterContentType: "characterContentType",
+  fieldCharacterOwnerContact: "characterOwnerContact",
+  fieldCharacterSignature: "characterSignature",
+  fieldTermsSignature: "termsSignature",
   fieldRequestDetails: "requestDetails",
   fieldAvailabilityStartTime: "availabilityStartTime",
   fieldAvailabilityEndTime: "availabilityEndTime",
   fieldAvailabilityTimezone: "availabilityTimezone",
   doneUploadingPrefix: "commission:done_uploading:",
   approvePrefix: "commission:approve:",
+  ownerConfirmationRequiredPrefix: "commission:owner_confirmation_required:",
+  ownerConfirmationSkipPrefix: "commission:owner_confirmation_skip:",
   rejectPrefix: "commission:reject:",
   rejectModalPrefix: "commission:reject_reason:",
   manualEntryModalPrefix: "commission:manual_entry_modal:",
@@ -100,6 +166,7 @@ const manualEntrySessions = new Map();
 const clientQuestionSessions = new Map();
 const feedbackSessions = new Map();
 const feedbackMessageSessions = new Map();
+const approvalPromptSources = new Map();
 const finalPaymentPrompted = new Set();
 const threadTagSyncTimers = new Map();
 const threadTagSyncSnapshots = new Map();
@@ -108,6 +175,7 @@ const EPHEMERAL_FLAGS = 64;
 const PAPERCLIP_EMOJI_NAME = "📎";
 const WORKFLOW_REVIEW_EMOJI_NAMES = ["🔎", "🔍"];
 const FEEDBACK_SKIP_EMOJI_NAME = "⏭️";
+const DOCUMENT_EPHEMERAL_DELETE_AFTER_MS = 10 * 60 * 1000;
 
 const commissionTypeChoices = [
   { id: "headshot_profile", label: "Headshot / Profile photo", buttonLabel: "Headshot" },
@@ -131,6 +199,12 @@ const completionLevelChoices = [
 const ratingChoices = [
   { id: "sfw", label: "SFW" },
   { id: "nsfw", label: "NSFW" }
+];
+
+const characterOwnershipChoices = [
+  { id: "owned", label: "Yes, I own all characters.", buttonLabel: "I own them" },
+  { id: "permission", label: "No, but I have permission from the character owner.", buttonLabel: "I have permission" },
+  { id: "unsure", label: "No / unsure.", buttonLabel: "No / unsure" }
 ];
 
 const privacyChoices = [
@@ -301,7 +375,23 @@ function createCommissionManualEntryCommand() {
 function createCommissionPublishPricingCommand() {
   return new SlashCommandBuilder()
     .setName("commission-publish-pricing")
-    .setDescription("Publish the editable commission pricing catalog to the pricing channel.")
+    .setDescription("Publish the commission pricing navigator entry message.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .toJSON();
+}
+
+function createCommissionPublishTosCommand() {
+  return new SlashCommandBuilder()
+    .setName("commission-publish-tos")
+    .setDescription("Publish the commission Terms of Service navigator entry message.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .toJSON();
+}
+
+function createCommissionPublishDocumentsCommand() {
+  return new SlashCommandBuilder()
+    .setName("commission-publish-docs")
+    .setDescription("Publish both commission pricing and Terms of Service navigator entry messages.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .toJSON();
 }
@@ -328,7 +418,21 @@ async function handleCommissionPortalInteraction(interaction) {
   }
 
   if (interaction.isChatInputCommand() && interaction.commandName === "commission-publish-pricing") {
-    await handlePublishPricingCommand(interaction, config);
+    await handlePublishDocumentCommand(interaction, config, "pricing");
+    return true;
+  }
+
+  if (interaction.isChatInputCommand() && interaction.commandName === "commission-publish-tos") {
+    await handlePublishDocumentCommand(interaction, config, "tos");
+    return true;
+  }
+
+  if (interaction.isChatInputCommand() && interaction.commandName === "commission-publish-docs") {
+    await handlePublishDocumentsCommand(interaction, config);
+    return true;
+  }
+
+  if (await handleCommissionDocumentInteraction(interaction, config)) {
     return true;
   }
 
@@ -339,7 +443,22 @@ async function handleCommissionPortalInteraction(interaction) {
     }
 
     if (interaction.customId === ids.intakeStart) {
-      await showCommissionTypeSelection(interaction);
+      await showTermsSignatureModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.intakeReviewTerms) {
+      await showIntakeTermsReview(interaction, 0);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.intakeTermsNavPrefix)) {
+      await handleIntakeTermsNav(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.preferredNameOpen) {
+      await showPreferredNameModal(interaction);
       return true;
     }
 
@@ -358,6 +477,87 @@ async function handleCommissionPortalInteraction(interaction) {
       return true;
     }
 
+    if (interaction.customId.startsWith(ids.characterCountPrefix)) {
+      await handleCharacterCountButton(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterCountMore) {
+      await showCharacterCountModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.characterOwnershipPrefix)) {
+      await handleCharacterOwnershipSelection(interaction, config);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.ownedCharacterCountPrefix)) {
+      await handleOwnedCharacterCountButton(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.ownedCharacterCountMore) {
+      await showOwnedCharacterCountModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.ownedCharacterCountOpen) {
+      await showOwnedCharacterCountModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.ownedCharacterNamesOpen) {
+      await showOwnedCharacterNamesModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.thirdPartyCharactersOpen) {
+      const session = getIntakeSession(interaction.user.id);
+      await showThirdPartyNameOwnerModal(interaction, session.pendingThirdPartyCount || 1);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.thirdPartyOwnerReusePrefix)) {
+      await handleThirdPartyOwnerReuse(interaction);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.thirdPartyOwnerQuantityPrefix)) {
+      await handleThirdPartyOwnerQuantity(interaction);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.thirdPartyContactPlatformPrefix)) {
+      await showThirdPartyContactHandleModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionForm) {
+      await showCharacterPermissionModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionBlankPdf) {
+      await handleCharacterPermissionBlankPdf(interaction, config);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionSign) {
+      await showCharacterPermissionSignatureModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionEdit) {
+      await showCharacterPermissionModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionContinue) {
+      await showPrivacySelection(interaction);
+      return true;
+    }
+
     if (interaction.customId.startsWith(ids.privacyPrefix)) {
       await handlePrivacySelection(interaction);
       return true;
@@ -365,6 +565,16 @@ async function handleCommissionPortalInteraction(interaction) {
 
     if (interaction.customId === ids.availabilityContinue) {
       await handleAvailabilityContinue(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.detailsOpen) {
+      await showDetailsModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.reviewSubmit) {
+      await handleReviewSubmit(interaction, config);
       return true;
     }
 
@@ -380,6 +590,16 @@ async function handleCommissionPortalInteraction(interaction) {
 
     if (interaction.customId.startsWith(ids.approvePrefix)) {
       await handleApprove(interaction, config);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.ownerConfirmationRequiredPrefix)) {
+      await handleOwnerConfirmationDecision(interaction, config, true);
+      return true;
+    }
+
+    if (interaction.customId.startsWith(ids.ownerConfirmationSkipPrefix)) {
+      await handleOwnerConfirmationDecision(interaction, config, false);
       return true;
     }
 
@@ -465,6 +685,56 @@ async function handleCommissionPortalInteraction(interaction) {
   }
 
   if (interaction.isModalSubmit()) {
+    if (interaction.customId === ids.intakeTermsSignatureModal) {
+      await handleTermsSignatureModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.preferredNameModal) {
+      await handlePreferredNameModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterCountModal) {
+      await handleCharacterCountModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.ownedCharacterCountModal) {
+      await handleOwnedCharacterCountModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.ownedCharacterNamesModal) {
+      await handleOwnedCharacterNamesModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.thirdPartyCharactersModal) {
+      await handleThirdPartyCharactersModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.thirdPartyNameOwnerModal) {
+      await handleThirdPartyNameOwnerModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.thirdPartyAdditionalNamesModal) {
+      await handleThirdPartyAdditionalNamesModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.thirdPartyContactHandleModal) {
+      await handleThirdPartyContactHandleModal(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.availabilityTimeModal) {
+      await handleAvailabilityTimeModal(interaction);
+      return true;
+    }
+
     if (interaction.customId.startsWith(ids.otherModalPrefix)) {
       await handleOtherModal(interaction);
       return true;
@@ -472,6 +742,16 @@ async function handleCommissionPortalInteraction(interaction) {
 
     if (interaction.customId === ids.detailsModal) {
       await handleDetailsModal(interaction, config);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionModal) {
+      await handleCharacterPermissionModal(interaction, config);
+      return true;
+    }
+
+    if (interaction.customId === ids.characterPermissionSignatureModal) {
+      await handleCharacterPermissionSignatureModal(interaction, config);
       return true;
     }
 
@@ -512,6 +792,18 @@ async function handleCommissionPortalInteraction(interaction) {
 
     if (interaction.customId.startsWith(ids.cancelDetailsModalPrefix)) {
       await handleCancelDetailsModal(interaction, config);
+      return true;
+    }
+  }
+
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === ids.intakeTermsSectionSelect) {
+      await handleIntakeTermsSectionSelect(interaction);
+      return true;
+    }
+
+    if (interaction.customId === ids.reviewEdit) {
+      await handleReviewEditSelection(interaction);
       return true;
     }
   }
@@ -842,37 +1134,30 @@ async function handleSetupCommand(interaction, config) {
     return;
   }
 
-  const channel = await interaction.client.channels.fetch(config.submitRequestChannelId);
+  const channel = await interaction.client.channels.fetch(config.portalChannelId);
   if (!channel || typeof channel.send !== "function") {
     await interaction.reply({
-      content: "The configured Submit request channel could not be found.",
+      content: "The configured commission portal channel could not be found.",
       flags: EPHEMERAL_FLAGS
     });
     return;
   }
 
   await channel.send({
-    embeds: [createRequestEmbed(config)],
-    components: [
-      new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(ids.request)
-          .setLabel("Request")
-          .setStyle(ButtonStyle.Primary)
-      )
-    ]
+    embeds: [createCommissionPortalEmbed(config)],
+    components: createCommissionPortalRows()
   });
 
   await interaction.reply({
-    content: "Commission request button posted in <#" + config.submitRequestChannelId + ">.",
+    content: "Commission portal posted in <#" + config.portalChannelId + ">.",
     flags: EPHEMERAL_FLAGS
   });
 }
 
-async function handlePublishPricingCommand(interaction, config) {
+async function handlePublishDocumentCommand(interaction, config, documentType) {
   if (!memberCanManageCommissions(interaction.member, interaction.user.id, config)) {
     await interaction.reply({
-      content: "You do not have permission to publish commission pricing.",
+      content: "You do not have permission to publish commission documents.",
       flags: EPHEMERAL_FLAGS
     });
     return;
@@ -880,13 +1165,36 @@ async function handlePublishPricingCommand(interaction, config) {
 
   await interaction.deferReply({ flags: EPHEMERAL_FLAGS });
 
-  const result = await publishCommissionPricing(interaction.client, config, {
+  const result = await publishCommissionDocument(interaction.client, config, documentType, {
     reason: "slash_command",
     staffUserId: interaction.user.id
   });
 
   await interaction.editReply(
-    "Published " + result.embedCount + " pricing embeds to <#" + result.channelId + ">."
+    "Published the " + documentType + " navigator entry message to <#" + result.channelId + ">."
+  );
+}
+
+async function handlePublishDocumentsCommand(interaction, config) {
+  if (!memberCanManageCommissions(interaction.member, interaction.user.id, config)) {
+    await interaction.reply({
+      content: "You do not have permission to publish commission documents.",
+      flags: EPHEMERAL_FLAGS
+    });
+    return;
+  }
+
+  await interaction.deferReply({ flags: EPHEMERAL_FLAGS });
+
+  const results = await publishCommissionDocuments(interaction.client, config, {
+    reason: "slash_command",
+    staffUserId: interaction.user.id
+  });
+
+  await interaction.editReply(
+    "Published commission document navigator entries: " +
+      results.map((result) => result.documentType + " in <#" + result.channelId + ">").join(", ") +
+      "."
   );
 }
 
@@ -1808,13 +2116,17 @@ async function finalizeCommissionDelivery(interaction, commission, config, input
 
 async function handleRequestButton(interaction) {
   await interaction.reply({
-    content: "By clicking the button below, you affirm that you have read and agree to my Terms of Service and are of legal age in your country or region.",
+    content: "Before starting a commission request, please agree to the Terms of Service or review them privately.",
     components: [
       new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(ids.intakeStart)
-          .setLabel("I Agree")
-          .setStyle(ButtonStyle.Success)
+          .setLabel("Agree")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(ids.intakeReviewTerms)
+          .setLabel("Review Terms")
+          .setStyle(ButtonStyle.Secondary)
       )
     ],
     flags: EPHEMERAL_FLAGS
@@ -1822,11 +2134,260 @@ async function handleRequestButton(interaction) {
   rememberWizardInteraction(interaction.user.id, interaction);
 }
 
-async function showCommissionTypeSelection(interaction) {
+async function acceptTermsAndShowPreferredName(interaction) {
   intakeSessions.set(interaction.user.id, {
     startedAt: new Date().toISOString(),
+    termsAcceptedAt: new Date().toISOString(),
+    termsAcceptedUserId: interaction.user.id,
+    termsAcceptedUserName: formatDiscordUserName(interaction.user),
+    termsAcceptedSignature: "AGREE",
     cleanupInteractions: getWizardCleanupInteractions(interaction.user.id)
   });
+  rememberWizardInteraction(interaction.user.id, interaction);
+  await showPreferredNameModal(interaction);
+}
+
+async function showTermsSignatureModal(interaction) {
+  const modal = new ModalBuilder()
+    .setCustomId(ids.intakeTermsSignatureModal)
+    .setTitle("Terms Agreement")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldTermsSignature)
+          .setLabel("Type AGREE to accept the ToS")
+          .setPlaceholder("AGREE")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(20)
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleTermsSignatureModal(interaction) {
+  const typedAgreement = readField(interaction, ids.fieldTermsSignature);
+  if (typedAgreement.trim().toLowerCase() !== "agree") {
+    await interaction.reply({
+      content: "Please click Agree again and type AGREE to continue.",
+      flags: EPHEMERAL_FLAGS
+    });
+    scheduleDeleteInteractionReply(interaction);
+    return;
+  }
+
+  intakeSessions.set(interaction.user.id, {
+    startedAt: new Date().toISOString(),
+    termsAcceptedAt: new Date().toISOString(),
+    termsAcceptedUserId: interaction.user.id,
+    termsAcceptedUserName: formatDiscordUserName(interaction.user),
+    termsAcceptedSignature: "AGREE",
+    cleanupInteractions: getWizardCleanupInteractions(interaction.user.id)
+  });
+
+  await interaction.reply({
+    content: "Terms accepted. Continue to the commission request form.",
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(ids.preferredNameOpen)
+          .setLabel("Continue")
+          .setStyle(ButtonStyle.Primary)
+      )
+    ],
+    flags: EPHEMERAL_FLAGS
+  });
+  await deleteStoredWizardMessages(interaction.user.id, interaction);
+  rememberWizardInteraction(interaction.user.id, interaction);
+}
+
+async function showPreferredNameModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.preferredNameModal)
+    .setTitle("Preferred Name")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldPreferredHandle)
+          .setLabel("What name should I use for you?")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(80)
+          .setValue(limitText(session.preferredHandle || formatDiscordUserName(interaction.user), 80))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function showIntakeTermsReview(interaction, pageIndex) {
+  const config = getCommissionConfig();
+  const document = readIntakeTermsDocument(config);
+  const page = clamp(Number(pageIndex) || 0, 0, document.sections.length);
+  const embed = page === 0
+    ? new EmbedBuilder()
+      .setTitle(document.title + " - Index")
+      .setDescription(limitText([
+        document.description,
+        "",
+        "Sections:",
+        ...document.sections.map((section, index) => (index + 1) + ". " + section.title),
+        "",
+        "Use Next to review the terms. You can agree on the final page."
+      ].join("\n"), 4096))
+      .setColor(0x5865f2)
+      .setFooter({ text: "Page 0 of " + document.sections.length })
+    : new EmbedBuilder()
+      .setTitle(document.sections[page - 1]?.title || "Terms")
+      .setDescription(limitText(document.sections[page - 1]?.body || "", 4096))
+      .setColor(0x5865f2)
+      .setFooter({ text: "Page " + page + " of " + document.sections.length });
+
+  await interaction.update({
+    content: "",
+    embeds: [embed],
+    components: createIntakeTermsRows(page, document)
+  });
+  rememberWizardInteraction(interaction.user.id, interaction);
+}
+
+async function handleIntakeTermsNav(interaction) {
+  const action = interaction.customId.slice(ids.intakeTermsNavPrefix.length);
+  if (action === "agree") {
+    await showTermsSignatureModal(interaction);
+    return;
+  }
+
+  await showIntakeTermsReview(interaction, Number.parseInt(action, 10) || 0);
+}
+
+async function handleIntakeTermsSectionSelect(interaction) {
+  await showIntakeTermsReview(interaction, Number.parseInt(interaction.values?.[0], 10) || 0);
+}
+
+function createIntakeTermsRows(pageIndex, document) {
+  return [
+    createIntakeTermsNavRow(pageIndex, document.sections.length),
+    createIntakeTermsSectionRow(pageIndex, document)
+  ];
+}
+
+function createIntakeTermsNavRow(pageIndex, pageCount) {
+  const previousPage = Math.max(0, pageIndex - 1);
+  const nextPage = Math.min(pageCount, pageIndex + 1);
+  const buttons = [
+    new ButtonBuilder()
+      .setCustomId(ids.intakeTermsNavPrefix + previousPage)
+      .setLabel("Back")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageIndex <= 0),
+    new ButtonBuilder()
+      .setCustomId(ids.intakeTermsNavPrefix + nextPage)
+      .setLabel("Next")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageIndex >= pageCount)
+  ];
+
+  if (pageIndex >= pageCount) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(ids.intakeTermsNavPrefix + "agree")
+        .setLabel("Agree")
+        .setStyle(ButtonStyle.Success)
+    );
+  } else {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(ids.intakeTermsNavPrefix + pageCount)
+        .setLabel("Skip to End")
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+
+  return new ActionRowBuilder().addComponents(buttons);
+}
+
+function createIntakeTermsSectionRow(pageIndex, document) {
+  const options = [
+    new StringSelectMenuOptionBuilder()
+      .setLabel("Index")
+      .setValue("0")
+      .setDefault(pageIndex === 0)
+  ];
+
+  document.sections.slice(0, 24).forEach((section, index) => {
+    const page = index + 1;
+    options.push(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(limitText((page) + ". " + section.title, 100))
+        .setValue(String(page))
+        .setDefault(pageIndex === page)
+    );
+  });
+
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(ids.intakeTermsSectionSelect)
+      .setPlaceholder("Jump to a section")
+      .addOptions(options)
+  );
+}
+
+function readIntakeTermsDocument(config) {
+  try {
+    const raw = fs.readFileSync(config.tosCatalogPath, "utf8");
+    const catalog = JSON.parse(raw);
+    return {
+      title: catalog.title || "Commission Terms of Service",
+      description: catalog.description || "Review commission terms privately.",
+      sections: (catalog.sections || [])
+        .filter((section) => !isMatureContentPolicySection(section))
+        .map((section, index) => ({
+          title: section.title || "Section " + (index + 1),
+          body: Array.isArray(section.body) ? section.body.join("\n\n") : String(section.body || "")
+        }))
+    };
+  } catch {
+    return {
+      title: "Commission Terms of Service",
+      description: "Review commission terms privately.",
+      sections: [
+        {
+          title: "Terms",
+          body: "Terms could not be loaded right now. Please ask staff for help before submitting a request."
+        }
+      ]
+    };
+  }
+}
+
+function isMatureContentPolicySection(section) {
+  const id = String(section?.id || "").trim().toLowerCase();
+  const title = String(section?.title || "").trim().toLowerCase();
+  return id === "mature-content-policy" || title === "mature content policy";
+}
+
+async function handlePreferredNameModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  session.preferredHandle = readField(interaction, ids.fieldPreferredHandle);
+  intakeSessions.set(interaction.user.id, session);
+
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
+
+  await interaction.reply({
+    content: "What type of commission are you interested in?",
+    components: createChoiceRows(commissionTypeChoices, ids.typePrefix),
+    flags: EPHEMERAL_FLAGS
+  });
+  await deleteStoredWizardMessages(interaction.user.id, interaction);
+  rememberWizardInteraction(interaction.user.id, interaction);
+}
+
+async function showCommissionTypeSelection(interaction) {
   rememberWizardInteraction(interaction.user.id, interaction);
 
   await interaction.update({
@@ -1853,6 +2414,9 @@ async function handleCommissionTypeSelection(interaction) {
 
   session.commissionType = choice.label;
   intakeSessions.set(interaction.user.id, session);
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
   await showCompletionLevelSelection(interaction);
 }
 
@@ -1882,13 +2446,16 @@ async function handleCompletionLevelSelection(interaction) {
 
   session.completionLevel = choice.label;
   intakeSessions.set(interaction.user.id, session);
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
   await showRatingSelection(interaction);
 }
 
 async function showRatingSelection(interaction) {
   rememberWizardInteraction(interaction.user.id, interaction);
   await interaction.update({
-    content: "Is you request SFW or NSFW?",
+    content: "Is your request SFW or NSFW?",
     components: createChoiceRows(ratingChoices, ids.ratingPrefix)
   });
 }
@@ -1904,7 +2471,919 @@ async function handleRatingSelection(interaction) {
   const session = getIntakeSession(interaction.user.id);
   session.contentRating = choice.label;
   intakeSessions.set(interaction.user.id, session);
-  await showPrivacySelection(interaction);
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
+  await showCharacterCountSelection(interaction);
+}
+
+async function showCharacterCountSelection(interaction) {
+  await sendWizardStep(interaction, {
+    content: "How many characters are included in this request?",
+    components: createCountRows(ids.characterCountPrefix, ids.characterCountMore, 5, 1)
+  });
+}
+
+async function handleCharacterCountButton(interaction) {
+  const count = Number.parseInt(interaction.customId.slice(ids.characterCountPrefix.length), 10) || 1;
+  await processCharacterCount(interaction, count);
+}
+
+async function showCharacterCountModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.characterCountModal)
+    .setTitle("Characters")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldCharacterCount)
+          .setLabel("How many characters are included?")
+          .setPlaceholder("1")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(2)
+          .setValue(String(session.characterCount || 1))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleCharacterCountModal(interaction) {
+  const count = clamp(Number.parseInt(readField(interaction, ids.fieldCharacterCount), 10) || 1, 1, 20);
+  await processCharacterCount(interaction, count);
+}
+
+async function processCharacterCount(interaction, count) {
+  const session = getIntakeSession(interaction.user.id);
+  session.characterCount = count;
+  session.ownedCharacterCount = count === 1 ? 0 : session.ownedCharacterCount;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (count === 1) {
+    await sendWizardStep(interaction, {
+      content: [
+        "Character Ownership",
+        "",
+        "Do you own the character included in this commission?"
+      ].join("\n"),
+      components: createChoiceRows(characterOwnershipChoices, ids.characterOwnershipPrefix)
+    }, { cleanup: true });
+    return;
+  }
+
+  await showOwnedCharacterCountSelection(interaction, count, { cleanup: true });
+}
+
+async function showOwnedCharacterCountSelection(interaction, characterCount, options = {}) {
+  const maxButtonCount = Math.min(5, characterCount);
+  await sendWizardStep(interaction, {
+    content: "Next, tell me how many of those characters you personally own.",
+    components: createCountRows(ids.ownedCharacterCountPrefix, characterCount > 5 ? ids.ownedCharacterCountMore : null, maxButtonCount, 0)
+  }, options);
+}
+
+async function handleOwnedCharacterCountButton(interaction) {
+  const ownedCount = Number.parseInt(interaction.customId.slice(ids.ownedCharacterCountPrefix.length), 10) || 0;
+  await processOwnedCharacterCount(interaction, ownedCount);
+}
+
+async function showOwnedCharacterCountModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.ownedCharacterCountModal)
+    .setTitle("Character Ownership")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldOwnedCharacterCount)
+          .setLabel("How many characters do you own?")
+          .setPlaceholder("0")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(2)
+          .setValue(String(session.ownedCharacterCount || 0))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleOwnedCharacterCountModal(interaction) {
+  const ownedCount = Number.parseInt(readField(interaction, ids.fieldOwnedCharacterCount), 10) || 0;
+  await processOwnedCharacterCount(interaction, ownedCount);
+}
+
+async function processOwnedCharacterCount(interaction, requestedOwnedCount) {
+  const session = getIntakeSession(interaction.user.id);
+  const characterCount = clamp(Number(session.characterCount) || 1, 1, 20);
+  const ownedCount = clamp(requestedOwnedCount, 0, characterCount);
+  const thirdPartyCount = Math.max(0, characterCount - ownedCount);
+  session.ownedCharacterCount = ownedCount;
+  session.characterOwnershipId = thirdPartyCount > 0 ? "permission" : "owned";
+  session.characterOwnershipLabel = thirdPartyCount > 0
+    ? "Some characters belong to another individual."
+    : "Yes, I own all characters.";
+  session.characterDetails = {
+    characterCount,
+    ownedCharacterCount: ownedCount,
+    ownedCharacterNames: session.ownedCharacterNames || [],
+    thirdPartyCharacters: thirdPartyCount > 0 ? session.thirdPartyCharactersRaw || "" : ""
+  };
+  intakeSessions.set(interaction.user.id, session);
+
+  if (ownedCount > 0) {
+    await promptOwnedCharacterNames(interaction, session, thirdPartyCount);
+    return;
+  }
+
+  if (thirdPartyCount > 0) {
+    await startThirdPartyCharacterCollection(interaction, thirdPartyCount);
+    return;
+  }
+
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
+
+  await showGeneratedCharacterPermissionPreview(interaction, session);
+}
+
+async function promptOwnedCharacterNames(interaction, session, nextThirdPartyCount) {
+  session.pendingAfterOwnedThirdPartyCount = nextThirdPartyCount;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
+    await showOwnedCharacterNamesModal(interaction);
+    return;
+  }
+
+  await sendWizardStep(interaction, {
+    content: "Please provide the name" + (Number(session.ownedCharacterCount) === 1 ? "" : "s") + " of the character" + (Number(session.ownedCharacterCount) === 1 ? "" : "s") + " you own.",
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(ids.ownedCharacterNamesOpen)
+          .setLabel("Continue")
+          .setStyle(ButtonStyle.Primary)
+      )
+    ]
+  }, { cleanup: true });
+}
+
+async function showOwnedCharacterNamesModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const ownedCount = clamp(Number(session.ownedCharacterCount) || 1, 1, Number(session.characterCount) || 1);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.ownedCharacterNamesModal)
+    .setTitle("Your Characters")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldOwnedCharacterNames)
+          .setLabel(ownedCount === 1 ? "Your character name" : "Your character names")
+          .setPlaceholder(ownedCount === 1 ? "Character name" : "One character name per line")
+          .setStyle(ownedCount === 1 ? TextInputStyle.Short : TextInputStyle.Paragraph)
+          .setMaxLength(500)
+          .setValue(limitText((session.ownedCharacterNames || []).join("\n"), 500))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleOwnedCharacterNamesModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const names = splitCharacterNames(readField(interaction, ids.fieldOwnedCharacterNames))
+    .slice(0, clamp(Number(session.ownedCharacterCount) || 1, 1, Number(session.characterCount) || 1));
+  session.ownedCharacterNames = names;
+  session.characterDetails = {
+    ...(session.characterDetails || {}),
+    characterCount: session.characterCount || 1,
+    ownedCharacterCount: session.ownedCharacterCount || names.length,
+    ownedCharacterNames: names
+  };
+  const thirdPartyCount = Math.max(0, Number(session.pendingAfterOwnedThirdPartyCount) || 0);
+  delete session.pendingAfterOwnedThirdPartyCount;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (thirdPartyCount > 0) {
+    await startThirdPartyCharacterCollection(interaction, thirdPartyCount);
+    return;
+  }
+
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
+
+  await sendWizardStep(interaction, {
+    content: "Should this commission be private?\n(Private commissions will be completed out of public view)",
+    components: createChoiceRows(privacyChoices, ids.privacyPrefix)
+  }, { cleanup: true });
+}
+
+async function showThirdPartyCharactersModal(interaction, thirdPartyCount) {
+  const session = getIntakeSession(interaction.user.id);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.thirdPartyCharactersModal)
+    .setTitle("Third-Party Characters")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldThirdPartyCharacters)
+          .setLabel("Third-party character info")
+          .setPlaceholder(createThirdPartyCharacterPlaceholder(thirdPartyCount))
+          .setStyle(TextInputStyle.Paragraph)
+          .setMaxLength(1000)
+          .setValue(limitText(session.thirdPartyCharactersRaw || "", 1000))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function startThirdPartyCharacterCollection(interaction, thirdPartyCount) {
+  const session = getIntakeSession(interaction.user.id);
+  session.pendingThirdPartyCount = thirdPartyCount;
+  session.thirdPartyTotal = thirdPartyCount;
+  session.thirdPartyRemaining = thirdPartyCount;
+  session.thirdPartyOwnerGroups = [];
+  delete session.thirdPartyCharactersRaw;
+  delete session.thirdPartyContactOwnerIndex;
+  delete session.pendingThirdPartyOwnerName;
+  delete session.pendingThirdPartyQuantity;
+  delete session.pendingCharacterPermission;
+  delete session.characterPermission;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
+    await showThirdPartyNameOwnerModal(interaction, thirdPartyCount);
+    return;
+  }
+
+  await sendWizardStep(interaction, {
+    content: "Next, provide the character owner details for the " + thirdPartyCount + " third-party character" + (thirdPartyCount === 1 ? "" : "s") + ".",
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(ids.thirdPartyCharactersOpen)
+          .setLabel("Continue")
+          .setStyle(ButtonStyle.Primary)
+      )
+    ]
+  }, { cleanup: true });
+}
+
+async function showThirdPartyNameOwnerModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const remaining = Math.max(1, Number(session.thirdPartyRemaining || session.pendingThirdPartyCount || 1));
+  const modal = new ModalBuilder()
+    .setCustomId(ids.thirdPartyNameOwnerModal)
+    .setTitle("Third-Party Character")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldThirdPartyCharacterName)
+          .setLabel("Additional character name")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(100)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldThirdPartyOwnerName)
+          .setLabel("Owner name or screen name")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(100)
+          .setRequired(true)
+      )
+    );
+
+  if (remaining > 1) {
+    modal.setTitle("Third-Party Character " + (Number(session.thirdPartyTotal || remaining) - remaining + 1));
+  }
+
+  await interaction.showModal(modal);
+}
+
+async function handleThirdPartyNameOwnerModal(interaction) {
+  const characterName = readField(interaction, ids.fieldThirdPartyCharacterName);
+  const ownerName = readField(interaction, ids.fieldThirdPartyOwnerName);
+  const session = getIntakeSession(interaction.user.id);
+  addThirdPartyCharacter(session, ownerName, characterName);
+  session.thirdPartyRemaining = Math.max(0, Number(session.thirdPartyRemaining || 1) - 1);
+  session.pendingThirdPartyOwnerName = ownerName;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (session.thirdPartyRemaining > 0) {
+    await showThirdPartyOwnerReusePrompt(interaction, ownerName, session.thirdPartyRemaining);
+    return;
+  }
+
+  await beginThirdPartyContactPrompts(interaction, session);
+}
+
+async function showThirdPartyOwnerReusePrompt(interaction, ownerName, remaining) {
+  await sendWizardStep(interaction, {
+    content: [
+      "Are other characters in your request owned by " + ownerName + "?",
+      "",
+      "Remaining third-party character slots: " + remaining
+    ].join("\n"),
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(ids.thirdPartyOwnerReusePrefix + "yes")
+          .setLabel("Yes")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(ids.thirdPartyOwnerReusePrefix + "no")
+          .setLabel("No")
+          .setStyle(ButtonStyle.Secondary)
+      )
+    ]
+  }, { cleanup: true });
+}
+
+async function handleThirdPartyOwnerReuse(interaction) {
+  const answer = interaction.customId.slice(ids.thirdPartyOwnerReusePrefix.length);
+  const session = getIntakeSession(interaction.user.id);
+  const remaining = Math.max(1, Number(session.thirdPartyRemaining || 1));
+
+  if (answer === "no") {
+    await showThirdPartyNameOwnerModal(interaction);
+    return;
+  }
+
+  if (remaining === 1) {
+    session.pendingThirdPartyQuantity = 1;
+    intakeSessions.set(interaction.user.id, session);
+    await showThirdPartyAdditionalNamesModal(interaction);
+    return;
+  }
+
+  await sendWizardStep(interaction, {
+    content: "How many of the remaining characters are owned by " + (session.pendingThirdPartyOwnerName || "that owner") + "?",
+    components: createThirdPartyOwnerQuantityRows(remaining)
+  });
+}
+
+async function handleThirdPartyOwnerQuantity(interaction) {
+  const quantity = Number.parseInt(interaction.customId.slice(ids.thirdPartyOwnerQuantityPrefix.length), 10) || 1;
+  const session = getIntakeSession(interaction.user.id);
+  session.pendingThirdPartyQuantity = clamp(quantity, 1, Number(session.thirdPartyRemaining || 1));
+  intakeSessions.set(interaction.user.id, session);
+  await showThirdPartyAdditionalNamesModal(interaction);
+}
+
+async function showThirdPartyAdditionalNamesModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const quantity = clamp(Number(session.pendingThirdPartyQuantity) || 1, 1, Number(session.thirdPartyRemaining || 1));
+  const modal = new ModalBuilder()
+    .setCustomId(ids.thirdPartyAdditionalNamesModal)
+    .setTitle("Additional Characters")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldThirdPartyAdditionalNames)
+          .setLabel(quantity === 1 ? "Additional character name" : "Additional character names")
+          .setPlaceholder(quantity === 1 ? "Character name" : "One character name per line")
+          .setStyle(quantity === 1 ? TextInputStyle.Short : TextInputStyle.Paragraph)
+          .setMaxLength(500)
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleThirdPartyAdditionalNamesModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const ownerName = session.pendingThirdPartyOwnerName || "Unknown owner";
+  const quantity = clamp(Number(session.pendingThirdPartyQuantity) || 1, 1, Number(session.thirdPartyRemaining || 1));
+  const names = splitCharacterNames(readField(interaction, ids.fieldThirdPartyAdditionalNames)).slice(0, quantity);
+
+  names.forEach((name) => addThirdPartyCharacter(session, ownerName, name));
+  session.thirdPartyRemaining = Math.max(0, Number(session.thirdPartyRemaining || 0) - names.length);
+  delete session.pendingThirdPartyQuantity;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (session.thirdPartyRemaining > 0) {
+    await showThirdPartyOwnerReusePrompt(interaction, ownerName, session.thirdPartyRemaining);
+    return;
+  }
+
+  await beginThirdPartyContactPrompts(interaction, session);
+}
+
+async function beginThirdPartyContactPrompts(interaction, session) {
+  session.thirdPartyContactOwnerIndex = 0;
+  intakeSessions.set(interaction.user.id, session);
+  await showThirdPartyContactPlatformSelection(interaction, session);
+}
+
+async function showThirdPartyContactPlatformSelection(interaction, session) {
+  const groups = session.thirdPartyOwnerGroups || [];
+  const index = clamp(Number(session.thirdPartyContactOwnerIndex) || 0, 0, Math.max(0, groups.length - 1));
+  const group = groups[index];
+
+  if (!group) {
+    await finalizeThirdPartyCharacters(interaction, session);
+    return;
+  }
+
+  await sendWizardStep(interaction, {
+    content: [
+      "Contact details for " + group.ownerName,
+      "",
+      "This information is strictly for verification if needed and does not guarantee that the owner will be contacted.",
+      "It also helps properly attribute character ownership if the finished piece is posted or shared publicly.",
+      "",
+      "Select the best platform to contact this owner if needed."
+    ].join("\n"),
+    components: createThirdPartyContactPlatformRows()
+  }, { cleanup: true });
+}
+
+async function showThirdPartyContactHandleModal(interaction) {
+  const platform = interaction.customId.slice(ids.thirdPartyContactPlatformPrefix.length);
+  const session = getIntakeSession(interaction.user.id);
+  const groups = session.thirdPartyOwnerGroups || [];
+  const index = clamp(Number(session.thirdPartyContactOwnerIndex) || 0, 0, Math.max(0, groups.length - 1));
+  const ownerName = groups[index]?.ownerName || "Owner";
+  session.pendingThirdPartyContactPlatform = platform;
+  intakeSessions.set(interaction.user.id, session);
+
+  const modal = new ModalBuilder()
+    .setCustomId(ids.thirdPartyContactHandleModal)
+    .setTitle(limitText(ownerName + " Contact", 45))
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldThirdPartyContactHandle)
+          .setLabel(platform === "Email" ? "Email address" : platform + " handle")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(120)
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleThirdPartyContactHandleModal(interaction) {
+  const handle = readField(interaction, ids.fieldThirdPartyContactHandle);
+  const session = getIntakeSession(interaction.user.id);
+  const groups = session.thirdPartyOwnerGroups || [];
+  const index = clamp(Number(session.thirdPartyContactOwnerIndex) || 0, 0, Math.max(0, groups.length - 1));
+
+  if (groups[index]) {
+    groups[index].contactPlatform = session.pendingThirdPartyContactPlatform || "Discord";
+    groups[index].contactHandle = handle;
+  }
+
+  session.thirdPartyOwnerGroups = groups;
+  session.thirdPartyContactOwnerIndex = index + 1;
+  delete session.pendingThirdPartyContactPlatform;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (session.thirdPartyContactOwnerIndex < groups.length) {
+    await showThirdPartyContactPlatformSelection(interaction, session);
+    return;
+  }
+
+  await finalizeThirdPartyCharacters(interaction, session);
+}
+
+async function finalizeThirdPartyCharacters(interaction, session) {
+  session.thirdPartyCharactersRaw = formatThirdPartyOwnerGroups(session.thirdPartyOwnerGroups || []);
+  delete session.pendingThirdPartyCount;
+  delete session.thirdPartyRemaining;
+  delete session.pendingThirdPartyOwnerName;
+  delete session.pendingThirdPartyQuantity;
+  delete session.thirdPartyContactOwnerIndex;
+  session.characterDetails = {
+    characterCount: session.characterCount || 1,
+    ownedCharacterCount: session.ownedCharacterCount || 0,
+    ownedCharacterNames: session.ownedCharacterNames || [],
+    thirdPartyCharacters: session.thirdPartyCharactersRaw,
+    ownerGroups: session.thirdPartyOwnerGroups || []
+  };
+  session.characterOwnershipId = "permission";
+  session.characterOwnershipLabel = "Some characters belong to another individual.";
+  intakeSessions.set(interaction.user.id, session);
+
+  await showGeneratedCharacterPermissionPreview(interaction, session);
+}
+
+async function handleThirdPartyCharactersModal(interaction) {
+  const value = readField(interaction, ids.fieldThirdPartyCharacters);
+  const session = getIntakeSession(interaction.user.id);
+  session.thirdPartyCharactersRaw = value;
+  delete session.pendingThirdPartyCount;
+  session.characterDetails = {
+    characterCount: session.characterCount || 1,
+    ownedCharacterCount: session.ownedCharacterCount || 0,
+    ownedCharacterNames: session.ownedCharacterNames || [],
+    thirdPartyCharacters: value
+  };
+  session.characterOwnershipId = "permission";
+  session.characterOwnershipLabel = "Some characters belong to another individual.";
+  intakeSessions.set(interaction.user.id, session);
+
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
+
+  await showGeneratedCharacterPermissionPreview(interaction, session);
+}
+
+function createThirdPartyCharacterPlaceholder(count) {
+  if (Number(count) <= 1) {
+    return "Character: Name | Owner: Name | Platform: Discord | Handle: @owner";
+  }
+
+  return "For each: Character name, owner name, contact platform, owner handle.";
+}
+
+async function showCharacterOwnershipSelection(interaction) {
+  rememberWizardInteraction(interaction.user.id, interaction);
+  await interaction.update({
+    content: [
+      "Character Ownership",
+      "",
+      "Do you own all characters included in this commission?",
+      "",
+      "If you do not own a character, please provide the character owner's screen name or handle and a short written confirmation that they consent to this commission."
+    ].join("\n"),
+    components: createChoiceRows(characterOwnershipChoices, ids.characterOwnershipPrefix)
+  });
+}
+
+async function handleCharacterOwnershipSelection(interaction, config) {
+  const choiceId = interaction.customId.slice(ids.characterOwnershipPrefix.length);
+  const choice = characterOwnershipChoices.find((item) => item.id === choiceId);
+  if (!choice) {
+    await interaction.reply({ content: "Unknown character ownership option.", flags: EPHEMERAL_FLAGS });
+    return;
+  }
+
+  const session = getIntakeSession(interaction.user.id);
+  session.characterOwnershipId = choice.id;
+  session.characterOwnershipLabel = choice.label;
+  intakeSessions.set(interaction.user.id, session);
+  rememberWizardInteraction(interaction.user.id, interaction);
+
+  if (choice.id === "permission") {
+    session.characterCount = session.characterCount || 1;
+    session.ownedCharacterCount = 0;
+    intakeSessions.set(interaction.user.id, session);
+    await startThirdPartyCharacterCollection(interaction, 1);
+    return;
+  }
+
+  if (choice.id === "unsure") {
+    session.characterCount = session.characterCount || 1;
+    session.ownedCharacterCount = 0;
+    intakeSessions.set(interaction.user.id, session);
+    await startThirdPartyCharacterCollection(interaction, 1);
+    return;
+  }
+
+  session.characterCount = session.characterCount || 1;
+  session.ownedCharacterCount = session.characterCount;
+  session.characterDetails = {
+    characterCount: session.characterCount,
+    ownedCharacterCount: session.ownedCharacterCount,
+    ownedCharacterNames: session.ownedCharacterNames || [],
+    thirdPartyCharacters: ""
+  };
+  intakeSessions.set(interaction.user.id, session);
+
+  await promptOwnedCharacterNames(interaction, session, 0);
+  return;
+}
+
+function createCharacterPermissionRows() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(ids.characterPermissionForm)
+      .setLabel("Fill Affirmation")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(ids.characterPermissionBlankPdf)
+      .setLabel("Blank Affirmation")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(ids.characterPermissionContinue)
+      .setLabel("Continue")
+      .setStyle(ButtonStyle.Success)
+  );
+}
+
+async function showGeneratedCharacterPermissionPreview(interaction, session) {
+  const permission = createGeneratedCharacterPermission(interaction.user, session);
+  session.pendingCharacterPermission = permission;
+  intakeSessions.set(interaction.user.id, session);
+
+  await sendWizardStep(interaction, createCharacterPermissionPreviewPayload(permission), { cleanup: true });
+}
+
+function createGeneratedCharacterPermission(user, session) {
+  const ownerGroups = Array.isArray(session.thirdPartyOwnerGroups) && session.thirdPartyOwnerGroups.length > 0
+    ? session.thirdPartyOwnerGroups
+    : parseOwnerGroupsFromRawThirdPartyDetails(session.thirdPartyCharactersRaw);
+
+  return {
+    generatedIntakeAffirmation: true,
+    ownerGroups,
+    ownerName: ownerGroups.map((group) => group.ownerName).filter(Boolean).join(", "),
+    characterName: ownerGroups.flatMap((group) => group.characterNames || []).filter(Boolean).join(", "),
+    clientName: session.preferredHandle || formatDiscordUserName(user),
+    contentType: session.contentRating || "",
+    submittedBy: formatDiscordUserName(user),
+    submittedUserId: user.id,
+    date: new Date().toISOString().slice(0, 10)
+  };
+}
+
+function parseOwnerGroupsFromRawThirdPartyDetails(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return [];
+  }
+
+  return [{
+    ownerName: "Provided in request",
+    characterNames: [text],
+    contactPlatform: "",
+    contactHandle: ""
+  }];
+}
+
+async function showCharacterPermissionModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.characterPermissionModal)
+    .setTitle("Character Affirmation")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldCharacterOwnerName)
+          .setLabel("Owner name or screen name")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(100)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldCharacterName)
+          .setLabel("Character name")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(100)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldCharacterContentType)
+          .setLabel("Requested content type")
+          .setPlaceholder("SFW, suggestive, mature, explicit, commercial, other")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(100)
+          .setRequired(true)
+          .setValue(limitText(session.contentRating || "", 100))
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldCharacterOwnerContact)
+          .setLabel("Client name or screen name")
+          .setPlaceholder("Your preferred name or handle")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(120)
+          .setValue(limitText(formatDiscordUserName(interaction.user), 100))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleCharacterPermissionBlankPdf(interaction, config) {
+  const attachment = new AttachmentBuilder(await createCharacterPermissionPdfBuffer({}, config), {
+    name: getCharacterPermissionPdfFileName()
+  });
+
+  await interaction.reply({
+    content: "Here is a blank client character permission affirmation PDF.",
+    files: [attachment],
+    flags: EPHEMERAL_FLAGS
+  });
+  scheduleDeleteInteractionReply(interaction, DOCUMENT_EPHEMERAL_DELETE_AFTER_MS);
+}
+
+async function handleCharacterPermissionModal(interaction, config) {
+  const permission = {
+    ownerName: readField(interaction, ids.fieldCharacterOwnerName),
+    characterName: readField(interaction, ids.fieldCharacterName),
+    clientName: readField(interaction, ids.fieldCharacterOwnerContact),
+    contentType: readField(interaction, ids.fieldCharacterContentType),
+    submittedBy: formatDiscordUserName(interaction.user),
+    submittedUserId: interaction.user.id,
+    date: new Date().toISOString().slice(0, 10)
+  };
+
+  const session = getIntakeSession(interaction.user.id);
+  session.pendingCharacterPermission = permission;
+  intakeSessions.set(interaction.user.id, session);
+
+  await interaction.reply({
+    ...createCharacterPermissionPreviewPayload(permission),
+    flags: EPHEMERAL_FLAGS
+  });
+}
+
+function createCharacterPermissionPreviewPayload(permission) {
+  const body = createCharacterPermissionPreviewBody(permission);
+  const buttons = [
+    new ButtonBuilder()
+      .setCustomId(ids.characterPermissionSign)
+      .setLabel("Sign")
+      .setStyle(ButtonStyle.Success)
+  ];
+
+  if (!permission.generatedIntakeAffirmation) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(ids.characterPermissionEdit)
+        .setLabel("Edit")
+        .setStyle(ButtonStyle.Secondary)
+    );
+  }
+
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setTitle("Review Character Affirmation")
+        .setDescription(limitText(body, 4096))
+        .setColor(0x5865f2)
+    ],
+    components: [
+      new ActionRowBuilder().addComponents(buttons)
+    ]
+  };
+}
+
+function createCharacterPermissionPreviewBody(permission) {
+  const lines = [
+    "Please review the compiled character permission affirmation before signing.",
+    "",
+    "**Client Character Permission Affirmation**",
+    "",
+    "I affirm that I have permission from the owner of any character, design, or concept included in this commission that I do not personally own.",
+    "",
+    "For any third-party character included in this request, I confirm that:",
+    "",
+    "- The character owner has given me permission to include their character in this commission.",
+    "- The character owner understands the general nature of the requested artwork.",
+    "- I have not misrepresented the character, the owner's consent, or the intended use of the finished artwork.",
+    "- I understand that Anthro-Corp Studios / Dodger may request additional confirmation from the character owner if needed.",
+    ""
+  ];
+
+  if (permission.generatedIntakeAffirmation && Array.isArray(permission.ownerGroups)) {
+    lines.push("Third-party characters:");
+    permission.ownerGroups.forEach((group, index) => {
+      lines.push(
+        "",
+        "Owner " + (index + 1) + ": " + (group.ownerName || "Not provided"),
+        "Characters: " + ((group.characterNames || []).join(", ") || "Not provided"),
+        "Contact: " + [group.contactPlatform, group.contactHandle].filter(Boolean).join(" / ")
+      );
+    });
+  } else {
+    lines.push(
+      "Character owner name or screen name: " + permission.ownerName,
+      "Character name: " + permission.characterName
+    );
+  }
+
+  lines.push(
+    "",
+    "Requested content type: " + (permission.contentType || "Not provided"),
+    "Client name or screen name: " + (permission.clientName || "Not provided"),
+    "",
+    "Date: " + (permission.date || "Not provided"),
+    "",
+    "Signing account: " + permission.submittedBy + " / ID " + permission.submittedUserId
+  );
+
+  return lines.join("\n");
+}
+
+async function showCharacterPermissionSignatureModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  if (!session.pendingCharacterPermission) {
+    await interaction.reply({
+      content: "Please fill out the character permission affirmation before signing.",
+      flags: EPHEMERAL_FLAGS
+    });
+    return;
+  }
+
+  const modal = new ModalBuilder()
+    .setCustomId(ids.characterPermissionSignatureModal)
+    .setTitle("Sign Affirmation")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldCharacterSignature)
+          .setLabel("Type AGREE to sign")
+          .setPlaceholder("AGREE")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(20)
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleCharacterPermissionSignatureModal(interaction, config) {
+  await interaction.deferReply({ flags: EPHEMERAL_FLAGS });
+
+  const typedAgreement = readField(interaction, ids.fieldCharacterSignature);
+  if (typedAgreement.trim().toLowerCase() !== "agree") {
+    await interaction.editReply("Please click Sign again and type AGREE to complete the character permission affirmation.");
+    scheduleDeleteInteractionReply(interaction);
+    return;
+  }
+
+  const session = getIntakeSession(interaction.user.id);
+  const permission = {
+    ...(session.pendingCharacterPermission || {}),
+    typedAgreement: "AGREE",
+    submittedBy: formatDiscordUserName(interaction.user),
+    submittedUserId: interaction.user.id,
+    signedAt: new Date().toISOString()
+  };
+
+  if (!isCharacterPermissionComplete(permission)) {
+    await interaction.editReply("The pending affirmation expired. Please fill it out again before signing.");
+    scheduleDeleteInteractionReply(interaction);
+    return;
+  }
+
+  session.characterPermission = permission;
+  delete session.pendingCharacterPermission;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (permission.generatedIntakeAffirmation) {
+    if (await maybeReturnToRequestReview(interaction, session)) {
+      return;
+    }
+
+    await interaction.editReply({
+      content: "Character permission affirmation signed. Should this commission be private?\n(Private commissions will be completed out of public view)",
+      components: createChoiceRows(privacyChoices, ids.privacyPrefix)
+    });
+    rememberWizardInteraction(interaction.user.id, interaction);
+    return;
+  }
+
+  const pdfBuffer = await createCharacterPermissionPdfBuffer(permission, config);
+  const fileName = getCharacterPermissionPdfFileName(permission);
+  const attachment = new AttachmentBuilder(pdfBuffer, { name: fileName });
+
+  let dmMessage = "I also sent you a DM copy.";
+  try {
+    await interaction.user.send({
+      content: "Here is your completed Client Character Permission Affirmation PDF.",
+      files: [new AttachmentBuilder(pdfBuffer, { name: fileName })]
+    });
+  } catch {
+    dmMessage = "I could not DM you a copy, but the PDF is attached here.";
+  }
+
+  await interaction.editReply({
+    content: "Character permission affirmation saved for this request. " + dmMessage + "\n\nClick Continue on the previous prompt when you are ready.",
+    files: [attachment]
+  });
+  scheduleDeleteInteractionReply(interaction, DOCUMENT_EPHEMERAL_DELETE_AFTER_MS);
+}
+
+function isCharacterPermissionComplete(permission) {
+  if (!permission || typeof permission !== "object") {
+    return false;
+  }
+
+  if (permission.generatedIntakeAffirmation) {
+    return Array.isArray(permission.ownerGroups) && permission.ownerGroups.length > 0 && Boolean(permission.clientName);
+  }
+
+  return Boolean(permission.ownerName && permission.characterName && permission.clientName);
 }
 
 async function showPrivacySelection(interaction) {
@@ -1927,6 +3406,9 @@ async function handlePrivacySelection(interaction) {
   session.privateCommission = choice.privateCommission;
   session.availabilityDays = session.availabilityDays || [];
   intakeSessions.set(interaction.user.id, session);
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
   rememberWizardInteraction(interaction.user.id, interaction);
   await showAvailabilityDaySelection(interaction);
 }
@@ -1978,7 +3460,75 @@ async function handleAvailabilityContinue(interaction) {
   }
 
   rememberWizardInteraction(interaction.user.id, interaction);
-  await showDetailsModal(interaction);
+  await showAvailabilityTimeModal(interaction);
+}
+
+async function showAvailabilityTimeModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const modal = new ModalBuilder()
+    .setCustomId(ids.availabilityTimeModal)
+    .setTitle("Contact Availability")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldAvailabilityStartTime)
+          .setLabel("Best contact start time")
+          .setPlaceholder("HH:MM AM/PM")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(20)
+          .setValue(limitText(session.availabilityStartTime || "", 20))
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldAvailabilityEndTime)
+          .setLabel("Best contact end time")
+          .setPlaceholder("HH:MM AM/PM")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(20)
+          .setValue(limitText(session.availabilityEndTime || "", 20))
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(ids.fieldAvailabilityTimezone)
+          .setLabel("Timezone")
+          .setPlaceholder("CST, EST, PST, GMT+1...")
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(50)
+          .setValue(limitText(session.availabilityTimezone || "", 50))
+          .setRequired(true)
+      )
+    );
+
+  await interaction.showModal(modal);
+}
+
+async function handleAvailabilityTimeModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  session.availabilityStartTime = readField(interaction, ids.fieldAvailabilityStartTime);
+  session.availabilityEndTime = readField(interaction, ids.fieldAvailabilityEndTime);
+  session.availabilityTimezone = readField(interaction, ids.fieldAvailabilityTimezone);
+  intakeSessions.set(interaction.user.id, session);
+
+  if (await maybeReturnToRequestReview(interaction, session)) {
+    return;
+  }
+
+  await interaction.reply({
+    content: "Availability saved. Last step: add the request details.",
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(ids.detailsOpen)
+          .setLabel("Continue to Request Details")
+          .setStyle(ButtonStyle.Primary)
+      )
+    ],
+    flags: EPHEMERAL_FLAGS
+  });
+  await deleteStoredWizardMessages(interaction.user.id, interaction);
+  rememberWizardInteraction(interaction.user.id, interaction);
 }
 
 async function showOtherModal(interaction, field, label) {
@@ -2009,11 +3559,15 @@ async function handleOtherModal(interaction) {
   if (field === "commissionType") {
     session.commissionType = value;
     intakeSessions.set(interaction.user.id, session);
+    if (await maybeReturnToRequestReview(interaction, session)) {
+      return;
+    }
     await interaction.reply({
       content: "What level of work would you like?",
       components: createChoiceRows(completionLevelChoices, ids.levelPrefix),
       flags: EPHEMERAL_FLAGS
     });
+    await deleteStoredWizardMessages(interaction.user.id, interaction);
     rememberWizardInteraction(interaction.user.id, interaction);
     return;
   }
@@ -2021,11 +3575,15 @@ async function handleOtherModal(interaction) {
   if (field === "completionLevel") {
     session.completionLevel = value;
     intakeSessions.set(interaction.user.id, session);
+    if (await maybeReturnToRequestReview(interaction, session)) {
+      return;
+    }
     await interaction.reply({
-      content: "Is you request SFW or NSFW?",
+      content: "Is your request SFW or NSFW?",
       components: createChoiceRows(ratingChoices, ids.ratingPrefix),
       flags: EPHEMERAL_FLAGS
     });
+    await deleteStoredWizardMessages(interaction.user.id, interaction);
     rememberWizardInteraction(interaction.user.id, interaction);
     return;
   }
@@ -2034,18 +3592,11 @@ async function handleOtherModal(interaction) {
 }
 
 async function showDetailsModal(interaction) {
+  const session = getIntakeSession(interaction.user.id);
   const modal = new ModalBuilder()
     .setCustomId(ids.detailsModal)
     .setTitle("Commission Request")
     .addComponents(
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId(ids.fieldPreferredHandle)
-          .setLabel("Preferred name or handle")
-          .setStyle(TextInputStyle.Short)
-          .setMaxLength(80)
-          .setRequired(true)
-      ),
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
           .setCustomId(ids.fieldRequestDetails)
@@ -2053,33 +3604,7 @@ async function showDetailsModal(interaction) {
           .setPlaceholder("Please include as much detail as possible. You can upload image references later.")
           .setStyle(TextInputStyle.Paragraph)
           .setMaxLength(1000)
-          .setRequired(true)
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId(ids.fieldAvailabilityStartTime)
-          .setLabel("Best contact start time")
-          .setPlaceholder("HH:MM AM/PM")
-          .setStyle(TextInputStyle.Short)
-          .setMaxLength(20)
-          .setRequired(true)
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId(ids.fieldAvailabilityEndTime)
-          .setLabel("Best contact end time")
-          .setPlaceholder("HH:MM AM/PM")
-          .setStyle(TextInputStyle.Short)
-          .setMaxLength(20)
-          .setRequired(true)
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId(ids.fieldAvailabilityTimezone)
-          .setLabel("Timezone")
-          .setPlaceholder("CST, EST, PST, GMT+1...")
-          .setStyle(TextInputStyle.Short)
-          .setMaxLength(50)
+          .setValue(limitText(session.requestDetails || "", 1000))
           .setRequired(true)
       )
     );
@@ -2091,24 +3616,56 @@ async function handleDetailsModal(interaction, config) {
   await interaction.deferReply({ flags: EPHEMERAL_FLAGS });
 
   const session = getIntakeSession(interaction.user.id);
-  if (!session.commissionType || !session.completionLevel || !session.contentRating || session.privateCommission == null || !Array.isArray(session.availabilityDays) || session.availabilityDays.length === 0) {
+  if (!session.commissionType || !session.completionLevel || !session.contentRating || !session.characterOwnershipId || session.privateCommission == null || !Array.isArray(session.availabilityDays) || session.availabilityDays.length === 0) {
     await interaction.editReply("The request session expired. Please click Request again.");
     return;
   }
+
+  session.requestDetails = readField(interaction, ids.fieldRequestDetails);
+  delete session.returnToReview;
+  intakeSessions.set(interaction.user.id, session);
+  await deleteStoredWizardMessages(interaction.user.id, interaction);
+  await showRequestReview(interaction);
+}
+
+async function handleReviewSubmit(interaction, config) {
+  await interaction.deferReply({ flags: EPHEMERAL_FLAGS });
+
+  const session = getIntakeSession(interaction.user.id);
+  const missing = getMissingReviewFields(session);
+  if (missing.length > 0) {
+    await interaction.editReply("The request is missing: " + missing.join(", ") + ". Please click Edit and complete those sections.");
+    return;
+  }
+
   await deleteStoredWizardMessages(interaction.user.id, interaction);
 
   const member = await interaction.guild.members.fetch(interaction.user.id);
   await ensureClientRole(member, config);
 
-  const preferredHandle = readField(interaction, ids.fieldPreferredHandle);
+  const preferredHandle = session.preferredHandle || formatDiscordUserName(interaction.user);
   const commissionType = session.commissionType;
   const completionLevel = session.completionLevel;
   const contentRating = session.contentRating;
+  const characterOwnershipId = session.characterOwnershipId;
+  const characterOwnershipLabel = session.characterOwnershipLabel;
+  const characterPermission = session.characterPermission || null;
+  const termsAcceptedAt = session.termsAcceptedAt || new Date().toISOString();
+  const termsAcceptedUserId = session.termsAcceptedUserId || interaction.user.id;
+  const termsAcceptedUserName = session.termsAcceptedUserName || formatDiscordUserName(interaction.user);
   const privateCommission = session.privateCommission === true;
-  const requestDetails = readField(interaction, ids.fieldRequestDetails);
-  const availabilityStartTime = readField(interaction, ids.fieldAvailabilityStartTime);
-  const availabilityEndTime = readField(interaction, ids.fieldAvailabilityEndTime);
-  const availabilityTimezone = readField(interaction, ids.fieldAvailabilityTimezone);
+  const requestDetails = session.requestDetails || "";
+  const availabilityStartTime = session.availabilityStartTime || "";
+  const availabilityEndTime = session.availabilityEndTime || "";
+  const availabilityTimezone = session.availabilityTimezone || "";
+  const characterCount = clamp(Number(session.characterCount) || 1, 1, 20);
+  const ownedCharacterCount = clamp(Number(session.ownedCharacterCount) || (characterOwnershipId === "owned" ? characterCount : 0), 0, characterCount);
+  const characterDetails = session.characterDetails || {
+    characterCount,
+    ownedCharacterCount,
+    ownedCharacterNames: session.ownedCharacterNames || [],
+    thirdPartyCharacters: session.thirdPartyCharactersRaw || ""
+  };
 
   upsertClient({
     discordUserId: interaction.user.id,
@@ -2122,6 +3679,14 @@ async function handleDetailsModal(interaction, config) {
     commissionType,
     completionLevel,
     contentRating,
+    characterOwnershipLabel,
+    characterPermission,
+    characterCount,
+    ownedCharacterCount,
+    characterDetails,
+    termsAcceptedAt,
+    termsAcceptedUserId,
+    termsAcceptedUserName,
     privateCommission,
     availabilityDays: session.availabilityDays,
     availabilityStartTime,
@@ -2137,6 +3702,15 @@ async function handleDetailsModal(interaction, config) {
     commissionType,
     completionLevel,
     contentRating,
+    characterOwnershipId,
+    characterOwnershipLabel,
+    characterPermission,
+    characterCount,
+    ownedCharacterCount,
+    characterDetails,
+    termsAcceptedAt,
+    termsAcceptedUserId,
+    termsAcceptedUserName,
     privateCommission,
     availabilityDays: session.availabilityDays,
     availabilityStartTime,
@@ -2144,6 +3718,15 @@ async function handleDetailsModal(interaction, config) {
     availabilityTimezone,
     requestDetails
   });
+
+  await sendCommissionRequestPdfToThread(thread, commission, {
+    preferredHandle,
+    availabilityText: formatAvailability(session.availabilityDays, availabilityStartTime, availabilityEndTime, availabilityTimezone)
+  }, config);
+  await sendCommissionRequestPdfToUser(interaction.user, commission, {
+    preferredHandle,
+    availabilityText: formatAvailability(session.availabilityDays, availabilityStartTime, availabilityEndTime, availabilityTimezone)
+  }, config);
 
   await thread.send({
     content: "Next, upload any references here, then click Done Uploading when ready.",
@@ -2172,6 +3755,200 @@ async function handleDetailsModal(interaction, config) {
   scheduleDeleteInteractionReply(interaction);
 
   intakeSessions.delete(interaction.user.id);
+}
+
+async function maybeReturnToRequestReview(interaction, session) {
+  if (!session?.returnToReview) {
+    return false;
+  }
+
+  delete session.returnToReview;
+  intakeSessions.set(interaction.user.id, session);
+  if (interaction.isModalSubmit?.()) {
+    await deleteStoredWizardMessages(interaction.user.id, interaction);
+  }
+  await showRequestReview(interaction);
+  return true;
+}
+
+async function showRequestReview(interaction) {
+  const session = getIntakeSession(interaction.user.id);
+  const payload = createRequestReviewPayload(interaction.user, session);
+
+  if (interaction.deferred || interaction.replied) {
+    await interaction.editReply(payload);
+  } else if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
+    await interaction.update(payload);
+  } else {
+    await interaction.reply({
+      ...payload,
+      flags: EPHEMERAL_FLAGS
+    });
+  }
+
+  rememberWizardInteraction(interaction.user.id, interaction);
+}
+
+function createRequestReviewPayload(user, session) {
+  const missing = getMissingReviewFields(session);
+  const characterSummary = formatReviewCharacterSummary(session);
+  const embed = new EmbedBuilder()
+    .setTitle("Review Commission Request")
+    .setDescription(missing.length > 0
+      ? "Please review the request. Missing sections must be completed before submitting: " + missing.join(", ")
+      : "Please review the request below. Submit when everything looks right, or choose a section to edit.")
+    .setColor(missing.length > 0 ? 0xf59e0b : 0x57f287)
+    .addFields(
+      { name: "Preferred name", value: limitText(session.preferredHandle || formatDiscordUserName(user), 1024), inline: true },
+      { name: "Commission type", value: limitText(session.commissionType || "Not provided", 1024), inline: true },
+      { name: "Completion level", value: limitText(session.completionLevel || "Not provided", 1024), inline: true },
+      { name: "Content rating", value: limitText(session.contentRating || "Not provided", 1024), inline: true },
+      { name: "Privacy", value: session.privateCommission == null ? "Not provided" : (session.privateCommission ? "Private" : "Public"), inline: true },
+      { name: "Availability", value: limitText(formatAvailability(session.availabilityDays, session.availabilityStartTime, session.availabilityEndTime, session.availabilityTimezone), 1024), inline: false },
+      { name: "Characters", value: limitText(characterSummary, 1024), inline: false },
+      { name: "Request details", value: limitText(session.requestDetails || "Not provided", 1024), inline: false }
+    );
+
+  return {
+    content: "",
+    embeds: [embed],
+    components: createReviewRows(missing.length === 0)
+  };
+}
+
+function createReviewRows(canSubmit) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(ids.reviewSubmit)
+        .setLabel("Submit")
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!canSubmit)
+    ),
+    new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(ids.reviewEdit)
+        .setPlaceholder("Edit a section")
+        .addOptions(
+          new StringSelectMenuOptionBuilder().setLabel("Preferred name").setValue("preferred_name"),
+          new StringSelectMenuOptionBuilder().setLabel("Commission type").setValue("commission_type"),
+          new StringSelectMenuOptionBuilder().setLabel("Completion level").setValue("completion_level"),
+          new StringSelectMenuOptionBuilder().setLabel("Content rating").setValue("content_rating"),
+          new StringSelectMenuOptionBuilder().setLabel("Characters").setValue("characters"),
+          new StringSelectMenuOptionBuilder().setLabel("Privacy").setValue("privacy"),
+          new StringSelectMenuOptionBuilder().setLabel("Availability").setValue("availability"),
+          new StringSelectMenuOptionBuilder().setLabel("Request details").setValue("request_details")
+        )
+    )
+  ];
+}
+
+async function handleReviewEditSelection(interaction) {
+  const selected = interaction.values?.[0] || "";
+  const session = getIntakeSession(interaction.user.id);
+  session.returnToReview = true;
+  intakeSessions.set(interaction.user.id, session);
+
+  if (selected === "preferred_name") {
+    await showPreferredNameModal(interaction);
+    return;
+  }
+
+  if (selected === "commission_type") {
+    await interaction.update({
+      content: "What type of commission are you interested in?",
+      embeds: [],
+      components: createChoiceRows(commissionTypeChoices, ids.typePrefix)
+    });
+    return;
+  }
+
+  if (selected === "completion_level") {
+    await interaction.update({
+      content: "What level of work would you like?",
+      embeds: [],
+      components: createChoiceRows(completionLevelChoices, ids.levelPrefix)
+    });
+    return;
+  }
+
+  if (selected === "content_rating") {
+    await interaction.update({
+      content: "Is your request SFW or NSFW?",
+      embeds: [],
+      components: createChoiceRows(ratingChoices, ids.ratingPrefix)
+    });
+    return;
+  }
+
+  if (selected === "characters") {
+    await showCharacterCountSelection(interaction);
+    return;
+  }
+
+  if (selected === "privacy") {
+    await interaction.update({
+      content: "Should this commission be private?\n(Private commissions will be completed out of public view)",
+      embeds: [],
+      components: createChoiceRows(privacyChoices, ids.privacyPrefix)
+    });
+    return;
+  }
+
+  if (selected === "availability") {
+    await interaction.update({
+      content: "Please select the days that are usually best for me to reach you, then click Continue.",
+      embeds: [],
+      components: createAvailabilityDayRows(session.availabilityDays || [])
+    });
+    return;
+  }
+
+  if (selected === "request_details") {
+    await showDetailsModal(interaction);
+    return;
+  }
+
+  delete session.returnToReview;
+  intakeSessions.set(interaction.user.id, session);
+  await interaction.reply({ content: "Unknown review section.", flags: EPHEMERAL_FLAGS });
+}
+
+function getMissingReviewFields(session) {
+  const missing = [];
+  if (!session.preferredHandle) missing.push("preferred name");
+  if (!session.commissionType) missing.push("commission type");
+  if (!session.completionLevel) missing.push("completion level");
+  if (!session.contentRating) missing.push("content rating");
+  if (!session.characterOwnershipId) missing.push("character ownership");
+  if (session.characterOwnershipId === "permission" && !session.characterPermission) missing.push("character permission affirmation");
+  if (session.privateCommission == null) missing.push("privacy");
+  if (!Array.isArray(session.availabilityDays) || session.availabilityDays.length === 0) missing.push("availability days");
+  if (!session.availabilityStartTime || !session.availabilityEndTime || !session.availabilityTimezone) missing.push("contact time");
+  if (!session.requestDetails) missing.push("request details");
+  return missing;
+}
+
+function formatReviewCharacterSummary(session) {
+  const characterCount = clamp(Number(session.characterCount) || 1, 1, 20);
+  const ownedCount = clamp(Number(session.ownedCharacterCount) || (session.characterOwnershipId === "owned" ? characterCount : 0), 0, characterCount);
+  const thirdPartyCount = Math.max(0, characterCount - ownedCount);
+  const lines = [
+    "Total characters: " + characterCount,
+    "Owned by commissioner: " + ownedCount,
+    "Third-party characters: " + thirdPartyCount,
+    "Ownership answer: " + (session.characterOwnershipLabel || "Not provided")
+  ];
+
+  if (Array.isArray(session.ownedCharacterNames) && session.ownedCharacterNames.length > 0) {
+    lines.push("Commissioner-owned characters: " + session.ownedCharacterNames.join(", "));
+  }
+
+  if (session.thirdPartyCharactersRaw) {
+    lines.push("", session.thirdPartyCharactersRaw);
+  }
+
+  return lines.join("\n");
 }
 
 async function handleDoneUploading(interaction) {
@@ -2224,6 +4001,66 @@ async function handleApprove(interaction, config) {
     return;
   }
 
+  if (commissionRequiresOwnerConfirmationPrompt(commission)) {
+    approvalPromptSources.set(String(commission.id), {
+      channelId: interaction.channelId,
+      messageId: interaction.message?.id || ""
+    });
+    await interaction.editReply({
+      content: [
+        "This request is marked as including third-party character material.",
+        "",
+        "Is a separate Third-Party Character Permission Confirmation from the character owner required before/while accepting this commission?"
+      ].join("\n"),
+      components: [createOwnerConfirmationDecisionRow(commission.id)]
+    });
+    return;
+  }
+
+  await performCommissionApproval(interaction, config, commission);
+}
+
+async function handleOwnerConfirmationDecision(interaction, config, required) {
+  if (!memberCanManageCommissions(interaction.member, interaction.user.id, config)) {
+    await interaction.reply({ content: "Only staff can approve commission requests.", flags: EPHEMERAL_FLAGS });
+    return;
+  }
+
+  await interaction.deferReply({ flags: EPHEMERAL_FLAGS });
+
+  const prefix = required ? ids.ownerConfirmationRequiredPrefix : ids.ownerConfirmationSkipPrefix;
+  const commissionId = interaction.customId.slice(prefix.length);
+  const commission = getCommissionById(commissionId);
+  if (!commission) {
+    await interaction.editReply("This request record could not be found.");
+    return;
+  }
+
+  if (required) {
+    await sendThirdPartyOwnerConfirmationToThread(interaction.client, commission, config);
+  }
+
+  await deleteStoredApprovalSourceMessage(interaction.client, commission.id);
+  await performCommissionApproval(interaction, config, commission, {
+    ownerConfirmationRequired: required,
+    skipSourceDelete: true
+  });
+}
+
+function createOwnerConfirmationDecisionRow(commissionId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(ids.ownerConfirmationRequiredPrefix + commissionId)
+      .setLabel("Required")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(ids.ownerConfirmationSkipPrefix + commissionId)
+      .setLabel("Not Required")
+      .setStyle(ButtonStyle.Secondary)
+  );
+}
+
+async function performCommissionApproval(interaction, config, commission, options = {}) {
   const clientRecord = getClient(commission.discordUserId);
   let trelloCard = {
     id: commission.trelloCardId,
@@ -2247,7 +4084,9 @@ async function handleApprove(interaction, config) {
   await moveChannelToCategory(interaction.client, updatedCommission.forumChannelId, config.activeCategoryId);
   await setThreadTags(interaction.client, updatedCommission.threadId, [config.tagNames.inQueue]);
   await unlockThreadById(interaction.client, updatedCommission.threadId);
-  await deleteInteractionSourceMessage(interaction);
+  if (!options.skipSourceDelete) {
+    await deleteInteractionSourceMessage(interaction);
+  }
   await sendClientProgressConfirmation(interaction.client, updatedCommission.discordUserId, {
     guildId: interaction.guildId,
     forumId: updatedCommission.forumChannelId,
@@ -2267,7 +4106,10 @@ async function handleApprove(interaction, config) {
     commissionId: updatedCommission.id,
     source: "discord",
     action: "approved",
-    payload: { trelloCardId: updatedCommission.trelloCardId }
+    payload: {
+      trelloCardId: updatedCommission.trelloCardId,
+      ownerConfirmationRequired: options.ownerConfirmationRequired === true
+    }
   });
 
   await interaction.editReply("Request approved and linked to Trello.");
@@ -2600,9 +4442,14 @@ async function createIntakeThread(forum, input, config) {
     "Commission Details:",
     "",
     "Client: " + input.clientMention,
+    "Discord user ID: " + (input.termsAcceptedUserId || "Not provided"),
+    "ToS accepted: " + (input.termsAcceptedAt || "Not provided"),
     "Commission type: " + input.commissionType,
     "Level of work: " + input.completionLevel,
     "Rating: " + input.contentRating,
+    "Character ownership: " + (input.characterOwnershipLabel || "Not provided"),
+    formatCharacterDetailsForThread(input),
+    formatCharacterPermissionSummary(input.characterPermission),
     "Private commission: " + (input.privateCommission ? "Yes" : "No"),
     "Availability: " + formatAvailability(input.availabilityDays, input.availabilityStartTime, input.availabilityEndTime, input.availabilityTimezone),
     "",
@@ -2623,6 +4470,92 @@ async function createIntakeThread(forum, input, config) {
       message: { content }
     });
   }
+}
+
+async function sendCommissionRequestPdfToThread(thread, commission, input, config) {
+  try {
+    const pdfBuffer = await createCommissionRequestPdfBuffer({
+      commission,
+      preferredHandle: input.preferredHandle,
+      availabilityText: input.availabilityText
+    }, config);
+    await thread.send({
+      content: "Commission request PDF copy:",
+      files: [
+        new AttachmentBuilder(pdfBuffer, {
+          name: getCommissionRequestPdfFileName({ commission })
+        })
+      ]
+    });
+  } catch (error) {
+    console.warn("[Commission Portal] Failed to attach commission request PDF:", error.message);
+  }
+}
+
+async function sendCommissionRequestPdfToUser(user, commission, input, config) {
+  try {
+    const pdfBuffer = await createCommissionRequestPdfBuffer({
+      commission,
+      preferredHandle: input.preferredHandle,
+      availabilityText: input.availabilityText
+    }, config);
+    await user.send({
+      content: "Here is a PDF copy of your submitted commission request.",
+      files: [
+        new AttachmentBuilder(pdfBuffer, {
+          name: getCommissionRequestPdfFileName({ commission })
+        })
+      ]
+    });
+  } catch (error) {
+    console.warn("[Commission Portal] Failed to DM commission request PDF:", error.message);
+  }
+}
+
+async function sendThirdPartyOwnerConfirmationToThread(client, commission, config) {
+  const thread = await client.channels.fetch(commission.threadId).catch(() => null);
+  if (!thread?.send) {
+    return;
+  }
+
+  const clientRecord = getClient(commission.discordUserId);
+  const affirmation = parseJsonObject(commission.characterPermissionJson);
+  const formInput = {
+    ownerName: affirmation?.ownerName || "",
+    characterName: affirmation?.characterName || "",
+    clientName: clientRecord?.preferredName || affirmation?.clientName || commission.termsAcceptedUserName || commission.discordUserId,
+    contentType: [commission.commissionType, commission.contentRating].filter(Boolean).join(" / "),
+    ownerContact: "",
+    date: ""
+  };
+  const pdfBuffer = await createThirdPartyCharacterPermissionPdfBuffer(formInput, config);
+
+  await thread.send({
+    content: [
+      "Third-party character owner confirmation requested.",
+      "",
+      "Please have the character owner either sign and return this form, or reply back to the artist with written confirmation that they consent to this specific commission."
+    ].join("\n"),
+    files: [
+      new AttachmentBuilder(pdfBuffer, {
+        name: getThirdPartyCharacterPermissionPdfFileName(formInput)
+      })
+    ]
+  });
+}
+
+async function deleteStoredApprovalSourceMessage(client, commissionId) {
+  const key = String(commissionId);
+  const source = approvalPromptSources.get(key);
+  approvalPromptSources.delete(key);
+
+  if (!source?.channelId || !source.messageId) {
+    return;
+  }
+
+  const channel = await client.channels.fetch(source.channelId).catch(() => null);
+  const message = await channel?.messages?.fetch?.(source.messageId).catch(() => null);
+  await message?.delete?.().catch(() => null);
 }
 
 async function applyClientForumPermission(forum, member) {
@@ -3453,11 +5386,34 @@ async function getCommissionThreadUrl(client, commission) {
   return createDiscordThreadUrl(thread?.guildId, commission.threadId);
 }
 
-function createRequestEmbed(config) {
+function createCommissionPortalEmbed(config) {
   return new EmbedBuilder()
-    .setTitle("Commission Requests")
-    .setDescription("Thanks so much for your interest! Please make sure you've taken a moment to look over my Pricing and Terms. Once you're ready, click the button below!\n\nPricing: <#" + config.pricingChannelId + ">\nTerms: <#" + config.tosChannelId + ">")
+    .setTitle("Commissions")
+    .setDescription([
+      "Thanks so much for your interest!",
+      "",
+      "Use the buttons below to review pricing, read the Terms of Service, or start a commission request. Pricing and Terms open privately so the channel stays clean."
+    ].join("\n"))
     .setColor(0x7c5cff);
+}
+
+function createCommissionPortalRows() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(getCommissionDocumentOpenCustomId("pricing"))
+        .setLabel("Pricing")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(getCommissionDocumentOpenCustomId("tos"))
+        .setLabel("Terms")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(ids.request)
+        .setLabel("Request")
+        .setStyle(ButtonStyle.Primary)
+    )
+  ];
 }
 
 function createUploadControlRows(commissionId) {
@@ -3665,6 +5621,81 @@ function createChoiceRows(choices, prefix) {
   }
 
   return rows;
+}
+
+function createCountRows(prefix, moreId, maxCount, startAt = 1) {
+  const buttons = [];
+  for (let value = startAt; value <= maxCount; value++) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(prefix + value)
+        .setLabel(String(value))
+        .setStyle(ButtonStyle.Secondary)
+    );
+  }
+
+  if (moreId) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(moreId)
+        .setLabel("+")
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+
+  const rows = [];
+  for (let index = 0; index < buttons.length; index += 5) {
+    rows.push(new ActionRowBuilder().addComponents(buttons.slice(index, index + 5)));
+  }
+
+  return rows;
+}
+
+function createThirdPartyOwnerQuantityRows(remaining) {
+  return createCountRows(ids.thirdPartyOwnerQuantityPrefix, null, Math.min(remaining, 5), 1);
+}
+
+function createThirdPartyContactPlatformRows() {
+  const choices = ["Discord", "Telegram", "Bluesky", "FurAffinity", "Twitter", "Email"];
+  const buttons = choices.map((choice) =>
+    new ButtonBuilder()
+      .setCustomId(ids.thirdPartyContactPlatformPrefix + choice)
+      .setLabel(choice)
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  return [
+    new ActionRowBuilder().addComponents(buttons.slice(0, 3)),
+    new ActionRowBuilder().addComponents(buttons.slice(3))
+  ];
+}
+
+async function sendWizardStep(interaction, payload, options = {}) {
+  const response = {
+    content: payload.content || "",
+    embeds: payload.embeds || [],
+    components: payload.components || []
+  };
+
+  if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
+    await interaction.update(response);
+    rememberWizardInteraction(interaction.user.id, interaction);
+    return;
+  }
+
+  if (interaction.deferred || interaction.replied) {
+    await interaction.editReply(response);
+  } else {
+    await interaction.reply({
+      ...response,
+      flags: EPHEMERAL_FLAGS
+    });
+  }
+
+  if (options.cleanup) {
+    await deleteStoredWizardMessages(interaction.user.id, interaction);
+  }
+  rememberWizardInteraction(interaction.user.id, interaction);
 }
 
 function createAvailabilityDayRows(selectedDays) {
@@ -4056,6 +6087,7 @@ async function logRejectedRequest(client, commission, reason, config) {
       { name: "Commission type", value: limitText(commission.commissionType, 1024), inline: true },
       { name: "Level of work", value: limitText(commission.completionLevel, 1024), inline: true },
       { name: "Rating", value: limitText(commission.contentRating, 1024), inline: true },
+      { name: "Character ownership", value: limitText(commission.characterOwnershipLabel || "Not provided", 1024), inline: true },
       { name: "Private", value: commission.privateCommission ? "Yes" : "No", inline: true },
       { name: "Availability", value: limitText(formatAvailabilityFromCommission(commission), 1024) },
       { name: "Reason", value: limitText(reason, 1024) },
@@ -4220,6 +6252,114 @@ function formatAvailability(days, startTime, endTime, timezone) {
   return [dayText, timeText, timezoneText].filter(Boolean).join(" | ");
 }
 
+function commissionRequiresOwnerConfirmationPrompt(commission) {
+  const ownershipId = String(commission?.characterOwnershipId || "").trim().toLowerCase();
+  if (ownershipId === "permission" || ownershipId === "unsure") {
+    return true;
+  }
+
+  const characterCount = Number(commission?.characterCount || 0) || 0;
+  const ownedCount = Number(commission?.ownedCharacterCount || 0) || 0;
+  if (characterCount > 0 && ownedCount < characterCount) {
+    return true;
+  }
+
+  const ownershipLabel = String(commission?.characterOwnershipLabel || "").trim().toLowerCase();
+  return ownershipLabel.includes("permission") || ownershipLabel.includes("unsure");
+}
+
+function formatDiscordUserName(user) {
+  return user?.tag || user?.globalName || user?.username || "Unknown Discord user";
+}
+
+function parseJsonObject(value) {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatCharacterDetailsForThread(input) {
+  const details = input?.characterDetails || parseJsonObject(input?.characterDetailsJson) || {};
+  const characterCount = Number(input?.characterCount || details.characterCount || 1) || 1;
+  const ownedCount = Number(input?.ownedCharacterCount || details.ownedCharacterCount || 0) || 0;
+  const thirdPartyCount = Math.max(0, characterCount - ownedCount);
+  const lines = [
+    "Total characters: " + characterCount,
+    "Owned by commissioner: " + ownedCount,
+    "Third-party characters: " + thirdPartyCount
+  ];
+
+  if (Array.isArray(details.ownedCharacterNames) && details.ownedCharacterNames.length > 0) {
+    lines.push("Commissioner-owned characters: " + details.ownedCharacterNames.join(", "));
+  }
+
+  if (details.thirdPartyCharacters) {
+    lines.push("Third-party details:\n" + details.thirdPartyCharacters);
+  }
+
+  return lines.join("\n");
+}
+
+function addThirdPartyCharacter(session, ownerName, characterName) {
+  const normalizedOwner = normalizeComparable(ownerName);
+  const groups = Array.isArray(session.thirdPartyOwnerGroups) ? session.thirdPartyOwnerGroups : [];
+  let group = groups.find((item) => normalizeComparable(item.ownerName) === normalizedOwner);
+
+  if (!group) {
+    group = {
+      ownerName,
+      characterNames: [],
+      contactPlatform: "",
+      contactHandle: ""
+    };
+    groups.push(group);
+  }
+
+  if (characterName && !group.characterNames.some((name) => normalizeComparable(name) === normalizeComparable(characterName))) {
+    group.characterNames.push(characterName);
+  }
+
+  session.thirdPartyOwnerGroups = groups;
+}
+
+function splitCharacterNames(value) {
+  return String(value || "")
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatThirdPartyOwnerGroups(groups) {
+  return (groups || []).map((group, index) => [
+    "Owner " + (index + 1) + ": " + (group.ownerName || "Not provided"),
+    "Characters: " + ((group.characterNames || []).join(", ") || "Not provided"),
+    "Best contact platform: " + (group.contactPlatform || "Not provided"),
+    "Owner handle/contact: " + (group.contactHandle || "Not provided")
+  ].join("\n")).join("\n\n");
+}
+
+function formatCharacterPermissionSummary(permission) {
+  if (!permission || typeof permission !== "object") {
+    return "Client character permission affirmation: Not provided";
+  }
+
+  return [
+    "Client character permission affirmation: Completed",
+    "Character owner: " + (permission.ownerName || "Not provided"),
+    "Character: " + (permission.characterName || "Not provided"),
+    "Requested content type: " + (permission.contentType || "Not provided"),
+    "Client name: " + (permission.clientName || "Not provided"),
+    "Affirmation date: " + (permission.date || "Not provided")
+  ].join("\n");
+}
+
 function formatAvailabilityFromCommission(commission) {
   const days = String(commission.availabilityDays || "")
     .split(",")
@@ -4236,6 +6376,15 @@ function formatAvailabilityFromCommission(commission) {
 
 function normalizeComparable(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function clamp(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return min;
+  }
+
+  return Math.min(max, Math.max(min, number));
 }
 
 function parseCustomIdParts(customId, prefix) {
@@ -4298,7 +6447,9 @@ function limitText(value, maxLength) {
 module.exports = {
   createCommissionCleanupCommand,
   createCommissionManualEntryCommand,
+  createCommissionPublishDocumentsCommand,
   createCommissionPublishPricingCommand,
+  createCommissionPublishTosCommand,
   createCommissionSetupCommand,
   handleCommissionPortalInteraction,
   handleCommissionPortalMessageCreate,

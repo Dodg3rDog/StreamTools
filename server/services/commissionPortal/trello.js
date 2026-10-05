@@ -203,10 +203,28 @@ function createCardDescription(commission) {
   const lines = [
     "Commission type: " + commission.commissionType,
     "Completion level: " + commission.completionLevel,
-    "Content rating: " + commission.contentRating
+    "Content rating: " + commission.contentRating,
+    "Character ownership: " + (commission.characterOwnershipLabel || "Not provided")
   ];
 
+  const permission = parseJson(commission.characterPermissionJson);
+  if (permission?.ownerName || permission?.characterName) {
+    lines.push(
+      "Affirmed owner: " + (permission.ownerName || "Not provided"),
+      "Affirmed character: " + (permission.characterName || "Not provided"),
+      "Affirmed content type: " + (permission.contentType || "Not provided")
+    );
+  }
+
   return lines.join("\n");
+}
+
+function parseJson(value) {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
 }
 
 function assertTrelloConfigured(config) {

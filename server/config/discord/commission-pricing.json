@@ -8,36 +8,84 @@
       "id": "line_art",
       "label": "Line Art",
       "options": [
-        { "id": "line_art_bust", "label": "Bust", "amountCents": 3000 },
-        { "id": "line_art_half_body", "label": "Half Body", "amountCents": 5000 },
-        { "id": "line_art_full_body", "label": "Full Body", "amountCents": 8000 }
+        {
+          "id": "line_art_bust",
+          "label": "Bust",
+          "amountCents": 3000
+        },
+        {
+          "id": "line_art_half_body",
+          "label": "Half Body",
+          "amountCents": 5000
+        },
+        {
+          "id": "line_art_full_body",
+          "label": "Full Body",
+          "amountCents": 8000
+        }
       ]
     },
     {
       "id": "flats_shading",
       "label": "Flats + Shading",
       "options": [
-        { "id": "flats_shading_bust", "label": "Bust", "amountCents": 7000 },
-        { "id": "flats_shading_half_body", "label": "Half Body", "amountCents": 11000 },
-        { "id": "flats_shading_full_body", "label": "Full Body", "amountCents": 14000 }
+        {
+          "id": "flats_shading_bust",
+          "label": "Bust",
+          "amountCents": 7000
+        },
+        {
+          "id": "flats_shading_half_body",
+          "label": "Half Body",
+          "amountCents": 11000
+        },
+        {
+          "id": "flats_shading_full_body",
+          "label": "Full Body",
+          "amountCents": 14000
+        }
       ]
     },
     {
       "id": "full_render",
       "label": "Full Render",
       "options": [
-        { "id": "full_render_bust", "label": "Bust", "amountCents": 11000 },
-        { "id": "full_render_half_body", "label": "Half Body", "amountCents": 17000 },
-        { "id": "full_render_full_body", "label": "Full Body", "amountCents": 24000 }
+        {
+          "id": "full_render_bust",
+          "label": "Bust",
+          "amountCents": 11000
+        },
+        {
+          "id": "full_render_half_body",
+          "label": "Half Body",
+          "amountCents": 17000
+        },
+        {
+          "id": "full_render_full_body",
+          "label": "Full Body",
+          "amountCents": 24000
+        }
       ]
     },
     {
       "id": "painted_illustration",
       "label": "Painted Illustration",
       "options": [
-        { "id": "painted_illustration_bust", "label": "Bust", "amountCents": 15000 },
-        { "id": "painted_illustration_half_body", "label": "Half Body", "amountCents": 20000 },
-        { "id": "painted_illustration_full_body", "label": "Full Body", "amountCents": 26000 }
+        {
+          "id": "painted_illustration_bust",
+          "label": "Bust",
+          "amountCents": 15000
+        },
+        {
+          "id": "painted_illustration_half_body",
+          "label": "Half Body",
+          "amountCents": 20000
+        },
+        {
+          "id": "painted_illustration_full_body",
+          "label": "Full Body",
+          "amountCents": 26000
+        }
       ]
     }
   ],
@@ -164,7 +212,12 @@
       ]
     }
   ],
-  "deliveryFormats": ["PNG", "JPEG", "TIFF", "Image Sequence"],
+  "deliveryFormats": [
+    "PNG",
+    "JPEG",
+    "TIFF",
+    "Image Sequence"
+  ],
   "paymentPolicy": {
     "schedule": [
       "50% payment is required before work begins.",
@@ -175,7 +228,9 @@
       "If I cancel your commission for any reason other than a violation of my Terms of Service, your payment will be refunded in full.",
       "Once rendering or painting has begun, the commission becomes non-refundable."
     ],
-    "acceptedMethods": ["PayPal (USD)"],
+    "acceptedMethods": [
+      "PayPal (USD)"
+    ],
     "note": "Alternative payment arrangements may be discussed on a case-by-case basis."
   },
   "ychPolicy": [
@@ -202,5 +257,86 @@
     "For detailed information regarding revisions, usage rights, refunds, and other policies, please review the full Terms of Service.",
     "The artist reserves the right to decline any commission request for any reason.",
     "Thank you for supporting my work!"
+  ],
+  "title": "Commission Pricing",
+  "description": "Review current commission pricing, add-ons, process, payment policy, and usage notes privately.",
+  "sections": [
+    {
+      "id": "character-commissions",
+      "title": "Character Commissions",
+      "body": [
+        "### Line Art\n- Bust — $30\n- Half Body — $50\n- Full Body — $80",
+        "### Flats + Shading\n- Bust — $70\n- Half Body — $110\n- Full Body — $140",
+        "### Full Render\n- Bust — $110\n- Half Body — $170\n- Full Body — $240",
+        "### Painted Illustration\n- Bust — $150\n- Half Body — $200\n- Full Body — $260",
+        "### Specialty Commissions\n- Reference Sheet — $400\n- Sticker / Emote Pack (5) — $100",
+        "*All base prices include a simple background (solid color, gradient, or basic pattern).*\n*Sticker and emote packs are created from available YCH templates. Fully custom stickers may require an additional quote.*"
+      ],
+      "references": []
+    },
+    {
+      "id": "addons-extras",
+      "title": "Add-Ons & Extras",
+      "body": [
+        "### Additional Versions\n- SFW / NSFW Alternate Version — +25% of the base price per additional version",
+        "### Additional Characters\n- First additional character — +75% of the base price\n- Each additional character after that — +50% of the base price",
+        "### Full Backgrounds & Environments\n- Flats + Shading background — +$150\n- Full Render background — +$200\n- Painted Illustration background — +$300",
+        "### Complex Details\nThe following may require an additional quote:\n- Armor\n- Complex clothing\n- Detailed props\n- Multiple wings\n- Intricate markings\n- Complex environments\n- Other highly detailed elements",
+        "All add-ons are optional and may be combined."
+      ],
+      "references": []
+    },
+    {
+      "id": "commission-process",
+      "title": "Commission Process",
+      "body": [
+        "### 1. Submit Request\n- Complete the commission submission form.\n- Provide character references, commission type, a project description, and additional notes.",
+        "### 2. Consultation\n- I will review your request, discuss details, answer questions, and confirm availability.",
+        "### 3. Private Client Portal\n- A private Discord channel will be created for your project.\n- Your channel is used for project communication, reference storage, progress updates, work-in-progress reviews, revision requests, and final file delivery.",
+        "### 4. Sketch Approval\n- Review the initial sketch.\n- Minor revisions and adjustments may be requested at this stage.",
+        "### 5. Line Art Approval\n- Review the finalized line work.\n- Major changes will not be accepted after approval.",
+        "### 6. Color Approval\n- Review flat colors before rendering or shading begins.\n- Minor adjustments may be requested.",
+        "### 7. Final Delivery\n- Final polish and minor corrections are completed.\n- Files are delivered after final approval and payment.",
+        "### Delivery Formats\n- PNG\n- JPEG\n- TIFF\n- Image Sequence"
+      ],
+      "references": []
+    },
+    {
+      "id": "payment-policy",
+      "title": "Payment Policy",
+      "body": [
+        "### Payment Schedule\n- 50% payment is required before work begins.\n- Remaining balance is due after line art approval.\n- Final files will not be delivered until payment has been completed.",
+        "### Refund Policy\n- If I cancel your commission for any reason other than a violation of my Terms of Service, your payment will be refunded in full.\n- Once rendering or painting has begun, the commission becomes non-refundable.",
+        "### Accepted Payment Methods\n- PayPal (USD)",
+        "Alternative payment arrangements may be discussed on a case-by-case basis."
+      ],
+      "references": []
+    },
+    {
+      "id": "ych-policy",
+      "title": "YCH Policy",
+      "body": [
+        "- YCH (Your Character Here) commissions are offered at a reduced price because the pose and overall composition are pre-established.\n- Included modifications typically consist of character colors, markings, accessories, and advertised customization options.\n- Additional modifications beyond the advertised scope may require a custom commission quote.\n- YCH commissions follow the same payment, approval, and review policies as standard commissions.\n- Unless otherwise stated, the artist retains the right to reuse YCH templates for future commissions."
+      ],
+      "references": []
+    },
+    {
+      "id": "copyright-usage",
+      "title": "Copyright & Usage",
+      "body": [
+        "### Artist Rights\n- The artist retains all rights to the original artwork unless otherwise agreed upon in writing.\n- Original project files are not included with commissions.\n- Examples include .CLIP, .PSD, and other source files.",
+        "### Watermarks\n- Watermarks, signatures, and copyright notices may not be removed without written permission.",
+        "### Final Deliverables\n- Commissioned artwork is delivered as finished export files only unless otherwise agreed upon."
+      ],
+      "references": []
+    },
+    {
+      "id": "general-information",
+      "title": "General Information",
+      "body": [
+        "- For detailed information regarding revisions, usage rights, refunds, and other policies, please review the full Terms of Service.\n- The artist reserves the right to decline any commission request for any reason.\n- Thank you for supporting my work!"
+      ],
+      "references": []
+    }
   ]
 }

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-01",
+  "title": "Anthro-Corp Studios Commission Terms of Service",
+  "description": "Anthro-Corp Studios is the business identity for commission work created by the artist Dodger.\n\nBy commissioning Dodger through Anthro-Corp Studios, you agree to the following Terms of Service. These terms are designed to protect both the client and the artist, set clear expectations, and support a smooth creative process from request to final delivery.",
+  "sections": [
+    {
+      "id": "agreement-age-requirement",
+      "title": "Agreement & Age Requirement",
+      "body": [
+        "By commissioning me, you confirm that you have read, understood, and agreed to these Terms of Service. These terms are here to protect both the client and the artist, set clear expectations, and help ensure a smooth commission experience.",
+        "You must be 18 years of age or older to commission me. This applies to all commissions, regardless of whether the requested artwork is safe-for-work or adult-oriented.",
+        "If your commission includes mature, suggestive, fetish, or explicit adult content, you must also review and agree to my Mature Content Policy before the commission can be accepted. By requesting adult content, you confirm that you are legally an adult and that you are not requesting content involving minors, underage characters, or any other prohibited material."
+      ],
+      "references": []
+    },
+    {
+      "id": "mature-content-policy",
+      "title": "Mature Content Policy",
+      "body": [
+        "I reserve the right to decline any mature, suggestive, fetish, or explicit commission request for any reason. This includes requests that I am uncomfortable with, requests that fall outside my skillset, or requests that I do not feel I can portray responsibly.",
+        "All clients requesting mature content must be 18 years of age or older. By requesting mature content, you confirm that you are legally an adult and that all characters involved are also adults.",
+        "The following is a non-exhaustive list of content I will not create under any circumstances:",
+        "||- Underage characters in sexual, suggestive, fetish, or adult-coded situations\n- “Cub,” “loli,” “shota,” or similar underage-themed content\n- Diaper fetish, babyfur, ageplay, or infantilization content\n- Watersports or urination-related fetish content\n- Scat, fecal-related, or similar waste-related fetish content\n- Non-consensual sexual acts, coercion, abuse, or assault\n- Extreme gore, snuff, or sexualized death\n- Hate symbols, racism, or discriminatory content\n- Zoophilia, bestiality, or sexual content involving real animals\n- Necrophilia or sexual themes involving corpses||",
+        "Consensual non-consent, power dynamics, rough themes, or similar fantasy scenarios may be discussed on a case-by-case basis, but I reserve the right to decline any request if I am not comfortable with the framing, tone, or subject matter.",
+        "If you are unsure whether your request falls within these guidelines, you may ask for clarification in your submission. Everyone has different interests, and I will not shame you for asking respectfully. If your request is not something I am willing or able to draw, I may decline the commission or, with your permission, suggest another artist who may be a better fit."
+      ],
+      "references": []
+    },
+    {
+      "id": "content-boundaries-commission-eligibility",
+      "title": "Content Boundaries & Commission Eligibility",
+      "body": [
+        "Anthro-Corp Studios accepts commission requests on a case-by-case basis. Submitting a request does not guarantee that the commission will be accepted.",
+        "I reserve the right to decline any commission request for any reason, including but not limited to subject matter, complexity, schedule availability, unclear references, poor communication, or content that I do not feel comfortable creating.",
+        "I generally accept original characters, anthropomorphic characters, fantasy characters, fan characters, character illustrations, reference sheets, emotes, stickers, and similar personal-use artwork.",
+        "I may decline requests involving copyrighted characters, real people, political content, hateful content, illegal content, or anything that may violate another person’s rights or privacy.",
+        "Clients are responsible for making sure they have the right to request artwork of any character, design, or concept they submit. If the request involves a character you do not own, you must have permission from the character owner before commissioning the artwork.",
+        "Mature, suggestive, fetish, or explicit content may be accepted on a case-by-case basis. These requests are subject to the Mature Content Policy and require all involved characters and clients to be 18 years of age or older."
+      ],
+      "references": [
+        "mature-content-policy"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Replace the two tunnel placeholders after creating the named Cloudflare tunnel.
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /home/dodger/.cloudflared/REPLACE_WITH_TUNNEL_UUID.json
+loglevel: warn
+ingress:
+  - hostname: bot.anthro-corp.com
+    path: ^/(api/chatsona/oauth/callback|chatsona/upload|api/chatsona/upload|commission-info)$
+    service: http://127.0.0.1:3030
+  - hostname: chatsona.anthro-corp.com
+    path: ^/api/chatsona/oauth/callback$
+    service: http://127.0.0.1:3030
+  - service: http_status:404

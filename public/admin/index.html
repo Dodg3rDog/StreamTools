@@ -16,10 +16,11 @@
       </div>
 
       <nav class="section-list">
-        <button class="section-button active" type="button" data-section="discord">Discord Redeems</button>
+        <button class="section-button" type="button" data-section="server">Server Tools</button>
+        <button class="section-button active" type="button" data-section="discord-home">Discord Bot</button>
         <button class="section-button" type="button" data-section="points">Points</button>
         <button class="section-button" type="button" data-section="pishock" disabled>PiShock</button>
-        <button class="section-button" type="button" data-section="widgets" disabled>Widgets</button>
+        <button class="section-button" type="button" data-section="widgets">Widgets &amp; Overlays</button>
         <button class="section-button" type="button" data-section="streamerbot" disabled>Streamer.bot</button>
       </nav>
     </aside>
@@ -28,7 +29,7 @@
       <header class="workspace-header">
         <div>
           <span class="eyebrow">Preferences</span>
-          <h2>Discord Redeems</h2>
+          <h2>Discord Bot</h2>
         </div>
         <div class="token-control">
           <label for="tokenInput">Bearer token</label>
@@ -36,9 +37,147 @@
         </div>
       </header>
 
+      <nav id="discordNavigation" class="discord-tabs" aria-label="Discord bot tools">
+        <button type="button" class="section-button active" data-section="discord-home">Overview</button>
+        <button type="button" class="section-button" data-section="discord">Redeems</button>
+        <button type="button" class="section-button" data-section="commission-docs">Commission Docs</button>
+        <button type="button" class="section-button" data-section="commission-forms">Commission Forms</button>
+        <button type="button" class="section-button" data-section="howler">Howler</button>
+      </nav>
+      <section class="admin-section active" data-admin-section="discord-home">
+        <div class="editor-panel"><h3>Discord Bot</h3><p>Manage redeems, commission documents and forms, and Howler voice confinement from the tabs above.</p>
+        <button id="discordStatusRefresh" type="button">Refresh bot status</button><p id="discordBotStatus" role="status">Enter the Admin bearer token to load bot status.</p></div>
+      </section>
+      <section class="admin-section" data-admin-section="howler">
+        <div class="editor-panel"><div class="panel-heading"><h3>Howler · Voice confinement</h3><button id="howlerRefresh" type="button">Refresh</button></div>
+        <p id="howlerStatus" role="status">Loading status...</p><dl id="howlerConfig" class="server-health-details"></dl>
+        <form id="howlerSettingsForm" class="howler-settings">
+          <h3>Default settings</h3>
+          <div class="field-row"><label for="howlerDuration">Default duration (seconds)</label><input id="howlerDuration" type="number" min="30" max="86400" step="1" required /></div>
+          <label for="howlerRolePicker">Add an exempt role</label>
+          <div class="widget-actions"><select id="howlerRolePicker" aria-label="Add an exempt role"></select><button id="howlerAddRole" type="button">Add role</button></div>
+          <div class="field-row"><label for="howlerRoleId">Or enter a Discord role ID</label><input id="howlerRoleId" inputmode="numeric" placeholder="Role ID" /></div>
+          <button id="howlerAddRoleId" type="button">Add role ID</button>
+          <ul id="howlerExemptRoles" aria-label="Exempt roles"></ul>
+          <fieldset class="howler-phrase-editor">
+            <legend>Random response phrases</legend>
+            <p>Enter one phrase per line. Available placeholders: <code>{issuer}</code>, <code>{target}</code>, <code>{channel}</code>, <code>{duration}</code>, and <code>{reason}</code>.</p>
+            <label for="howlerEatenPhrases">Eaten phrases</label>
+            <textarea id="howlerEatenPhrases" rows="5" required></textarea>
+            <label for="howlerUnablePhrases">Unable to eat phrases</label>
+            <textarea id="howlerUnablePhrases" rows="5" required></textarea>
+            <label for="howlerReleasedPhrases">Released phrases</label>
+            <textarea id="howlerReleasedPhrases" rows="5" required></textarea>
+            <label for="howlerPermanentPhrases">Permanent-vore phrases</label>
+            <textarea id="howlerPermanentPhrases" rows="5" required></textarea>
+          </fieldset>
+          <div class="widget-actions"><button id="howlerSaveSettings" class="primary-action" type="submit" disabled>Save settings</button><button id="howlerResetSettings" type="button">Discard changes</button></div>
+          <p id="howlerSettingsStatus" role="status"></p>
+          <p>Duration: 30 seconds to 24 hours. Saved settings apply immediately to new confinements and persist across restarts. Existing confinements keep their scheduled release times. Built-in exemptions remain in effect.</p>
+        </form>
+        <p>Channels and the confinement role still use server configuration.</p>
+        <p><code>!eat</code> accepts one or more mentioned users while everyone shares a voice channel. Add one duration such as <code>60s</code> or <code>1m</code> to override the default for everyone mentioned in that command. The same issuer can use <code>!vomit</code> or <code>!release</code> to release everyone they ate. Bots, administrators, the server owner, configured exempt roles, and unmanageable members are excluded.</p>
+        <p>On release, Howler restores removed roles and returns members who remain in Tummy~Time to their original voice channel. Members who have already left receive a permanent-vore response. Failed role restorations retry every five minutes.</p>
+        </div>
+        <div class="editor-panel howler-record-panel"><h3>Active confinements &amp; restoration retries</h3><p id="howlerActionStatus" role="status"></p><div id="howlerRecords"></div></div>
+      </section>
       <section class="status-row" id="statusRow" role="status"></section>
 
-      <section class="admin-section active" data-admin-section="discord">
+
+      <section class="admin-section" data-admin-section="widgets">
+        <div class="widget-layout">
+          <aside class="editor-panel widget-library" aria-label="Widget library">
+            <h3>Library</h3>
+            <label for="widgetSearch">Search</label><input id="widgetSearch" type="search" placeholder="Find a widget or overlay" />
+            <label for="widgetFilter">Show</label><select id="widgetFilter"><option value="all">All</option><option value="widget">Widgets</option><option value="overlay">Overlays</option></select>
+            <div class="widget-actions"><button id="widgetRefresh" type="button">Refresh</button><button id="widgetNew" type="button">New overlay</button></div>
+            <p id="widgetLibraryStatus" role="status"></p><div id="widgetList"></div>
+          </aside>
+          <div class="widget-detail">
+            <div class="editor-panel">
+              <h3 id="widgetTitle">Choose a widget or overlay</h3><p id="widgetDescription">Browse the library to view settings and copy an OBS browser-source URL.</p>
+              <div id="widgetActions" hidden>
+                <div class="widget-actions"><a id="widgetOpen" target="_blank" rel="noopener">Open</a><button id="widgetCopy" type="button">Copy OBS URL</button></div>
+                <label for="widgetUrl">OBS browser-source URL</label><input id="widgetUrl" readonly />
+                <p id="widgetDimensions"></p>
+              </div>
+            </div>
+            <div id="widgetBuiltin" class="editor-panel" hidden><h3>Display options</h3><div id="widgetOptions"></div><p>Options update the URL above. Copy it into your OBS browser source.</p></div>
+            <div id="customChatEditor" hidden>
+              <div class="widget-actions"><button id="chatSave" class="primary-action" type="button" disabled>Save chat settings</button><button id="chatDiscard" type="button">Discard changes</button></div>
+              <p id="chatEditorStatus" role="status"></p>
+              <div class="custom-chat-layout">
+                <div class="editor-panel"><h3>Chat settings</h3>
+                  <form id="chatSettingsForm"></form>
+                  <h3>Streamer.bot connection</h3>
+                  <label for="chatSocketUrl">Local Streamer.bot address (on the OBS computer)</label><input id="chatSocketUrl" type="url" readonly value="ws://127.0.0.1:8080/" />
+                  <p id="chatConnection" role="status"></p>
+                  <p>Run the OBS browser source on the same PC as Streamer.bot. Its default localhost binding stays unchanged. This sample preview does not connect to live chat.</p>
+                </div>
+                <div class="editor-panel chat-preview-panel"><h3>Comic conversation preview</h3>
+                  <p>Sample messages only. Preview controls do not send messages to Twitch, YouTube, or live overlays.</p>
+                  <div class="widget-actions"><button id="chatSample" type="button">Sample conversation</button><button id="chatBurst" type="button">Message burst</button><button id="chatDeleteSample" type="button">Delete oldest</button><button id="chatClearSample" type="button">Clear preview</button></div>
+                  <label for="chatPreviewBackground">Preview background</label><select id="chatPreviewBackground"><option value="checker">Checkerboard</option><option value="dark">Dark</option><option value="light">Light</option></select>
+                  <div id="chatPreviewCanvas"><iframe id="chatPreviewFrame" title="Custom chat sample preview"></iframe></div>
+                  <p>Suggested OBS size: 600 × 900. The overlay background stays transparent. Save applies appearance changes to connected overlays.</p>
+                </div>
+              </div>
+            </div>
+            <div id="widgetEditor" hidden>
+              <div hidden><span id="we-tokenField"></span><select id="we-overlaySelect"></select><a id="we-openOverlayLink"></a><button id="we-copyUrlButton"></button><button id="we-newOverlayButton"></button><button id="we-refreshButton"></button></div>
+              <div class="widget-actions"><button id="we-saveButton" class="primary-action" type="button">Save changes</button><button id="we-discard" type="button">Discard changes</button></div>
+              <p id="we-statusLine" role="status"></p>
+    <section class="overlay-workspace">
+      <form id="we-configForm" class="config-form"></form>
+
+      <aside class="preview-panel editor-panel">
+        <header class="preview-header">
+          <div>
+            <span class="eyebrow">Live Preview</span>
+            <h2 id="we-previewTitle">Overlay</h2>
+          </div>
+          <button id="we-reloadPreviewButton" class="button secondary" type="button">Start / reload preview</button>
+        </header>
+        <div class="preview-viewport" id="we-previewViewport">
+          <iframe id="we-previewFrame" title="Overlay live preview"></iframe>
+        </div>
+        <div class="preview-toolbar" id="we-previewToolbar">
+          <button class="tool-button handle" id="we-toolbarHandle" type="button" aria-label="Move toolbar">::</button>
+          <button class="tool-button" id="we-emulateButton" type="button">Emulate</button>
+          <button class="tool-button" id="we-zoomOutButton" type="button">-</button>
+          <button class="tool-button" id="we-zoomInButton" type="button">+</button>
+          <button class="tool-button" id="we-zoomResetButton" type="button">100%</button>
+          <button class="tool-button" id="we-fitButton" type="button">Fit</button>
+          <button class="tool-button" id="we-snapButton" type="button">Grid</button>
+          <label class="volume-control">
+            Volume
+            <input id="we-volumeInput" type="range" min="0" max="100" step="1" value="100" />
+          </label>
+        </div>
+      </aside>
+    </section>
+
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="admin-section" data-admin-section="server">
+        <div class="editor-panel">
+          <div class="panel-heading"><h3>Server Health</h3><button id="refreshHealthButton" type="button">Refresh</button></div>
+          <p id="serverHealthStatus" role="status">Checking server...</p>
+          <dl class="server-health-details">
+            <dt>Service</dt><dd id="serverService">-</dd>
+            <dt>Version</dt><dd id="serverVersion">-</dd>
+            <dt>Uptime</dt><dd id="serverUptime">-</dd>
+            <dt>Last checked</dt><dd id="serverChecked">-</dd>
+          </dl>
+          <p>Health refreshes every 10 seconds. <a href="/health" target="_blank" rel="noopener">Open health endpoint</a></p>
+          <p>Restart briefly disconnects widgets and bot integrations. In-memory state, including timers, resets.</p>
+          <button class="danger-action" id="restartServerButton" type="button" disabled>Restart server</button>
+          <p id="serverRestartStatus" role="status"></p>
+        </div>
+      </section>
+      <section class="admin-section" data-admin-section="discord">
       <section class="editor-grid">
         <form class="editor-panel" id="redeemForm">
           <input type="hidden" id="redeemId" />
@@ -140,6 +279,230 @@
       </section>
       </section>
 
+      <section class="admin-section" data-admin-section="commission-docs">
+        <section class="docs-grid">
+          <form class="editor-panel" id="tosDocumentForm">
+            <div class="panel-heading">
+              <h3>Commission Document</h3>
+              <button type="button" id="refreshTosButton">Refresh</button>
+            </div>
+
+            <div class="field-row">
+              <label for="commissionDocumentType">Document</label>
+              <select id="commissionDocumentType" name="documentType">
+                <option value="tos">Terms of Service</option>
+                <option value="pricing">Pricing Guide</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label for="tosTitle">Title</label>
+              <input id="tosTitle" name="title" type="text" />
+            </div>
+
+            <div class="field-row">
+              <label for="tosUpdatedAt">Updated Date</label>
+              <input id="tosUpdatedAt" name="updatedAt" type="date" />
+            </div>
+
+            <div class="field-row">
+              <label for="tosDescription">Intro Text</label>
+              <textarea id="tosDescription" name="description" rows="4"></textarea>
+            </div>
+
+            <section class="asset-panel" id="maturePolicyFields">
+              <div class="panel-heading">
+                <h3>Mature Content Policy</h3>
+              </div>
+
+              <div class="field-row">
+                <label for="maturePolicyTitle">Policy Title</label>
+                <input id="maturePolicyTitle" name="maturePolicyTitle" type="text" />
+              </div>
+
+              <div class="field-row">
+                <label for="maturePolicyDescription">Prompt Description</label>
+                <textarea id="maturePolicyDescription" name="maturePolicyDescription" rows="3"></textarea>
+              </div>
+
+              <div class="field-row">
+                <label for="maturePolicyBody">PDF Text</label>
+                <textarea id="maturePolicyBody" name="maturePolicyBody" rows="8" placeholder="This policy is only included when the user chooses to include it in the ToS PDF."></textarea>
+              </div>
+            </section>
+
+            <div class="form-actions">
+              <button class="primary-action" type="submit">Save Document</button>
+            </div>
+          </form>
+
+          <section class="redeem-list-panel">
+            <div class="panel-heading">
+              <h3>Sections</h3>
+              <button type="button" id="newTosSectionButton">New Section</button>
+            </div>
+            <div class="section-card-list" id="tosSectionList"></div>
+          </section>
+
+          <form class="editor-panel" id="tosSectionForm">
+            <input type="hidden" id="tosSectionIndex" />
+
+            <div class="panel-heading">
+              <h3>Section Editor</h3>
+              <div class="mini-actions">
+                <button type="button" id="moveTosSectionUpButton" title="Move up">↑</button>
+                <button type="button" id="moveTosSectionDownButton" title="Move down">↓</button>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="tosSectionId">Section ID</label>
+              <input id="tosSectionId" name="id" type="text" placeholder="payments-refunds" />
+            </div>
+
+            <div class="field-row">
+              <label for="tosSectionTitle">Title</label>
+              <input id="tosSectionTitle" name="title" type="text" placeholder="Payments and Refunds" />
+            </div>
+
+            <div class="field-row">
+              <label for="tosSectionBody">Body</label>
+              <div class="format-toolbar" aria-label="Text formatting toolbar">
+                <button type="button" data-format-command="bold" title="Bold">B</button>
+                <button type="button" data-format-command="italic" title="Italic">I</button>
+                <button type="button" data-format-command="underline" title="Underline">U</button>
+                <button type="button" data-format-command="strike" title="Strikethrough">S</button>
+                <button type="button" data-format-command="spoiler" title="Spoiler">||</button>
+                <button type="button" data-format-command="inline-code" title="Inline code">`</button>
+                <button type="button" data-format-command="code-block" title="Code block">```</button>
+                <button type="button" data-format-command="heading1" title="Large heading">H1</button>
+                <button type="button" data-format-command="heading2" title="Medium heading">H2</button>
+                <button type="button" data-format-command="heading3" title="Small heading">H3</button>
+                <button type="button" data-format-command="bullet" title="Bullet list">•</button>
+                <button type="button" data-format-command="numbered" title="Numbered item">1.</button>
+                <button type="button" data-format-command="quote" title="Quote">”</button>
+                <button type="button" data-format-command="multiline-quote" title="Multi-line quote">»</button>
+                <button type="button" data-format-command="subtext" title="Subtext">-#</button>
+                <button type="button" data-format-command="link" title="Link">Link</button>
+              </div>
+              <textarea id="tosSectionBody" name="body" rows="14" placeholder="Separate paragraphs with a blank line."></textarea>
+              <div class="limit-meter" id="tosBodyLimitMeter">
+                <span id="tosBodyCounter">0 / 4096</span>
+                <span>Discord embed description limit</span>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="tosSectionReferences">Jump Buttons</label>
+              <input id="tosSectionReferences" name="references" type="text" placeholder="payments-refunds, revisions-approvals" />
+            </div>
+
+            <div class="form-actions">
+              <button type="button" id="applyTosSectionButton">Apply Section</button>
+              <button class="danger-action" type="button" id="deleteTosSectionButton">Delete Section</button>
+            </div>
+
+            <section class="asset-panel">
+              <div class="panel-heading">
+                <h3>Server Assets</h3>
+                <button type="button" id="loadDiscordAssetsButton">Load</button>
+              </div>
+              <p class="asset-note">Custom emoji can be inserted into text and will render in Discord embeds when the bot can access them.</p>
+              <div class="asset-group">
+                <h4>Emoji</h4>
+                <div class="asset-grid" id="discordEmojiGrid"></div>
+              </div>
+            </section>
+          </form>
+        </section>
+      </section>
+
+      <section class="admin-section" data-admin-section="commission-forms">
+        <section class="docs-grid">
+          <form class="editor-panel" id="commissionFormsForm">
+            <div class="panel-heading">
+              <h3>Form Template</h3>
+              <button type="button" id="refreshFormsButton">Refresh</button>
+            </div>
+
+            <input type="hidden" id="formTemplateIndex" />
+
+            <div class="field-row">
+              <label for="formTemplateId">Form ID</label>
+              <input id="formTemplateId" name="id" type="text" placeholder="client-character-permission-affirmation" />
+            </div>
+
+            <div class="field-row">
+              <label for="formTemplateTitle">Title</label>
+              <input id="formTemplateTitle" name="title" type="text" />
+            </div>
+
+            <div class="field-row">
+              <label for="formTemplateDescription">Description</label>
+              <textarea id="formTemplateDescription" name="description" rows="3"></textarea>
+            </div>
+
+            <div class="field-grid two-column">
+              <div class="field-row">
+                <label for="formSignatureMode">Signature</label>
+                <select id="formSignatureMode" name="signatureMode">
+                  <option value="none">None</option>
+                  <option value="typed_agree">Typed AGREE</option>
+                  <option value="print_signature">Printed signature line</option>
+                </select>
+              </div>
+
+              <div class="field-row">
+                <label for="formPdfMode">PDF Mode</label>
+                <select id="formPdfMode" name="pdfMode">
+                  <option value="blank">Blank</option>
+                  <option value="prefilled">Prefilled</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="formWorkflow">Workflow Tags</label>
+              <input id="formWorkflow" name="workflow" type="text" placeholder="commission_intake, staff_approval" />
+            </div>
+
+            <div class="field-row">
+              <label>Insert Token</label>
+              <div class="token-button-grid" id="formTokenButtons"></div>
+            </div>
+
+            <div class="field-row">
+              <label for="formTemplateBody">Body</label>
+              <textarea id="formTemplateBody" name="body" rows="15" placeholder="Use tokens like {{discord.username}}, {{discord.userId}}, {{client.name}}, and {{current.date}}."></textarea>
+            </div>
+
+            <div class="field-row">
+              <label for="formFieldsJson">Fields JSON</label>
+              <textarea id="formFieldsJson" name="fields" rows="9" spellcheck="false"></textarea>
+            </div>
+
+            <div class="field-row">
+              <label for="formStaffNotes">Staff Notes</label>
+              <textarea id="formStaffNotes" name="staffNotes" rows="3"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button class="primary-action" type="submit">Save Forms</button>
+              <button type="button" id="newFormButton">New</button>
+              <button class="danger-action" type="button" id="deleteFormButton">Delete</button>
+            </div>
+          </form>
+
+          <section class="redeem-list-panel">
+            <div class="panel-heading">
+              <h3>Forms</h3>
+            </div>
+            <div class="section-card-list" id="formTemplateList"></div>
+          </section>
+        </section>
+      </section>
+
       <section class="admin-section" data-admin-section="points">
         <section class="points-grid">
           <form class="editor-panel" id="pointSettingsForm">
@@ -207,5 +570,10 @@
   </main>
 
   <script src="./admin.js"></script>
+  <script src="/overlays/editor/overlay-editor.js"></script>
+  <script src="/widgets/custom-chat/model.js"></script>
+  <script src="./custom-chat.js"></script>
+  <script src="./widgets.js"></script>
+  <script src="./discord-tools.js"></script>
 </body>
 </html>

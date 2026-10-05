@@ -5,6 +5,8 @@ const {
   handleDiscordRedeemEvent
 } = require("../services/discordEvents");
 const {
+  getDiscordBotStatus,
+  getDiscordGuildAssets,
   sendDiscordMessage
 } = require("../services/discordBot");
 const {
@@ -18,6 +20,33 @@ const {
 } = require("../services/discordRedeems");
 
 const router = express.Router();
+const { getVoiceConfinementStatus, releaseVoiceConfinementFromAdmin } = require("../services/voiceConfinement");
+
+router.put("/admin/howler/settings", requireBearerToken, (req, res) => {
+  try {
+    require("../services/voiceConfinementSettings").settingsStore.save(req.body);
+    res.json({ ok: true, howler: getVoiceConfinementStatus() });
+  } catch (error) {
+    res.status(error.code ? 500 : 400).json({ ok: false, error: error.code ? "Could not save Howler settings." : error.message });
+  }
+});
+
+router.get("/admin/status", requireBearerToken, (req, res) => {
+  res.set("Cache-Control", "no-store").json({ ok: true, bot: getDiscordBotStatus(), howler: getVoiceConfinementStatus() });
+});
+
+router.post("/admin/howler/release", requireBearerToken, async (req, res) => {
+  const { guildId, userId } = req.body || {};
+  if (!/^\d{17,20}$/.test(String(guildId || "")) || !/^\d{17,20}$/.test(String(userId || ""))) {
+    return res.status(400).json({ ok: false, error: "Valid guild and user IDs are required." });
+  }
+  try {
+    const result = await releaseVoiceConfinementFromAdmin(String(guildId), String(userId));
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    res.status(409).json({ ok: false, error: error.message });
+  }
+});
 
 router.get("/triggers", (req, res) => {
   const triggers = getDiscordTriggerDefinitions();
@@ -42,6 +71,20 @@ router.get("/redeems", (req, res) => {
     boardConfig: BOARD_CONFIG,
     redeems: getRedeemList()
   });
+});
+
+router.get("/guild-assets", requireBearerToken, async (req, res) => {
+  try {
+    res.json({
+      ok: true,
+      assets: await getDiscordGuildAssets(req.query.guildId || undefined)
+    });
+  } catch (error) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
 router.post("/redeems/upsert", requireBearerToken, (req, res) => {

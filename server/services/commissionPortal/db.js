@@ -42,6 +42,15 @@ function migrate(database) {
       commission_type TEXT NOT NULL,
       completion_level TEXT NOT NULL,
       content_rating TEXT NOT NULL,
+      character_count INTEGER NOT NULL DEFAULT 1,
+      owned_character_count INTEGER NOT NULL DEFAULT 0,
+      character_details_json TEXT NOT NULL DEFAULT '',
+      character_ownership_id TEXT NOT NULL DEFAULT '',
+      character_ownership_label TEXT NOT NULL DEFAULT '',
+      character_permission_json TEXT NOT NULL DEFAULT '',
+      terms_accepted_at TEXT NOT NULL DEFAULT '',
+      terms_accepted_user_id TEXT NOT NULL DEFAULT '',
+      terms_accepted_user_name TEXT NOT NULL DEFAULT '',
       private_commission INTEGER NOT NULL DEFAULT 0,
       availability_days TEXT NOT NULL DEFAULT '',
       availability_start_time TEXT NOT NULL DEFAULT '',
@@ -75,6 +84,14 @@ function migrate(database) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS commission_document_messages (
+      document_type TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      source_hash TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS commission_quote_line_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       commission_id INTEGER NOT NULL,
@@ -99,6 +116,15 @@ function migrate(database) {
   ensureColumn(database, "commissions", "availability_start_time", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(database, "commissions", "availability_end_time", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(database, "commissions", "availability_timezone", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "character_count", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn(database, "commissions", "owned_character_count", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(database, "commissions", "character_details_json", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "character_ownership_id", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "character_ownership_label", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "character_permission_json", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "terms_accepted_at", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "terms_accepted_user_id", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(database, "commissions", "terms_accepted_user_name", "TEXT NOT NULL DEFAULT ''");
 }
 
 function upsertClient(input) {
@@ -177,6 +203,15 @@ function createCommission(input) {
       commission_type,
       completion_level,
       content_rating,
+      character_count,
+      owned_character_count,
+      character_details_json,
+      character_ownership_id,
+      character_ownership_label,
+      character_permission_json,
+      terms_accepted_at,
+      terms_accepted_user_id,
+      terms_accepted_user_name,
       private_commission,
       availability_days,
       availability_start_time,
@@ -187,7 +222,7 @@ function createCommission(input) {
       created_at,
       updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     input.discordUserId,
     input.forumChannelId,
@@ -195,6 +230,15 @@ function createCommission(input) {
     input.commissionType,
     input.completionLevel,
     input.contentRating,
+    Number.parseInt(input.characterCount, 10) || 1,
+    Number.parseInt(input.ownedCharacterCount, 10) || 0,
+    safeJson(input.characterDetails),
+    input.characterOwnershipId || "",
+    input.characterOwnershipLabel || "",
+    safeJson(input.characterPermission),
+    input.termsAcceptedAt || "",
+    input.termsAcceptedUserId || input.discordUserId || "",
+    input.termsAcceptedUserName || "",
     input.privateCommission === true ? 1 : 0,
     (input.availabilityDays || []).join(","),
     input.availabilityStartTime || "",
@@ -354,6 +398,43 @@ function deletePricingMessage(messageIndex) {
   getDb().prepare("DELETE FROM commission_pricing_messages WHERE message_index = ?").run(messageIndex);
 }
 
+function getDocumentMessage(documentType) {
+  return getDb().prepare(`
+    SELECT
+      document_type AS documentType,
+      channel_id AS channelId,
+      message_id AS messageId,
+      source_hash AS sourceHash,
+      updated_at AS updatedAt
+    FROM commission_document_messages
+    WHERE document_type = ?
+  `).get(documentType);
+}
+
+function upsertDocumentMessage(input) {
+  getDb().prepare(`
+    INSERT INTO commission_document_messages (
+      document_type,
+      channel_id,
+      message_id,
+      source_hash,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(document_type) DO UPDATE SET
+      channel_id = excluded.channel_id,
+      message_id = excluded.message_id,
+      source_hash = excluded.source_hash,
+      updated_at = excluded.updated_at
+  `).run(
+    input.documentType,
+    input.channelId,
+    input.messageId,
+    input.sourceHash || "",
+    new Date().toISOString()
+  );
+}
+
 function addCommissionQuoteLineItem(input) {
   const now = new Date().toISOString();
   const result = getDb().prepare(`
@@ -438,6 +519,15 @@ function commissionSelectSql(whereClause) {
       commission_type AS commissionType,
       completion_level AS completionLevel,
       content_rating AS contentRating,
+      character_count AS characterCount,
+      owned_character_count AS ownedCharacterCount,
+      character_details_json AS characterDetailsJson,
+      character_ownership_id AS characterOwnershipId,
+      character_ownership_label AS characterOwnershipLabel,
+      character_permission_json AS characterPermissionJson,
+      terms_accepted_at AS termsAcceptedAt,
+      terms_accepted_user_id AS termsAcceptedUserId,
+      terms_accepted_user_name AS termsAcceptedUserName,
       private_commission AS privateCommission,
       availability_days AS availabilityDays,
       availability_start_time AS availabilityStartTime,
@@ -500,6 +590,7 @@ module.exports = {
   getCommissionByThreadId,
   getCommissionQuoteLineItem,
   getCommissionQuoteLineItems,
+  getDocumentMessage,
   getDb,
   getPricingMessages,
   markCommissionApproved,
@@ -508,6 +599,7 @@ module.exports = {
   markCommissionRejectionReasonRequested,
   markCommissionRejected,
   setClientForum,
+  upsertDocumentMessage,
   upsertPricingMessage,
   upsertClient
 };

@@ -1,60 +1,35 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const path = require("path");
-
-require("dotenv").config({
-  path: path.join(__dirname, "../.env")
+// Keep this launcher alive while the HTTP server restarts.
+const { fork } = require("node:child_process");
+const path = require("node:path");
+let child;
+let stopping = false;
+function launch() {
+  child = fork(path.join(__dirname, "app.js"), [], {
+    stdio: ["inherit", "inherit", "inherit", "ipc"],
+    windowsHide: true,
+    env: { ...process.env, STREAMTOOLS_SUPERVISED: "1" }
+  });
+  child.on("error", (error) => {
+    console.error("[Server launcher]", error);
+    process.exitCode = 1;
+  });
+  child.on("exit", (code) => {
+    if (!stopping && code === 75) {
+      console.log("[Server launcher] Restarting...");
+      launch();
+    } else {
+      process.exitCode = stopping ? 0 : (code || 1);
+    }
+  });
+}
+process.on("disconnect", () => {
+  stopping = true;
+  if (child && child.exitCode === null) child.kill();
 });
-
-const healthRoutes = require("./routes/health");
-const timerRoutes = require("./routes/timers");
-const pishockRoutes = require("./routes/pishock");
-const discordRoutes = require("./routes/discord");
-const pointsRoutes = require("./routes/points");
-const drawingSlotMachineRoutes = require("./routes/drawing-slot-machine");
-const codeBreakProtocolRoutes = require("./routes/chat-games-code-break-protocol");
-const emoteSyncProtocolRoutes = require("./routes/chat-games-emote-sync-protocol");
-const { startDiscordBot } = require("./services/discordBot");
-const { startTelegramBot } = require("./services/telegramBot");
-
-const app = express();
-
-const PORT = process.env.PORT || 3030;
-const HOST = process.env.HOST || "0.0.0.0";
-
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginOpenerPolicy: false
-  })
-);
-app.use(cors());
-app.use(express.json());
-app.use(morgan("dev"));
-
-// Static widget files
-app.use(express.static(path.join(__dirname, "../public")));
-
-app.use("/", healthRoutes);
-app.use("/api", healthRoutes);
-app.use("/api/timers", timerRoutes);
-app.use("/api/pishock", pishockRoutes);
-app.use("/api/discord", discordRoutes);
-app.use("/api/points", pointsRoutes);
-app.use("/api/drawing-slot-machine", drawingSlotMachineRoutes);
-app.use("/api/chat-games/code-break-protocol", codeBreakProtocolRoutes);
-app.use("/api/chat-games/emote-sync-protocol", emoteSyncProtocolRoutes);
-
-app.listen(PORT, HOST, () => {
-  console.log(`StreamTools server running at http://${HOST}:${PORT}`);
-});
-
-startDiscordBot().catch((error) => {
-  console.error("[Discord Bot] Startup failed:", error);
-});
-
-startTelegramBot().catch((error) => {
-  console.error("[Telegram Bot] Startup failed:", error);
-});
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    stopping = true;
+    if (child && child.exitCode === null) child.kill(signal);
+  });
+}
+launch();

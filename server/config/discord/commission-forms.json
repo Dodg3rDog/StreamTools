@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-02",
+  "tokens": [
+    {
+      "token": "{{discord.username}}",
+      "label": "Discord Username",
+      "description": "The Discord username or display name from the interaction."
+    },
+    {
+      "token": "{{discord.userId}}",
+      "label": "Discord User ID",
+      "description": "The Discord account ID from the interaction."
+    },
+    {
+      "token": "{{client.name}}",
+      "label": "Client Name",
+      "description": "Preferred client name or handle when known."
+    },
+    {
+      "token": "{{current.date}}",
+      "label": "Current Date",
+      "description": "The date when the form is generated or signed."
+    },
+    {
+      "token": "{{commission.contentType}}",
+      "label": "Commission Content Type",
+      "description": "Commission type/rating summary when known."
+    },
+    {
+      "token": "{{form.ownerName}}",
+      "label": "Owner Name Field",
+      "description": "Value entered for the character owner."
+    },
+    {
+      "token": "{{form.characterName}}",
+      "label": "Character Name Field",
+      "description": "Value entered for the character name."
+    },
+    {
+      "token": "{{form.contentType}}",
+      "label": "Content Type Field",
+      "description": "Value entered for requested content type."
+    }
+  ],
+  "forms": [
+    {
+      "id": "client-character-permission-affirmation",
+      "title": "Client Character Permission Affirmation",
+      "description": "Client affirmation for third-party characters included in a commission request.",
+      "signatureMode": "typed_agree",
+      "pdfMode": "completed",
+      "workflow": [
+        "commission_intake",
+        "tos_navigator"
+      ],
+      "body": [
+        "I affirm that I have permission from the owner of any character, design, or concept included in this commission that I do not personally own.",
+        "For any third-party character included in this request, I confirm that:\n\n- The character owner has given me permission to include their character in this commission.\n- The character owner understands the general nature of the requested artwork.\n- I have not misrepresented the character, the owner's consent, or the intended use of the finished artwork.\n- I understand that Anthro-Corp Studios / Dodger may request additional confirmation from the character owner if needed.",
+        "Character owner name or screen name: {{form.ownerName}}\n\nCharacter name: {{form.characterName}}\n\nRequested content type: {{form.contentType}}\n\nClient name or screen name: {{client.name}}\n\nDiscord user: {{discord.username}} / {{discord.userId}}\n\nDate: {{current.date}}"
+      ],
+      "fields": [
+        {
+          "id": "owner-name",
+          "label": "Character owner name or screen name",
+          "placeholder": "Owner Name / Handle",
+          "required": true,
+          "token": "{{form.ownerName}}"
+        },
+        {
+          "id": "character-name",
+          "label": "Character name",
+          "placeholder": "Character Name",
+          "required": true,
+          "token": "{{form.characterName}}"
+        },
+        {
+          "id": "content-type",
+          "label": "Requested content type",
+          "placeholder": "SFW / suggestive / mature / explicit / commercial / other",
+          "required": true,
+          "token": "{{form.contentType}}"
+        }
+      ],
+      "staffNotes": ""
+    },
+    {
+      "id": "third-party-character-permission-confirmation",
+      "title": "Third-Party Character Permission Confirmation",
+      "description": "Owner-facing confirmation form staff may request during approval.",
+      "signatureMode": "print_signature",
+      "pdfMode": "prefilled",
+      "workflow": [
+        "staff_approval"
+      ],
+      "body": [
+        "I, {{form.ownerName}}, confirm that I own or control the character/design known as {{form.characterName}}.",
+        "I give permission for {{client.name}} to commission artwork of this character from Anthro-Corp Studios / Dodger.",
+        "I understand that the commissioned artwork may include the following general content type: {{commission.contentType}}.",
+        "I understand that this permission applies only to this specific commission unless otherwise agreed in writing.",
+        "Character owner contact or handle: {{form.ownerContact}}\n\nDate: {{current.date}}\n\nCharacter owner signature: ________________________________"
+      ],
+      "fields": [
+        {
+          "id": "owner-name",
+          "label": "Character owner name or screen name",
+          "placeholder": "Owner Name / Handle",
+          "required": true,
+          "token": "{{form.ownerName}}"
+        },
+        {
+          "id": "character-name",
+          "label": "Character name",
+          "placeholder": "Character Name",
+          "required": true,
+          "token": "{{form.characterName}}"
+        },
+        {
+          "id": "owner-contact",
+          "label": "Character owner contact or handle",
+          "placeholder": "Handle / email / Discord / other",
+          "required": false,
+          "token": "{{form.ownerContact}}"
+        }
+      ],
+      "staffNotes": "Use when staff decides the character owner should directly confirm permission."
+    }
+  ]
+}

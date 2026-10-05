@@ -1,3 +1,4 @@
+const chatsona = require('./chatsona');
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -17,7 +18,9 @@ const {
 const {
   createCommissionCleanupCommand,
   createCommissionManualEntryCommand,
+  createCommissionPublishDocumentsCommand,
   createCommissionPublishPricingCommand,
+  createCommissionPublishTosCommand,
   createCommissionSetupCommand,
   handleCommissionPortalInteraction,
   handleCommissionPortalMessageCreate,
@@ -25,7 +28,7 @@ const {
   handleCommissionPortalThreadUpdate
 } = require("./commissionPortal");
 const { getCommissionConfig } = require("./commissionPortal/config");
-const { startCommissionPricingPublisher } = require("./commissionPortal/pricing");
+const { startCommissionDocumentPublisher } = require("./commissionPortal/documents");
 const { triggerStreamerBot } = require("./streamerbot");
 const {
   BOARD_CONFIG,
@@ -43,14 +46,24 @@ const {
   isRelayChannelAllowed,
   removeRelayChannel
 } = require("./discordRelayChannels");
+const {
+  handleVoiceConfinementMessage,
+  handleVoiceConfinementStateUpdate,
+  startVoiceConfinement
+} = require("./voiceConfinement");
 
 const redeemInputModalPrefix = "redeem_input:";
 const redeemInputFieldId = "redeemInput";
+const EPHEMERAL_FLAGS = 64;
+const EPHEMERAL_DELETE_AFTER_MS = 10 * 60 * 1000;
+const REDEEM_BOARD_MAX_CHANNEL_MESSAGES = 20;
 
 let client = null;
 let voicePointTimer = null;
 let voicePointTickActive = false;
 let voicePointSkipLogged = false;
+const redeemBoardCleanupEntries = new Map();
+const redeemBoardEntriesByUserChannel = new Map();
 
 async function startDiscordBot() {
   if (!parseBoolean(process.env.ENABLE_DISCORD_BOT, false)) {
@@ -91,14 +104,17 @@ async function startDiscordBot() {
       });
     }
 
-    startCommissionPricingPublisher(readyClient, getCommissionConfig());
+    startCommissionDocumentPublisher(readyClient, getCommissionConfig());
     startVoicePointTimer();
+    startVoiceConfinement(readyClient);
+    chatsona.start(readyClient).catch(error => console.error("[Chatsona]", error.message));
   });
 
   client.on(Events.InteractionCreate, onInteractionCreate);
   client.on(Events.MessageCreate, onMessageCreate);
   client.on(Events.MessageReactionAdd, onMessageReactionAdd);
   client.on(Events.ThreadUpdate, onThreadUpdate);
+  client.on(Events.VoiceStateUpdate, onVoiceStateUpdate);
 
   await client.login(token);
   return client;
@@ -142,7 +158,9 @@ async function registerDiscordCommands() {
     createCommissionSetupCommand(),
     createCommissionCleanupCommand(),
     createCommissionManualEntryCommand(),
-    createCommissionPublishPricingCommand()
+    createCommissionPublishPricingCommand(),
+    createCommissionPublishTosCommand(),
+    createCommissionPublishDocumentsCommand()
   ];
 
   const rest = new REST({ version: "10" }).setToken(token);
@@ -157,6 +175,7 @@ async function registerDiscordCommands() {
 
 async function onInteractionCreate(interaction) {
   try {
+    if (await chatsona.handleInteraction(interaction)) return;
     if (await handleCommissionPortalInteraction(interaction)) {
       return;
     }
@@ -164,8 +183,11 @@ async function onInteractionCreate(interaction) {
     if (interaction.isChatInputCommand() && interaction.commandName === "redeems") {
       await interaction.reply({
         embeds: [createRedeemBoardEmbed()],
-        components: createRedeemButtonRows()
+        components: createRedeemButtonRows(),
+        flags: EPHEMERAL_FLAGS
       });
+      const replyMessage = await interaction.fetchReply().catch(() => null);
+      trackRedeemBoardEphemeral(interaction, replyMessage);
 
       return;
     }
@@ -208,6 +230,14 @@ async function onThreadUpdate(oldThread, newThread) {
   }
 }
 
+async function onVoiceStateUpdate(oldState, newState) {
+  try {
+    await handleVoiceConfinementStateUpdate(oldState, newState);
+  } catch (error) {
+    console.error("[Discord Bot] Voice confinement state handling failed:", error);
+  }
+}
+
 async function onMessageReactionAdd(reaction, user) {
   try {
     await handleCommissionPortalReactionAdd(reaction, user);
@@ -222,7 +252,14 @@ async function onMessageCreate(message) {
       return;
     }
 
+    if (await chatsona.handleMessage(message)) return;
+    processRedeemBoardChannelActivity(message);
+
     if (await handleCommissionPortalMessageCreate(message)) {
+      return;
+    }
+
+    if (await handleVoiceConfinementMessage(message)) {
       return;
     }
 
@@ -426,6 +463,7 @@ function getVoicePointAmount() {
 async function handleRedeemButton(interaction) {
   const redeemId = getRedeemIdFromCustomId(interaction.customId);
   const redeemConfig = getRedeemConfig(redeemId);
+  touchRedeemBoardEphemeral(interaction);
 
   if (!redeemConfig || !redeemConfig.visible) {
     await interaction.reply({
@@ -481,6 +519,8 @@ async function showRedeemInputModal(interaction, redeemId, redeemConfig) {
 }
 
 async function submitRedeemEvent(interaction, redeemId, redeemConfig, inputValue) {
+  await deferEphemeralInteraction(interaction);
+
   const result = await handleDiscordRedeemEvent({
     source: "discord",
     type: "redeem",
@@ -501,12 +541,111 @@ async function submitRedeemEvent(interaction, redeemId, redeemConfig, inputValue
 
   console.log("[Discord Bot] Redeem handled:", result.streamerBot);
 
-  await interaction.reply({
+  await interaction.editReply({
     content: result.streamerBot.ok
       ? "Redeem received: " + redeemConfig.label
-      : "Redeem received, but the stream bridge did not respond.",
-    ephemeral: true
+      : "Redeem received, but the stream bridge did not respond."
   });
+  scheduleEphemeralInteractionCleanup(interaction, "redeem-result:" + interaction.id);
+}
+
+async function deferEphemeralInteraction(interaction) {
+  if (!interaction.isRepliable() || interaction.replied || interaction.deferred) {
+    return;
+  }
+
+  await interaction.deferReply({
+    flags: EPHEMERAL_FLAGS
+  });
+}
+
+function trackRedeemBoardEphemeral(interaction, replyMessage) {
+  const channelId = interaction.channelId || "";
+  const userId = interaction.user?.id || "";
+  const userChannelKey = userId + ":" + channelId;
+  const existingKey = redeemBoardEntriesByUserChannel.get(userChannelKey);
+
+  if (existingKey) {
+    cleanupRedeemBoardEphemeral(existingKey, "replaced");
+  }
+
+  const key = replyMessage?.id || "interaction:" + interaction.id;
+  const entry = {
+    key,
+    channelId,
+    userId,
+    userChannelKey,
+    channelMessagesSeen: 0,
+    deleteReply: () => interaction.deleteReply().catch(() => null),
+    timer: null
+  };
+
+  redeemBoardCleanupEntries.set(key, entry);
+  redeemBoardEntriesByUserChannel.set(userChannelKey, key);
+  scheduleRedeemBoardInactivityCleanup(entry);
+}
+
+function touchRedeemBoardEphemeral(interaction) {
+  const key = interaction.message?.id || "";
+  const entry = key ? redeemBoardCleanupEntries.get(key) : null;
+
+  if (entry) {
+    scheduleRedeemBoardInactivityCleanup(entry);
+  }
+}
+
+function processRedeemBoardChannelActivity(message) {
+  if (!message.channelId || redeemBoardCleanupEntries.size === 0) {
+    return;
+  }
+
+  Array.from(redeemBoardCleanupEntries.values()).forEach((entry) => {
+    if (entry.channelId !== message.channelId) {
+      return;
+    }
+
+    entry.channelMessagesSeen += 1;
+    if (entry.channelMessagesSeen >= REDEEM_BOARD_MAX_CHANNEL_MESSAGES) {
+      cleanupRedeemBoardEphemeral(entry.key, "channel_message_limit");
+    }
+  });
+}
+
+function scheduleRedeemBoardInactivityCleanup(entry) {
+  if (entry.timer) {
+    clearTimeout(entry.timer);
+  }
+
+  entry.timer = setTimeout(() => {
+    cleanupRedeemBoardEphemeral(entry.key, "inactive");
+  }, EPHEMERAL_DELETE_AFTER_MS);
+  entry.timer.unref?.();
+}
+
+function cleanupRedeemBoardEphemeral(key, reason) {
+  const entry = redeemBoardCleanupEntries.get(key);
+  if (!entry) {
+    return;
+  }
+
+  if (entry.timer) {
+    clearTimeout(entry.timer);
+  }
+
+  redeemBoardCleanupEntries.delete(key);
+  if (redeemBoardEntriesByUserChannel.get(entry.userChannelKey) === key) {
+    redeemBoardEntriesByUserChannel.delete(entry.userChannelKey);
+  }
+
+  entry.deleteReply().catch(() => null);
+  console.log("[Discord Bot] Redeem board ephemeral cleanup:", reason);
+}
+
+function scheduleEphemeralInteractionCleanup(interaction, key) {
+  const timer = setTimeout(() => {
+    interaction.deleteReply().catch(() => null);
+  }, EPHEMERAL_DELETE_AFTER_MS);
+  timer.unref?.();
 }
 
 async function sendDiscordMessage(payload) {
@@ -552,6 +691,31 @@ async function sendDiscordMessage(payload) {
   return {
     channelId: sentMessage.channelId,
     messageId: sentMessage.id
+  };
+}
+
+async function getDiscordGuildAssets(guildId = process.env.DISCORD_GUILD_ID) {
+  if (!client || !client.isReady()) {
+    throw new Error("Discord bot is not connected");
+  }
+
+  if (!guildId) {
+    throw new Error("Discord guild ID is not configured");
+  }
+
+  const guild = await client.guilds.fetch(guildId);
+  const emojis = await guild.emojis.fetch();
+
+  return {
+    guildId: guild.id,
+    guildName: guild.name,
+    emojis: Array.from(emojis.values()).map((emoji) => ({
+      id: emoji.id,
+      name: emoji.name,
+      animated: Boolean(emoji.animated),
+      markdown: "<" + (emoji.animated ? "a" : "") + ":" + emoji.name + ":" + emoji.id + ">",
+      url: emoji.imageURL({ extension: emoji.animated ? "gif" : "png", size: 64 })
+    })).sort((a, b) => a.name.localeCompare(b.name))
   };
 }
 
@@ -722,7 +886,19 @@ function parseCsv(value) {
     .filter(Boolean);
 }
 
+function getDiscordBotStatus() {
+  return {
+    enabled: parseBoolean(process.env.ENABLE_DISCORD_BOT, false),
+    ready: Boolean(client?.isReady?.()),
+    name: client?.user?.tag || "Not connected",
+    guildCount: client?.guilds?.cache?.size || 0,
+    pingMs: Number.isFinite(client?.ws?.ping) && client.ws.ping >= 0 ? client.ws.ping : null
+  };
+}
+
 module.exports = {
+  getDiscordBotStatus,
+  getDiscordGuildAssets,
   registerDiscordCommands,
   sendDiscordMessage,
   startDiscordBot

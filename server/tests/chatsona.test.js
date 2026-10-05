@@ -1,0 +1,78 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');const os=require('node:os');const path=require('node:path');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'chatsona-test-'));
+process.env.CHATSONA_DATA_DIR=path.join(root,'requests');process.env.CHAT_SILHOUETTE_DATA_DIR=path.join(root,'library');
+process.env.DISCORD_GUILD_ID='guild';process.env.CHATSONA_PUBLIC_URL='https://chatsona.example';process.env.DISCORD_CLIENT_ID='app';process.env.DISCORD_CLIENT_SECRET='test-only';
+const store=require('../services/chatsona/store');const oauth=require('../services/chatsona/oauth');const library=require('../services/chatSilhouettes');
+const bot=require('../services/chatsona');const {PNG}=require('pngjs');const {Collection}=require('discord.js');
+const bytes=PNG.sync.write(new PNG({width:20,height:20}));
+test('verified account, upload, review, idempotent approval, ownership, notifications and seven-day cleanup',async t=>{
+ let seq=0;const sent=[],deleted=[],dms=[];const channels=new Map();
+ function ch(id) {const messages=new Collection();return {id,guildId:'guild',archived:false,messages:{fetch:async()=>messages,edit:async(id,data)=>{Object.assign(messages.get(id),data);}},send:async data=>{const m={id:String(++seq),author:{id:'bot'},...data};messages.set(m.id,m);sent.push({channel:id,data});return m;},members:{add:async()=>{}},setArchived:async()=>{},delete:async()=>deleted.push(id)};}
+ for(const id of Object.values(bot.CHANNELS)) channels.set(id,ch(id));
+ channels.get(bot.CHANNELS.intake).threads={create:async options=>{assert.equal(options.type,12);assert.equal(options.invitable,false);const thread=ch('thread'+(++seq));channels.set(thread.id,thread);return thread;}};
+ const client={user:{id:'bot'},channels:{fetch:async id=>channels.get(id)},users:{fetch:async id=>({send:async text=>dms.push({id,text})})}};
+ await bot.start(client);
+ const message=(user,channel,content,attachments=[])=>({id:String(++seq),guildId:'guild',channelId:channel,channel:channels.get(channel),author:{id:user,bot:false},content,attachments:new Collection(attachments.map((a,i)=>[String(i),a])),reply:async text=>sent.push({channel,data:text})});
+ await bot.handleMessage(message('viewer',bot.CHANNELS.intake,'!chatsona'));
+ const r=store.active('viewer');assert.equal(r.status,'verify');assert.ok(r.threadId);
+ await bot.handleMessage(message('viewer',r.threadId,'',[{url:'https://cdn.discordapp.com/a.png',size:bytes.length}]));assert.equal(r.status,'verify');
+ const state=new URL(oauth.authorization(r)).searchParams.get('state');
+ t.mock.method(global,'fetch',async(url,options)=>{
+   if(String(url).includes('/oauth2/token/revoke')) return {ok:true};
+   if(String(url).includes('/oauth2/token')) return {ok:true,json:async()=>({access_token:'not-stored'})};
+   if(String(url).endsWith('/connections')) return {ok:true,json:async()=>[{id:'12345',name:'Viewer',type:'twitch',verified:true}]};
+   if(String(url).endsWith('/users/@me')) return {ok:true,json:async()=>({id:'viewer'})};
+   return {ok:true,headers:new Headers({'content-length':String(bytes.length)}),body:(async function*(){yield bytes;})()};
+ });
+ await oauth.finish('code',state);assert.equal(r.twitchLogin,'viewer');assert.equal(r.status,'upload');assert.throws(()=>oauth.consume(state));
+ await bot.handleMessage(message('viewer',r.threadId,'',[{url:'https://cdn.discordapp.com/a.png',size:bytes.length}]));assert.equal(r.status,'pending');assert.ok(r.reviewMessageId);
+ const interaction=(allowed,action='approve')=>({isButton:()=>true,customId:`chatsona:${action}:${r.id}`,guildId:'guild',channelId:bot.CHANNELS.review,message:{id:r.reviewMessageId},user:{id:'mod'},memberPermissions:{has:()=>allowed},deferReply:async()=>{},editReply:async()=>{}});
+ await bot.handleInteraction(interaction(false));assert.equal(r.status,'pending');
+ await bot.handleInteraction(interaction(true));assert.equal(r.status,'approved');assert.equal(dms.length,1);
+ const asset=library.list().find(i=>i.sourceRequestId===r.id);assert.equal(asset.twitchUserId,'12345');
+ await bot.handleInteraction(interaction(true));assert.equal(library.list().filter(i=>i.sourceRequestId===r.id).length,1);
+ assert.equal(store.active('viewer'),undefined);
+ const next=library.upload(bytes,{twitchLogin:'viewer',twitchUserId:'12345'}).at(-1);assert.equal(next.enabled,true);assert.equal(library.list().find(i=>i.id===asset.id).enabled,false);
+ const publicAsset=library.publicList().find(i=>i.id===asset.id);assert.equal('discordUserId' in publicAsset,false);
+ await bot.handleMessage(message('viewer',bot.CHANNELS.intake,'!chatsona'));
+ const denied=store.active('viewer');assert.notEqual(denied.id,r.id);
+ Object.assign(denied,{status:'upload',twitchUserId:'12345',twitchLogin:'viewer'});store.put(denied);
+ await bot.handleMessage(message('viewer',denied.threadId,'',[{url:'https://cdn.discordapp.com/a.png',size:bytes.length}]));
+ const deny=interaction(true,'deny');deny.customId='chatsona:deny:'+denied.id;deny.message.id=denied.reviewMessageId;
+ await bot.handleInteraction(deny);assert.equal(denied.status,'denied');assert.equal(dms.length,2);
+ assert.equal(library.list().filter(i=>i.sourceRequestId===denied.id).length,0);
+ const persisted=JSON.parse(fs.readFileSync(store.filename));assert.equal(persisted[r.id].status,'approved');assert.equal('oauthHash' in persisted[r.id],false);
+ r.expiresAt=Date.now()-1;store.put(r);await bot.tick();assert.ok(deleted.includes(r.threadId));assert.ok(r.deletedAt);
+ assert.ok(sent.some(s=>s.channel===bot.CHANNELS.log));
+ // Twitch uploads reuse staff review without trying a Discord DM or thread.
+ const intake=require('../services/twitchIntake');
+ const web=intake.authorized(intake.issueLink({id:'78901',login:'whisperviewer'}).split('#')[1],true);
+ const whisperCalls=[];
+ t.mock.method(require('../services/streamerbot'),'triggerStreamerBot',async(...args)=>{whisperCalls.push(args);return {ok:true};});
+ await assert.rejects(()=>bot.submitWeb(web,Buffer.from('invalid PNG')));
+ assert.equal(web.status,'upload');
+ await bot.submitWeb(web,bytes);assert.equal(web.status,'pending');assert.ok(web.reviewMessageId);
+ await assert.rejects(()=>bot.submitWeb(web,bytes));
+ const webReview=interaction(true);webReview.customId='chatsona:approve:'+web.id;webReview.message.id=web.reviewMessageId;
+ const previousDMs=dms.length;
+ await bot.handleInteraction(webReview);assert.equal(web.status,'approved');assert.equal(dms.length,previousDMs);
+ assert.equal(web.threadId,undefined);assert.equal(web.whisperQueued,true);
+ assert.equal(whisperCalls[0][1].whisperUser,'whisperviewer');
+ assert.equal(library.list().find(a=>a.sourceRequestId===web.id).twitchUserId,'78901');
+});
+test('connection verification rejects unverified, revoked, absent and ambiguous Twitch links',()=>{
+ assert.throws(()=>oauth.twitchConnection([]));assert.throws(()=>oauth.twitchConnection([{id:'1',name:'test',type:'twitch',verified:false}]));
+ assert.throws(()=>oauth.twitchConnection([{id:'1',name:'test',type:'twitch',verified:true,revoked:true}]));
+ assert.throws(()=>oauth.twitchConnection([{id:'1',name:'a',type:'twitch',verified:true},{id:'2',name:'b',type:'twitch',verified:true}]));
+});
+test('personal images are exclusive and cannot receive another viewer random bubble',()=>{
+ const {Crowd,setLibrary,ownedAsset}=require('../../public/widgets/custom-chat/audience');const {validate}=require('../../public/widgets/custom-chat/model');
+ setLibrary([{id:'custom',enabled:true,twitchLogin:'alice',twitchUserId:'1'},{id:'wolf',enabled:true,builtin:true}]);
+ const crowd=new Crowd(),config=validate({startingCrowd:0,audiencePlacement:'random'});
+ const alice={platform:'twitch',id:'a',userId:'1',name:'Alice',login:'alice'};const bob={platform:'twitch',id:'b',userId:'2',name:'Bob',login:'bob'};
+ const a=crowd.touch(alice,config),b=crowd.touch(bob,config);assert.equal(ownedAsset(crowd.slots.find(s=>s.index===a)).id,'custom');assert.equal(ownedAsset(crowd.slots.find(s=>s.index===b)),undefined);
+ for(let i=0;i<20;i++) assert.equal(crowd.choose({...bob,id:String(i)},config),b);
+ assert.equal(crowd.choose(alice,config),a);
+});

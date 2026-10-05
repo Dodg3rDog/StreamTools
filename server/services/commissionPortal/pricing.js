@@ -120,19 +120,151 @@ function readPricingCatalog(filePath) {
   };
 }
 
+function getPricingCatalogItems(catalog) {
+  const items = [];
+
+  for (const group of catalog.baseCommissions || []) {
+    for (const option of group.options || []) {
+      items.push({
+        id: option.id,
+        type: "base_commission",
+        groupId: group.id || "",
+        groupLabel: group.label || "",
+        label: option.label || "",
+        displayLabel: (group.label ? group.label + " - " : "") + (option.label || ""),
+        pricingType: "fixed",
+        amountCents: option.amountCents ?? 0,
+        currency: catalog.currency || "USD",
+        source: option
+      });
+    }
+  }
+
+  for (const item of catalog.specialtyCommissions || []) {
+    items.push({
+      id: item.id,
+      type: "specialty_commission",
+      groupId: "specialty_commissions",
+      groupLabel: "Specialty Commissions",
+      label: item.label || "",
+      displayLabel: item.label || "",
+      pricingType: "fixed",
+      amountCents: item.amountCents ?? 0,
+      currency: catalog.currency || "USD",
+      notes: item.notes || "",
+      source: item
+    });
+  }
+
+  for (const item of catalog.upgrades || []) {
+    items.push({
+      id: item.id,
+      type: "upgrade",
+      groupId: normalizeCatalogId(item.category || "upgrades"),
+      groupLabel: item.category || "Upgrades",
+      label: item.label || "",
+      displayLabel: item.label || "",
+      pricingType: item.pricingType || "fixed",
+      amountCents: item.amountCents ?? null,
+      percent: item.percent ?? null,
+      unitLabel: item.unitLabel || "",
+      currency: catalog.currency || "USD",
+      examples: item.examples || [],
+      source: item
+    });
+  }
+
+  return items;
+}
+
+function findPricingCatalogItem(catalog, itemId) {
+  return getPricingCatalogItems(catalog).find((item) => item.id === itemId) || null;
+}
+
+function createQuoteLineItemFromCatalog(catalog, itemId, input = {}) {
+  const item = findPricingCatalogItem(catalog, itemId);
+  if (!item) {
+    throw new Error("Unknown pricing catalog item: " + itemId);
+  }
+
+  const quantity = Math.max(1, Number.parseInt(input.quantity || 1, 10));
+  const baseAmountCents = input.baseAmountCents ?? null;
+  const customAmountCents = input.customAmountCents ?? null;
+  const pricingType = item.pricingType || "fixed";
+  const line = {
+    catalogItemId: item.id,
+    catalogItemType: item.type,
+    label: item.displayLabel || item.label,
+    quantity,
+    unitAmountCents: item.amountCents ?? null,
+    pricingType,
+    percentageRate: item.percent ?? null,
+    baseAmountCents,
+    computedAmountCents: 0,
+    notes: input.notes || item.notes || ""
+  };
+
+  if (pricingType === "fixed") {
+    line.computedAmountCents = Number(item.amountCents || 0) * quantity;
+    return line;
+  }
+
+  if (pricingType === "percent_of_base") {
+    if (!Number.isFinite(Number(baseAmountCents))) {
+      throw new Error("Base amount is required for percent-based pricing item: " + itemId);
+    }
+
+    line.unitAmountCents = null;
+    line.computedAmountCents = Math.round(Number(baseAmountCents) * Number(item.percent || 0) / 100) * quantity;
+    return line;
+  }
+
+  if (pricingType === "quote_required") {
+    line.unitAmountCents = customAmountCents ?? null;
+    line.computedAmountCents = Number(customAmountCents || 0) * quantity;
+    line.notes = line.notes || "Quote required.";
+    return line;
+  }
+
+  throw new Error("Unsupported pricing type for catalog item " + itemId + ": " + pricingType);
+}
+
+function calculateQuoteTotal(lineItems) {
+  return (lineItems || []).reduce((total, item) => total + Number(item.computedAmountCents || 0), 0);
+}
+
+function formatQuoteLineItem(lineItem, currency = "USD") {
+  const quantity = Number(lineItem.quantity || 1);
+  const prefix = quantity > 1 ? quantity + "x " : "";
+  return prefix + lineItem.label + " - " + formatMoney(lineItem.computedAmountCents, currency);
+}
+
 function buildPricingEmbeds(catalog) {
+  return buildPricingSections(catalog).map((section) => createEmbed(section.title, section.body, 0x7c5cff));
+}
+
+function buildPricingSections(catalog) {
+  if (Array.isArray(catalog.sections) && catalog.sections.length > 0) {
+    return catalog.sections.map((section, index) => ({
+      id: section.id || "pricing-section-" + (index + 1),
+      title: section.title || "Pricing Section " + (index + 1),
+      body: Array.isArray(section.body) ? section.body.join("\n\n") : String(section.body || ""),
+      references: Array.isArray(section.references) ? section.references : []
+    }));
+  }
+
   return [
-    buildCommissionPricingEmbed(catalog),
-    buildAddOnsEmbed(catalog),
-    buildProcessEmbed(catalog),
-    buildPaymentPolicyEmbed(catalog),
-    buildYchPolicyEmbed(catalog),
-    buildCopyrightEmbed(catalog),
-    buildGeneralInformationEmbed(catalog)
+    buildCommissionPricingSection(catalog),
+    buildAddOnsSection(catalog),
+    buildProcessSection(catalog),
+    buildPaymentPolicySection(catalog),
+    buildYchPolicySection(catalog),
+    buildCopyrightSection(catalog),
+    buildGeneralInformationSection(catalog)
   ];
 }
 
-function buildCommissionPricingEmbed(catalog) {
+function buildCommissionPricingSection(catalog) {
   const lines = [];
   for (const group of catalog.baseCommissions || []) {
     lines.push("### " + group.label);
@@ -158,10 +290,10 @@ function buildCommissionPricingEmbed(catalog) {
     }
   }
 
-  return createEmbed("🎨 Character Commissions", lines.join("\n"), 0x7c5cff);
+  return { id: "character-commissions", title: "Character Commissions", body: lines.join("\n") };
 }
 
-function buildAddOnsEmbed(catalog) {
+function buildAddOnsSection(catalog) {
   const grouped = new Map();
   for (const upgrade of catalog.upgrades || []) {
     const items = grouped.get(upgrade.category) || [];
@@ -188,10 +320,10 @@ function buildAddOnsEmbed(catalog) {
   }
 
   lines.push("All add-ons are optional and may be combined.");
-  return createEmbed("➕ Add-Ons & Extras", lines.join("\n"), 0x7c5cff);
+  return { id: "addons-extras", title: "Add-Ons & Extras", body: lines.join("\n") };
 }
 
-function buildProcessEmbed(catalog) {
+function buildProcessSection(catalog) {
   const lines = [];
   (catalog.process || []).forEach((step, index) => {
     lines.push("### " + (index + 1) + ". " + step.title);
@@ -208,10 +340,10 @@ function buildProcessEmbed(catalog) {
     }
   }
 
-  return createEmbed("📋 Commission Process", lines.join("\n"), 0x7c5cff);
+  return { id: "commission-process", title: "Commission Process", body: lines.join("\n") };
 }
 
-function buildPaymentPolicyEmbed(catalog) {
+function buildPaymentPolicySection(catalog) {
   const policy = catalog.paymentPolicy || {};
   const lines = [];
   addHeadingList(lines, "Payment Schedule", policy.schedule);
@@ -221,25 +353,25 @@ function buildPaymentPolicyEmbed(catalog) {
     lines.push(policy.note);
   }
 
-  return createEmbed("💰 Payment Policy", lines.join("\n"), 0x7c5cff);
+  return { id: "payment-policy", title: "Payment Policy", body: lines.join("\n") };
 }
 
-function buildYchPolicyEmbed(catalog) {
-  return createEmbed("📌 YCH Policy", toBulletList(catalog.ychPolicy), 0x7c5cff);
+function buildYchPolicySection(catalog) {
+  return { id: "ych-policy", title: "YCH Policy", body: toBulletList(catalog.ychPolicy) };
 }
 
-function buildCopyrightEmbed(catalog) {
+function buildCopyrightSection(catalog) {
   const usage = catalog.copyrightUsage || {};
   const lines = [];
   addHeadingList(lines, "Artist Rights", usage.artistRights);
   addHeadingList(lines, "Watermarks", usage.watermarks);
   addHeadingList(lines, "Final Deliverables", usage.finalDeliverables);
 
-  return createEmbed("⚖️ Copyright & Usage", lines.join("\n"), 0x7c5cff);
+  return { id: "copyright-usage", title: "Copyright & Usage", body: lines.join("\n") };
 }
 
-function buildGeneralInformationEmbed(catalog) {
-  return createEmbed("✅ General Information", toBulletList(catalog.generalInformation), 0x7c5cff);
+function buildGeneralInformationSection(catalog) {
+  return { id: "general-information", title: "General Information", body: toBulletList(catalog.generalInformation) };
 }
 
 function createEmbed(title, description, color) {
@@ -271,6 +403,14 @@ function formatMoney(amountCents, currency) {
   return "$" + rounded + (currency && currency !== "USD" ? " " + currency : "");
 }
 
+function normalizeCatalogId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 function limitEmbedDescription(value) {
   const text = String(value || "").trim();
   return text.length <= 4096 ? text : text.slice(0, 4093) + "...";
@@ -278,6 +418,13 @@ function limitEmbedDescription(value) {
 
 module.exports = {
   buildPricingEmbeds,
+  buildPricingSections,
+  calculateQuoteTotal,
+  createQuoteLineItemFromCatalog,
+  findPricingCatalogItem,
+  formatMoney,
+  formatQuoteLineItem,
+  getPricingCatalogItems,
   publishCommissionPricing,
   readPricingCatalog,
   startCommissionPricingPublisher

@@ -2,6 +2,7 @@ const path = require("path");
 
 const DEFAULTS = {
   requestCategoryId: "1513219882479653036",
+  portalChannelId: "1524095931614761121",
   tosChannelId: "1513273071740653680",
   pricingChannelId: "1513273123670327368",
   submitRequestChannelId: "1513273302699868161",
@@ -66,7 +67,11 @@ function getCommissionConfig() {
     enabled: parseBoolean(process.env.ENABLE_COMMISSION_PORTAL, true),
     dataPath: process.env.COMMISSION_SQLITE_PATH || path.join(__dirname, "../../data/discord/commission-portal.sqlite"),
     pricingCatalogPath: process.env.COMMISSION_PRICING_CATALOG_PATH || path.join(__dirname, "../../config/discord/commission-pricing.json"),
+    tosCatalogPath: process.env.COMMISSION_TOS_CATALOG_PATH || path.join(__dirname, "../../config/discord/commission-tos.json"),
+    formsCatalogPath: process.env.COMMISSION_FORMS_CATALOG_PATH || path.join(__dirname, "../../config/discord/commission-forms.json"),
+    pdfLogoPath: process.env.COMMISSION_PDF_LOGO_PATH || path.join(__dirname, "../../config/discord/commission-pdf-logo.png"),
     pricingWatchIntervalMs: parseInteger(process.env.COMMISSION_PRICING_WATCH_INTERVAL_MS, 15000),
+    portalChannelId: env("COMMISSION_PORTAL_CHANNEL_ID", DEFAULTS.portalChannelId),
     requestCategoryId: env("COMMISSION_REQUEST_CATEGORY_ID", DEFAULTS.requestCategoryId),
     tosChannelId: env("COMMISSION_TOS_CHANNEL_ID", DEFAULTS.tosChannelId),
     pricingChannelId: env("COMMISSION_PRICING_CHANNEL_ID", DEFAULTS.pricingChannelId),

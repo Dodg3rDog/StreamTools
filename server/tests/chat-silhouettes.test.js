@@ -1,0 +1,32 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const library=require('../services/chatSilhouettes');
+test('library uploads, renames, disables and retains image bytes; rejects invalid uploads',t=>{
+ const files=new Map();
+ t.mock.method(fs,'readFileSync',p=>{if(!files.has(p)) throw Object.assign(new Error(),{code:'ENOENT'});return files.get(p);});
+ t.mock.method(fs,'mkdirSync',()=>{});
+ t.mock.method(fs,'writeFileSync',(p,data)=>files.set(p,data));
+ t.mock.method(fs,'renameSync',(a,b)=>{files.set(b,files.get(a));files.delete(a);});
+ t.mock.method(fs,'unlinkSync',p=>{files.delete(p);});
+ assert.throws(()=>library.upload(Buffer.from('<svg/>')));
+ const {PNG}=require('pngjs');const png=PNG.sync.write(new PNG({width:32,height:32}));
+ const items=library.upload(png),item=items.at(-1);assert.equal(items.length,5);
+ const updated=library.update(item.id,{name:'My wolf',enabled:false}).at(-1);assert.equal(updated.name,'My wolf');assert.equal(updated.enabled,false);
+ assert.ok([...files.keys()].some(p=>p.endsWith(item.id+'.png')));
+ assert.throws(()=>library.update(item.id,{name:'',enabled:true}));
+ const approved=library.approve(png,{twitchLogin:'viewer',twitchUserId:'123',sourceRequestId:'request-1'});
+ library.remove(approved.id);
+ assert.equal(library.list().some(i=>i.id===approved.id),false);
+ assert.equal([...files.keys()].some(p=>p.endsWith(approved.id+'.png')),false);
+ assert.equal(library.approve(png,{twitchLogin:'viewer',twitchUserId:'123',sourceRequestId:'request-1'}).deletedAt>0,true);
+ assert.equal(library.publicList().some(i=>i.id===approved.id),false);
+ library.update(item.id,{name:'Still here',enabled:true});
+ library.upload(png);
+ assert.ok(library.list(true).find(i=>i.id===approved.id).deletedAt);
+ assert.throws(()=>library.update(approved.id,{name:'Restore',enabled:true}));
+ assert.throws(()=>library.remove('../outside'));
+ assert.throws(()=>library.remove('wolf'));
+ library.remove(approved.id); // Repeated deletion is harmless.
+ png.writeUInt32BE(3000,16);assert.throws(()=>library.upload(png));
+});

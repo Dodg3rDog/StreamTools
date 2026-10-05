@@ -22,8 +22,15 @@ backups/
 # raw staging imports
 import/
 
+# purchased/private overlay files
+public/overlays/purchased/**
+!public/overlays/purchased/
+!public/overlays/purchased/.gitignore
+!public/overlays/purchased/README.md
+
 # local runtime/cache files
 .cache/
+.codex-viewer-check/
 *.pid
 server/data/
 

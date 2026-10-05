@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overlay Editor</title>
+  <link rel="stylesheet" href="/shared/css/reset.css" />
+  <link rel="stylesheet" href="./overlay-editor.css" />
+</head>
+<body>
+  <main class="editor-shell">
+    <header class="editor-header">
+      <div>
+        <span class="eyebrow">StreamTools</span>
+        <h1>Overlay Editor</h1>
+      </div>
+      <label class="token-field" id="tokenField">
+        Bearer token
+        <input id="tokenInput" type="password" autocomplete="off" />
+      </label>
+    </header>
+
+    <section class="toolbar">
+      <label>
+        Purchased overlay
+        <select id="overlaySelect"></select>
+      </label>
+      <a id="openOverlayLink" class="button secondary" href="#" target="_blank" rel="noreferrer">Open overlay</a>
+      <button id="copyUrlButton" class="button secondary" type="button">Copy OBS URL</button>
+      <button id="newOverlayButton" class="button secondary" type="button">New Overlay</button>
+      <button id="refreshButton" class="button secondary" type="button">Refresh</button>
+      <button id="saveButton" class="button primary" type="button">Save</button>
+    </section>
+
+    <p id="statusLine" class="status-line" role="status"></p>
+
+    <section class="editor-workspace">
+      <form id="configForm" class="config-form"></form>
+
+      <aside class="preview-panel">
+        <header class="preview-header">
+          <div>
+            <span class="eyebrow">Live Preview</span>
+            <h2 id="previewTitle">Overlay</h2>
+          </div>
+          <button id="reloadPreviewButton" class="button secondary" type="button">Reload</button>
+        </header>
+        <div class="preview-viewport" id="previewViewport">
+          <iframe id="previewFrame" title="Overlay live preview"></iframe>
+        </div>
+        <div class="preview-toolbar" id="previewToolbar">
+          <button class="tool-button handle" id="toolbarHandle" type="button" aria-label="Move toolbar">::</button>
+          <button class="tool-button" id="emulateButton" type="button">Emulate</button>
+          <button class="tool-button" id="zoomOutButton" type="button">-</button>
+          <button class="tool-button" id="zoomInButton" type="button">+</button>
+          <button class="tool-button" id="zoomResetButton" type="button">100%</button>
+          <button class="tool-button" id="fitButton" type="button">Fit</button>
+          <button class="tool-button" id="snapButton" type="button">Grid</button>
+          <label class="volume-control">
+            Volume
+            <input id="volumeInput" type="range" min="0" max="100" step="1" value="100" />
+          </label>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="./overlay-editor.js"></script>
+</body>
+</html>
